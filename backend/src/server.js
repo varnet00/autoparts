@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
@@ -15,6 +16,13 @@ app.use(express.json());
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'turbo-chalakim-backend' });
 });
+
+// --- Фронтенд: витрина и кабинет продавца ---
+const STOREFRONT = path.join(__dirname, '..', '..', 'index.html');
+const CABINET = path.join(__dirname, '..', 'cabinet.html');
+
+app.get('/', (req, res) => res.sendFile(STOREFRONT));
+app.get('/cabinet.html', (req, res) => res.sendFile(CABINET));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/parts', partsRoutes);

@@ -353,8 +353,9 @@
 </div>
 
 <script>
-// כתובת ה-API — עדכנו אם הבקאנד רץ בכתובת אחרת
-const API_BASE = 'http://localhost:4000/api';
+// כתובת ה-API: כשהדף מוגש על ידי השרת נשתמש בנתיב יחסי,
+// וכשפותחים את הקובץ ישירות מהדיסק — בשרת המקומי.
+const API_BASE = location.protocol.startsWith('http') ? '/api' : 'http://localhost:4000/api';
 
 let token = localStorage.getItem('seller_token') || null;
 let seller = null;

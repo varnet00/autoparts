@@ -149,6 +149,11 @@
     display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
     gap:18px; padding-bottom:70px;
   }
+  .empty{
+    grid-column:1/-1; padding:40px 18px; text-align:center;
+    color:var(--steel); background:var(--white);
+    border:1px dashed var(--line); border-radius:14px;
+  }
   .card{
     background:var(--white); border:1px solid var(--line); border-radius:14px;
     padding:18px; display:flex; flex-direction:column; gap:10px;
@@ -366,97 +371,112 @@
 </footer>
 
 <script>
-const SELLERS = {
-  hertzel: { name:"מוסך הרצל — חלקי חילוף", city:"תל אביב", phone:"03-5551234", whatsapp:"972501234567", rating:4.8, reviews:312, verified:true },
-  haifa:   { name:"אוטו-פארט חיפה",           city:"חיפה",     phone:"04-5559876", whatsapp:"972502345678", rating:4.6, reviews:198, verified:true },
-  rishon:  { name:"רכב+ ראשון לציון",          city:"ראשון לציון", phone:"03-5553456", whatsapp:"972503456789", rating:4.3, reviews:87,  verified:false },
-  gal:     { name:"גל חלקי רכב — באר שבע",     city:"באר שבע", phone:"08-5557890", whatsapp:"972504567890", rating:4.9, reviews:421, verified:true },
-};
+// כתובת ה-API: כשהדף מוגש על ידי השרת נשתמש בנתיב יחסי,
+// וכשפותחים את הקובץ ישירות מהדיסק — בשרת המקומי.
+const API_BASE = location.protocol.startsWith('http') ? '/api' : 'http://localhost:4000/api';
 
-const PARTS = [
-  {name:"רפידות בלם קדמיות", sub:"תואם: טויוטה קורולה 2015–2022", cat:"brakes", icon:"🛑", part:"BRK-4471", price:189, stock:"in", seller:SELLERS.hertzel,
-    interchange:[{n:"04465-02310", b:"OEM Toyota"},{n:"GDB3410", b:"TRW"},{n:"P83073", b:"Bosch"}]},
-  {name:"דיסק בלם אחורי", sub:"תואם: יונדאי i20 / i30", cat:"brakes", icon:"🛑", part:"BRK-2290", price:245, stock:"low", seller:SELLERS.haifa,
-    interchange:[{n:"58411-2Kxxx", b:"OEM Hyundai"},{n:"DF6543", b:"TRW"}]},
-  {name:"מסנן שמן מנוע", sub:"תואם: מזדה 3 / מזדה 6", cat:"filters", icon:"🧰", part:"FLT-1183", price:42, stock:"in", seller:SELLERS.rishon,
-    interchange:[{n:"PE01-14-302", b:"OEM Mazda"},{n:"OC90", b:"Mahle"},{n:"W712/75", b:"Mann-Filter"}]},
-  {name:"מסנן אוויר תא נוסעים", sub:"תואם: קיה ספורטאז' 2018+", cat:"filters", icon:"🧰", part:"FLT-3765", price:68, stock:"in", seller:SELLERS.haifa,
-    interchange:[{n:"97133-D9000", b:"OEM Kia"},{n:"CUK2939", b:"Mann-Filter"}]},
-  {name:"מצבר 60 אמפר", sub:"תואם: רוב הרכבים המשפחתיים", cat:"battery", icon:"🔋", part:"BAT-6012", price:410, stock:"in", seller:SELLERS.gal,
-    interchange:[{n:"L2-60", b:"Varta"},{n:"DIN60", b:"Universal"}]},
-  {name:"מצבר 45 אמפר קומפקטי", sub:"תואם: רכבי סופר-מיני", cat:"battery", icon:"🔋", part:"BAT-4509", price:355, stock:"low", seller:SELLERS.gal,
-    interchange:[{n:"L1-45", b:"Varta"},{n:"DIN45", b:"Universal"}]},
-  {name:"פנס ראשי ימני LED", sub:"תואם: סקודה אוקטביה 2020+", cat:"lights", icon:"💡", part:"LGT-2201", price:520, stock:"in", seller:SELLERS.hertzel,
-    interchange:[{n:"5E1-941-006", b:"OEM Skoda"},{n:"LPL584", b:"Hella"}]},
-  {name:"נורת איתות אחורית", sub:"תואם: אוניברסלי, סט זוגי", cat:"lights", icon:"💡", part:"LGT-0087", price:34, stock:"in", seller:SELLERS.rishon,
-    interchange:[{n:"WY21W", b:"Universal"},{n:"7440", b:"Universal"}]},
-  {name:"שמן מנוע סינטטי 5W-30", sub:"מיכל 4 ליטר", cat:"oil", icon:"🛢️", part:"OIL-5304", price:159, stock:"in", seller:SELLERS.haifa,
-    interchange:[{n:"5W30-C3", b:"Castrol"},{n:"5W30-LL", b:"Mobil 1"}]},
-  {name:"שמן גיר אוטומטי ATF", sub:"מיכל 1 ליטר", cat:"oil", icon:"🛢️", part:"OIL-1102", price:79, stock:"low", seller:SELLERS.haifa,
-    interchange:[{n:"ATF-DW1", b:"OEM"},{n:"ATF-3309", b:"Motul"}]},
-  {name:"בולם זעזועים קדמי", sub:"תואם: הונדה סיוויק 2016–2021", cat:"suspension", icon:"⚙️", part:"SUS-7734", price:310, stock:"in", seller:SELLERS.gal,
-    interchange:[{n:"51606-TBA-A02", b:"OEM Honda"},{n:"333374", b:"Monroe"},{n:"G8563", b:"Bilstein"}]},
-  {name:"זרוע היגוי תחתונה", sub:"תואם: פורד פוקוס 2012–2018", cat:"suspension", icon:"⚙️", part:"SUS-3390", price:225, stock:"in", seller:SELLERS.hertzel,
-    interchange:[{n:"1719872", b:"OEM Ford"},{n:"RBJ500280", b:"Delphi"}]},
-];
+let PARTS = [];
+
+function esc(value){
+  return String(value ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+
+// ממירים תשובת API למבנה שהתבנית למטה מצפה לו
+function normalizePart(p){
+  return {
+    name: p.name,
+    sub: p.sub || '',
+    cat: p.category,
+    icon: p.icon || '🔧',
+    part: p.part_no,
+    price: p.price,
+    stock: p.stock,
+    seller: p.seller ? {
+      name: p.seller.name,
+      city: p.seller.city,
+      phone: p.seller.phone,
+      whatsapp: p.seller.whatsapp,
+      rating: p.seller.rating,
+      reviews: p.seller.reviews_count,
+      verified: !!p.seller.verified,
+    } : null,
+    interchange: (p.interchange_numbers || []).map(x => ({ n: x.number, b: x.brand })),
+  };
+}
 
 const grid = document.getElementById('grid');
 const resultCount = document.getElementById('resultCount');
 let activeCat = 'all';
 let query = '';
 
+// הסינון נעשה בצד השרת: קטגוריה ו-q (כולל חיפוש לפי מספרים חלופיים)
+async function load(){
+  const params = new URLSearchParams({ limit: '100' });
+  if(activeCat !== 'all') params.set('category', activeCat);
+  if(query.trim()) params.set('q', query.trim());
+
+  grid.innerHTML = '<div class="empty">טוען קטלוג…</div>';
+  try {
+    const res = await fetch(`${API_BASE}/parts?${params}`);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    PARTS = (data.items || []).map(normalizePart);
+    render();
+  } catch (err) {
+    resultCount.textContent = '0';
+    grid.innerHTML = '<div class="empty">לא הצלחנו לטעון את הקטלוג מהשרת. ודאו שה-API פועל ונסו שוב.</div>';
+  }
+}
+
 function render(){
-  const filtered = PARTS.filter(p=>{
-    const matchesCat = activeCat==='all' || p.cat===activeCat;
-    const q = query.trim().toLowerCase();
-    const matchesQuery = !q
-      || p.name.toLowerCase().includes(q)
-      || p.sub.toLowerCase().includes(q)
-      || p.part.toLowerCase().includes(q)
-      || p.interchange.some(x => x.n.toLowerCase().includes(q));
-    return matchesCat && matchesQuery;
-  });
-  resultCount.textContent = filtered.length;
-  grid.innerHTML = filtered.map((p,i)=>`
+  resultCount.textContent = PARTS.length;
+  if(!PARTS.length){
+    grid.innerHTML = '<div class="empty">לא נמצאו חלקים מתאימים לחיפוש.</div>';
+    return;
+  }
+  grid.innerHTML = PARTS.map((p,i)=>`
     <div class="card">
       <div class="card-top">
-        <div class="icon-tile">${p.icon}</div>
-        <div class="stock-badge ${p.stock}">${p.stock==='in' ? '● במלאי' : '● מלאי נמוך'}</div>
+        <div class="icon-tile">${esc(p.icon)}</div>
+        <div class="stock-badge ${p.stock==='in' ? 'in' : 'low'}">${p.stock==='in' ? '● במלאי' : '● מלאי נמוך'}</div>
       </div>
-      <h3>${p.name}</h3>
-      <div class="sub">${p.sub}</div>
-      <div class="part-no mono">מק״ט ${p.part}</div>
+      <h3>${esc(p.name)}</h3>
+      <div class="sub">${esc(p.sub)}</div>
+      <div class="part-no mono">מק״ט ${esc(p.part)}</div>
 
       <div class="interchange">
         <div class="interchange-label">🔁 מספרים חלופיים (תואמים)</div>
         <div class="interchange-list">
-          ${p.interchange.map(x=>`<span class="interchange-tag">${x.n} <span class="brand">${x.b}</span></span>`).join('')}
+          ${p.interchange.map(x=>`<span class="interchange-tag">${esc(x.n)} <span class="brand">${esc(x.b)}</span></span>`).join('')}
         </div>
       </div>
 
       <div class="card-bottom">
-        <div class="price">₪${p.price}<span class="ils"> כולל מע״מ</span></div>
+        <div class="price">₪${esc(p.price)}<span class="ils"> כולל מע״מ</span></div>
       </div>
 
+      ${p.seller ? `
       <button class="seller-toggle" data-idx="${i}">
-        <span>👤 ${p.seller.name}</span>
+        <span>👤 ${esc(p.seller.name)}</span>
         <span class="arrow">▾</span>
       </button>
       <div class="seller-card" id="seller-${i}">
         <div class="seller-name-row">
-          <span class="seller-name">${p.seller.name}</span>
+          <span class="seller-name">${esc(p.seller.name)}</span>
           ${p.seller.verified ? '<span class="verified-badge">✓ ספק מאומת</span>' : ''}
         </div>
         <div class="seller-meta">
-          <span>📍 ${p.seller.city}</span>
-          <span class="seller-rating">★ ${p.seller.rating}</span>
-          <span>(${p.seller.reviews} ביקורות)</span>
+          <span>📍 ${esc(p.seller.city)}</span>
+          <span class="seller-rating">★ ${esc(p.seller.rating)}</span>
+          <span>(${esc(p.seller.reviews)} ביקורות)</span>
         </div>
         <div class="seller-actions">
-          <a class="call-btn" href="tel:${p.seller.phone}">📞 ${p.seller.phone}</a>
-          <a class="wa-btn" href="https://wa.me/${p.seller.whatsapp}" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="call-btn" href="tel:${esc(p.seller.phone)}">📞 ${esc(p.seller.phone)}</a>
+          ${p.seller.whatsapp ? `<a class="wa-btn" href="https://wa.me/${encodeURIComponent(p.seller.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
         </div>
-      </div>
+      </div>` : ''}
     </div>
   `).join('');
 
@@ -475,25 +495,25 @@ document.querySelectorAll('.chip').forEach(chip=>{
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
     chip.classList.add('active');
     activeCat = chip.dataset.cat;
-    render();
+    load();
   });
 });
 
 const searchInput = document.getElementById('searchInput');
 document.getElementById('searchGo').addEventListener('click', ()=>{
   query = searchInput.value;
-  render();
+  load();
   document.getElementById('catalog').scrollIntoView({behavior:'smooth'});
 });
 searchInput.addEventListener('keydown', e=>{
   if(e.key==='Enter'){
     query = searchInput.value;
-    render();
+    load();
     document.getElementById('catalog').scrollIntoView({behavior:'smooth'});
   }
 });
 
-render();
+load();
 </script>
 
 </body>
