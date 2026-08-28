@@ -14,7 +14,7 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'turbo-chalakim-backend' });
+  res.json({ status: 'ok', service: 'autoparts-backend' });
 });
 
 // --- Фронтенд: витрина и кабинет продавца ---
@@ -42,5 +42,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`🚀 Turbo Chalakim API רץ על http://localhost:${PORT}`);
+  console.log(`🚀 autoparts API רץ על http://localhost:${PORT}`);
 });

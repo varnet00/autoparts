@@ -1,7 +1,7 @@
 {
-  "name": "turbo-chalakim-backend",
+  "name": "autoparts-backend",
   "version": "1.0.0",
-  "description": "Backend API for Turbo Chalakim — auto parts marketplace (by autolick)",
+  "description": "Backend API for autoparts — auto parts marketplace (by autolick)",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {

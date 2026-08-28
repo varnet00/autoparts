@@ -1,6 +1,6 @@
-# Turbo Chalakim — Backend API
+# autoparts — Backend API
 
-Backend для сайта «טורבו חלקים» (by autolick). REST API на **Node.js + Express + SQLite**, с авторизацией по JWT, каталогом товаров, карточкой продавца и списком взаимозаменяемых номеров в каждом товаре.
+Backend для сайта autoparts (by autolick). REST API на **Node.js + Express + SQLite**, с авторизацией по JWT, каталогом товаров, карточкой продавца и списком взаимозаменяемых номеров в каждом товаре.
 
 ## Запуск
 
@@ -12,7 +12,7 @@ npm run seed      # заполнить каталог демо-товарами,
 npm start         # или npm run dev для авто-перезапуска
 ```
 
-Сервер поднимется на `http://localhost:4000`. База данных SQLite создастся автоматически в `./data/turbo_chalakim.db`.
+Сервер поднимется на `http://localhost:4000`. База данных SQLite создастся автоматически в `./data/autoparts.db`.
 
 ## Структура
 

@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 
-const DB_PATH = process.env.DB_PATH || './data/turbo_chalakim.db';
+const DB_PATH = process.env.DB_PATH || './data/autoparts.db';
 
 const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
