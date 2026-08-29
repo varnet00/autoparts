@@ -927,8 +927,21 @@ document.addEventListener('submit', async (ev) => {
 });
 
 /* ============================ אתחול ============================ */
+
+// מסך הפתיחה יורד רק אחרי שהשרת ענה — כך ההמתנה לשרת שנרדם
+// נראית כמו טעינה ולא כמו מסך ריק. מינימום קצר כדי שלא יהבהב.
+function hideSplash() {
+  const el = document.getElementById('splash');
+  if (!el) return;
+  el.classList.add('gone');
+  setTimeout(() => el.remove(), 400);
+}
+
 S.authTab = 'buyer';
 S.authMode = 'login';
 render();
-loadStats();
-loadMe();
+
+const splashFloor = new Promise((resolve) => setTimeout(resolve, 700));
+Promise.allSettled([loadStats(), loadMe()])
+  .then(() => splashFloor)
+  .then(hideSplash);

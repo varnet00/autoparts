@@ -138,13 +138,55 @@ input,select,textarea{font:inherit;color:inherit}
 .row{display:flex;align-items:center}
 .between{justify-content:space-between}
 svg{flex:none}
+
+/* ---------- מסך פתיחה ----------
+   מצויר ישירות ב-HTML כדי שייצבע לפני שה-JS בכלל נטען. בשרת שנרדם
+   ההמתנה הראשונה ארוכה, ובלעדיו המשתמש רואה מסך לבן וחושב שנשבר. */
+#splash{
+  position:absolute;inset:0;z-index:60;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s4);
+  transition:opacity .35s ease, visibility .35s;
+}
+#splash.gone{opacity:0;visibility:hidden}
+#splash .mark{
+  width:96px;opacity:0;transform:translateY(6px) scale(.94);
+  animation:splash-mark .7s cubic-bezier(.2,.7,.3,1) forwards;
+}
+#splash .word{
+  font:600 var(--fs-sub)/1 var(--mono);letter-spacing:2.4px;color:var(--ink);
+  opacity:0;animation:splash-word .5s ease .28s forwards;
+}
+#splash .hint{
+  position:absolute;bottom:calc(var(--s8) + env(safe-area-inset-bottom));
+  font:400 var(--fs-label) var(--sans);color:var(--muted);
+  opacity:0;animation:splash-word .4s ease 2.2s forwards;  /* רק אם ההמתנה נמשכת */
+}
+@keyframes splash-mark{to{opacity:1;transform:none}}
+@keyframes splash-word{to{opacity:1}}
+
+/* מי שביקש פחות תנועה מקבל את אותו מסך, בלי אנימציה */
+@media (prefers-reduced-motion: reduce){
+  #splash .mark,#splash .word,#splash .hint{animation:none;opacity:1;transform:none}
+  #splash{transition:opacity .01s}
+}
 </style>
 </head>
 <body>
 <div id="app">
+  <div id="splash">
+    <svg class="mark" viewBox="71 180 496 333" aria-hidden="true">
+      <path fill="#f2761b" fill-rule="evenodd" d="M72 180 L72 190 L108 365 L129 477 L134 489 L147 504 L160 511 L168 513 L468 513 L476 511 L490 503 L502 489 L507 476 L535 332 L567 182 L566 180 Z M97 202 L138 416 L166 351 L225 202 Z M412 202 L474 357 L484 378 L485 384 L497 410 L498 416 L500 415 L541 202 Z M318 245 L273 356 L270 360 L269 366 L256 394 L250 412 L247 416 L243 429 L240 433 L232 456 L224 472 L218 487 L219 489 L418 488 L399 440 L315 440 L315 436 L322 422 L339 377 L372 376 L319 245 Z"/>
+    </svg>
+    <span class="word">AUTOPARTS</span>
+    <span class="hint">מתחבר לשרת…</span>
+  </div>
   <div id="screen" class="stack" style="flex:1;min-height:0"></div>
   <div class="dock" id="dock"></div>
 </div>
+<script>
+  // אם משהו ישבור את הטעינה, המסך לא ייתקע — נעלם גם בלי app.js
+  setTimeout(function(){ var s=document.getElementById('splash'); if(s) s.classList.add('gone'); }, 8000);
+</script>
 <script src="/app.js"></script>
 </body>
 </html>
