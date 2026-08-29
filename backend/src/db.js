@@ -100,9 +100,15 @@ const partColumns = new Set(db.prepare('PRAGMA table_info(parts)').all().map((c)
 const newPartColumns = [
   ["kind", "TEXT NOT NULL DEFAULT 'copy'"],   // orig | copy | used
   ['maker', 'TEXT'],                           // ADVICS, TRW, TOYOTA GENUINE…
-  ['fits', 'TEXT'],                            // COROLLA E210 · 2016—2023
+  ['fits', 'TEXT'],                            // טקסט חופשי להצגה
   ['qty', 'INTEGER NOT NULL DEFAULT 0'],
   ['image_url', 'TEXT'],
+  // התאמה מובנית לרכב — מה שמאפשר לסנן, בניגוד ל-fits שהוא טקסט חופשי
+  ['vehicle_kind', 'TEXT'],                    // car | van | truck | moto …
+  ['vehicle_make', 'TEXT'],                    // Toyota, Volvo, Yamaha …
+  ['vehicle_model', 'TEXT'],                   // Corolla E210
+  ['year_from', 'INTEGER'],
+  ['year_to', 'INTEGER'],
 ];
 for (const [name, type] of newPartColumns) {
   if (!partColumns.has(name)) {
@@ -151,11 +157,17 @@ if (hasGlobalPartNoUnique || partNoNullable) {
         fits TEXT,
         qty INTEGER NOT NULL DEFAULT 0,
         image_url TEXT,
+        vehicle_kind TEXT,
+        vehicle_make TEXT,
+        vehicle_model TEXT,
+        year_from INTEGER,
+        year_to INTEGER,
         UNIQUE (seller_id, part_no)
       );
       INSERT INTO parts_new
         SELECT id, name, sub, category, part_no, price, stock, icon, seller_id,
-               created_at, kind, maker, fits, qty, image_url
+               created_at, kind, maker, fits, qty, image_url,
+               vehicle_kind, vehicle_make, vehicle_model, year_from, year_to
         FROM parts;
       DROP TABLE parts;
       ALTER TABLE parts_new RENAME TO parts;
@@ -164,5 +176,10 @@ if (hasGlobalPartNoUnique || partNoNullable) {
   })();
   db.pragma('foreign_keys = ON');
 }
+
+// אינדקסים לסינון לפי רכב — נוצרים אחרי המיגרציה, כשהעמודות כבר קיימות
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_parts_vehicle ON parts(vehicle_kind, vehicle_make);
+`);
 
 module.exports = db;

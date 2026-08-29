@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../db');
+const { isKind } = require('../vehicles');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ function attachSellerAndInterchange(parts) {
 
 // GET /api/parts?category=brakes&kind=orig&q=בלם&page=1&limit=20
 router.get('/', (req, res) => {
-  const { category, kind, q } = req.query;
+  const { category, kind, q, vehicle_kind: vk, vehicle_make: vm } = req.query;
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
   const offset = (page - 1) * limit;
@@ -37,10 +38,20 @@ router.get('/', (req, res) => {
     where.push('kind = @kind');
     params.kind = kind;
   }
+  if (vk && vk !== 'all') {
+    if (!isKind(vk)) return res.status(400).json({ error: 'סוג רכב לא תקין' });
+    where.push('vehicle_kind = @vk');
+    params.vk = vk;
+  }
+  if (vm && vm !== 'all') {
+    where.push('vehicle_make = @vm');
+    params.vm = vm;
+  }
   if (q) {
     where.push(`(
       name LIKE @q ESCAPE '\\' OR sub LIKE @q ESCAPE '\\' OR part_no LIKE @q ESCAPE '\\'
       OR maker LIKE @q ESCAPE '\\' OR fits LIKE @q ESCAPE '\\'
+      OR vehicle_make LIKE @q ESCAPE '\\' OR vehicle_model LIKE @q ESCAPE '\\'
       OR id IN (SELECT part_id FROM interchange_numbers WHERE number LIKE @q ESCAPE '\\')
     )`);
     // % ו-_ הם תווי חיפוש של LIKE — בלי בריחה, חיפוש "%" מחזיר את כל הקטלוג

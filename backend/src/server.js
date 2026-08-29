@@ -9,6 +9,7 @@ const categoriesRoutes = require('./routes/categories');
 const sellersRoutes = require('./routes/sellers');
 const conversationsRoutes = require('./routes/conversations');
 const statsRoutes = require('./routes/stats');
+const vehiclesRoutes = require('./routes/vehicles');
 
 // בלי סוד ל-JWT השרת עולה אבל כל ההתחברות נשברת רק בזמן ריצה —
 // עדיף ליפול מיד עם הסבר ברור.
@@ -48,6 +49,7 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/sellers', sellersRoutes);
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/vehicles', vehiclesRoutes);
 
 // 404
 app.use((req, res) => {

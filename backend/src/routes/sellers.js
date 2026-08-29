@@ -4,10 +4,31 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { requireSellerAuth } = require('../middleware/sellerAuth');
 const { asyncHandler } = require('../asyncHandler');
+const { isKind, isMakeOfKind } = require('../vehicles');
 
 const router = express.Router();
 
 const KINDS = new Set(['orig', 'copy', 'used']);
+
+// התאמת הרכב נבדקת כזוג: יצרן תקף רק בתוך הסוג שלו, ושנים חייבות
+// להיות טווח הגיוני — אחרת החלק פשוט לא יימצא במסננים.
+function vehicleError(body, current) {
+  const kind = body.vehicle_kind !== undefined ? body.vehicle_kind : (current && current.vehicle_kind);
+  const make = body.vehicle_make !== undefined ? body.vehicle_make : (current && current.vehicle_make);
+  const from = body.year_from !== undefined ? body.year_from : (current && current.year_from);
+  const to = body.year_to !== undefined ? body.year_to : (current && current.year_to);
+
+  if (kind && !isKind(kind)) return 'סוג רכב לא תקין';
+  if (make && !kind) return 'נא לבחור סוג רכב לפני היצרן';
+  if (make && !isMakeOfKind(kind, make)) return 'היצרן אינו מתאים לסוג הרכב שנבחר';
+
+  const year = (y) => y === null || y === undefined || (Number.isInteger(y) && y >= 1950 && y <= 2100);
+  if (!year(from) || !year(to)) return 'שנת דגם חייבת להיות בין 1950 ל-2100';
+  if (from && to && from > to) return 'שנת ההתחלה מאוחרת משנת הסיום';
+  return null;
+}
+
+
 
 function signSellerToken(seller) {
   return jwt.sign(
@@ -184,8 +205,8 @@ router.get('/me/stats', requireSellerAuth, (req, res) => {
 
 // POST /api/sellers/me/parts — יצירת כרטיס מוצר חדש
 router.post('/me/parts', requireSellerAuth, (req, res) => {
-  const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers } =
-    req.body || {};
+  const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers,
+          vehicle_kind, vehicle_make, vehicle_model, year_from, year_to } = req.body || {};
 
   if (!name || !category || !part_no || price === undefined) {
     return res.status(400).json({ error: 'נא למלא שם, קטגוריה, מק״ט ומחיר' });
@@ -199,6 +220,8 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
   if (qty !== undefined && (!Number.isInteger(qty) || qty < 0)) {
     return res.status(400).json({ error: 'הכמות חייבת להיות מספר שלם אי-שלילי' });
   }
+  const vehErr = vehicleError(req.body || {}, null);
+  if (vehErr) return res.status(400).json({ error: vehErr });
 
   // מק״ט ייחודי בתוך המוכר בלבד — אותו חלק מוצע במקביל על ידי מוכרים אחרים.
   const existing = db
@@ -211,8 +234,10 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
   const createPart = db.transaction(() => {
     const result = db
       .prepare(
-        `INSERT INTO parts (name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, seller_id)
-         VALUES (@name, @sub, @category, @part_no, @price, @kind, @maker, @fits, @qty, @image_url, @icon, @seller_id)`
+        `INSERT INTO parts (name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, seller_id,
+                            vehicle_kind, vehicle_make, vehicle_model, year_from, year_to)
+         VALUES (@name, @sub, @category, @part_no, @price, @kind, @maker, @fits, @qty, @image_url, @icon, @seller_id,
+                 @vehicle_kind, @vehicle_make, @vehicle_model, @year_from, @year_to)`
       )
       .run({
         name,
@@ -227,6 +252,11 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
         image_url: image_url || null,
         icon: icon || '🔧',
         seller_id: req.seller.id,
+        vehicle_kind: vehicle_kind || null,
+        vehicle_make: vehicle_make || null,
+        vehicle_model: vehicle_model || null,
+        year_from: year_from ?? null,
+        year_to: year_to ?? null,
       });
 
     const partId = result.lastInsertRowid;
@@ -256,8 +286,8 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
     return res.status(404).json({ error: 'הכרטיס לא נמצא בקבינט שלך' });
   }
 
-  const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers } =
-    req.body || {};
+  const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers,
+          vehicle_kind, vehicle_make, vehicle_model, year_from, year_to } = req.body || {};
 
   if (price !== undefined && (typeof price !== 'number' || price < 0)) {
     return res.status(400).json({ error: 'המחיר חייב להיות מספר חיובי' });
@@ -268,6 +298,8 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
   if (qty !== undefined && (!Number.isInteger(qty) || qty < 0)) {
     return res.status(400).json({ error: 'הכמות חייבת להיות מספר שלם אי-שלילי' });
   }
+  const vehErrPatch = vehicleError(req.body || {}, current);
+  if (vehErrPatch) return res.status(400).json({ error: vehErrPatch });
   if (part_no !== undefined) {
     if (!part_no) return res.status(400).json({ error: 'מק״ט הוא שדה חובה' });
     const clash = db
@@ -278,7 +310,9 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
 
   db.prepare(
     `UPDATE parts SET name=@name, sub=@sub, category=@category, part_no=@part_no, price=@price,
-            kind=@kind, maker=@maker, fits=@fits, qty=@qty, image_url=@image_url, icon=@icon
+            kind=@kind, maker=@maker, fits=@fits, qty=@qty, image_url=@image_url, icon=@icon,
+            vehicle_kind=@vehicle_kind, vehicle_make=@vehicle_make, vehicle_model=@vehicle_model,
+            year_from=@year_from, year_to=@year_to
      WHERE id=@id`
   ).run({
     name: name ?? current.name,
@@ -292,6 +326,12 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
     qty: qty ?? current.qty,
     image_url: image_url ?? current.image_url,
     icon: icon ?? current.icon,
+    // כאן null הוא בקשה למחוק את ההתאמה, ולכן בודקים undefined ולא ??
+    vehicle_kind: vehicle_kind !== undefined ? (vehicle_kind || null) : current.vehicle_kind,
+    vehicle_make: vehicle_make !== undefined ? (vehicle_make || null) : current.vehicle_make,
+    vehicle_model: vehicle_model !== undefined ? (vehicle_model || null) : current.vehicle_model,
+    year_from: year_from !== undefined ? (year_from ?? null) : current.year_from,
+    year_to: year_to !== undefined ? (year_to ?? null) : current.year_to,
     id: partId,
   });
 

@@ -74,6 +74,9 @@ const S = {
   loading: false,
   draft: null,
   sheet: false,   // הפאנל התחתון של מסך הבית
+  vehicles: [],   // מיון סוגי רכב ויצרנים, מהשרת
+  vkind: 'all',   // סוג רכב שנבחר במסנן
+  vmake: 'all',   // יצרן שנבחר במסנן
 };
 
 const isSeller = () => S.role === 'seller';
@@ -183,8 +186,10 @@ function loader() {
 /* ============================ מסך: בית ============================ */
 function viewHome() {
   const st = S.stats;
-  const quick = ['רפידות בלימה', 'מסנן שמן', 'מצבר'];
   const open = S.sheet ? ' open' : '';
+  // רשימת היצרנים נגזרת מסוג הרכב שנבחר — אין טעם להציע John Deere לרכב פרטי
+  const chosen = S.vehicles.find((v) => v.id === S.vkind);
+  const makes = chosen ? chosen.makes : [];
 
   return `
     ${topBar({})}
@@ -215,17 +220,30 @@ function viewHome() {
       <div class="grab"></div>
       <div class="stack" style="gap: var(--s6);padding: var(--s2) var(--s5) 0">
         <div class="stack" style="gap: var(--s3)">
-          <span class="label">חיפושים נפוצים</span>
+          <span class="label">איזה חלק דרוש</span>
           <div class="chips">
-            ${quick.map((t) => `<button class="chip" data-act="quick" data-q="${esc(t)}">${esc(t)}</button>`).join('')}
+            ${Object.keys(CATEGORY_LABEL).map((c) => `<button class="chip" data-act="cat" data-cat="${c}" aria-pressed="${S.category === c}">${CATEGORY_LABEL[c]}</button>`).join('')}
           </div>
         </div>
+
         <div class="stack" style="gap: var(--s3)">
-          <span class="label">קטגוריות</span>
+          <span class="label">סוג הרכב</span>
           <div class="chips">
-            ${Object.keys(CATEGORY_LABEL).map((c) => `<button class="chip" data-act="cat" data-cat="${c}">${CATEGORY_LABEL[c]}</button>`).join('')}
+            ${S.vehicles.map((v) => `<button class="chip" data-act="vkind" data-vkind="${esc(v.id)}" aria-pressed="${S.vkind === v.id}">${esc(v.label)}</button>`).join('')
+              || '<span class="label">טוען…</span>'}
           </div>
         </div>
+
+        ${makes.length ? `<div class="stack" data-makes style="gap: var(--s3)">
+          <div class="row between">
+            <span class="label">יצרן</span>
+            ${S.vmake !== 'all' ? '<button class="label" data-act="vmake" data-vmake="all" style="text-decoration:underline">נקה</button>' : ''}
+          </div>
+          <div class="chips">
+            ${makes.map((m) => `<button class="chip" data-act="vmake" data-vmake="${esc(m)}" aria-pressed="${S.vmake === m}">${esc(m)}</button>`).join('')}
+          </div>
+        </div>` : ''}
+
         <div class="row" style="gap: var(--s4);font:400 var(--fs-label) var(--sans);color:var(--muted)">
           ${st ? `<span>${st.numbers} מק״טים</span>
                   <span style="width:4px;height:4px;border-radius:999px;background:#c8c1b7"></span>
@@ -238,6 +256,12 @@ function viewHome() {
 /* ============================ מסך: חיפוש ============================ */
 function viewSearch() {
   const kinds = [['all', 'הכל'], ['orig', 'מקורי'], ['copy', 'חלופי'], ['used', 'משומש']];
+  const vk = S.vehicles.find((v) => v.id === S.vkind);
+  const activeFilters = [
+    S.category !== 'all' ? CATEGORY_LABEL[S.category] || S.category : null,
+    vk ? vk.label : null,
+    S.vmake !== 'all' ? S.vmake : null,
+  ].filter(Boolean);
   return `
     ${topBar({})}
     <div class="scroll">
@@ -249,9 +273,9 @@ function viewSearch() {
         <div class="chips">
           ${kinds.map(([k, t]) => `<button class="chip" data-act="kind" data-kind="${k}" aria-pressed="${S.kind === k}">${t}</button>`).join('')}
         </div>
-        ${S.category !== 'all' ? `<div class="row between">
-          <span class="label">קטגוריה: ${esc(CATEGORY_LABEL[S.category] || S.category)}</span>
-          <button class="label" data-act="cat" data-cat="all" style="text-decoration:underline">נקה</button>
+        ${activeFilters.length ? `<div class="row between">
+          <span class="label">${activeFilters.join(' · ')}</span>
+          <button class="label" data-act="clear-filters" style="text-decoration:underline">נקה</button>
         </div>` : ''}
       </div>
       <div class="pad row between" style="padding-top: var(--s5)">
@@ -447,12 +471,29 @@ function stockCard(p) {
   </div>`;
 }
 
+// שורת ההתאמה שמופיעה בכרטיס נבנית מהשדות המובנים, כדי שהתצוגה
+// והמסננים לא יסתרו זה את זה.
+function fitsText(make, model, from, to) {
+  const head = [make, model].filter(Boolean).join(' ');
+  const years = from && to ? `${from}—${to}` : (from ? `${from}+` : (to ? `עד ${to}` : ''));
+  if (!head) return years || null;
+  return years ? `${head} · ${years}` : head;
+}
+
+/* רשימת היצרנים תלויה בסוג הרכב, ומתחלפת גם בלי ציור מחדש של הטופס */
+function makeOptions(makes, selected) {
+  return `<option value="">יצרן</option>` +
+    makes.map((m) => `<option value="${esc(m)}" ${selected === m ? 'selected' : ''}>${esc(m)}</option>`).join('');
+}
+
 /* ============================ מסך: פוזיציה חדשה ============================ */
 function viewCreate() {
   const d = S.draft || {};
   const editing = Boolean(d.id);
   const kinds = [['orig', 'מקורי'], ['copy', 'חלופי'], ['used', 'משומש']];
   const nums = d.nums || [];
+  const vKind = d.vehicle_kind || '';
+  const vMakes = (S.vehicles.find((v) => v.id === vKind) || {}).makes || [];
   return `
     <div class="top">
       <button class="iconbtn" data-act="stock">${ICON.close({ s: 17 })}</button>
@@ -498,8 +539,21 @@ function viewCreate() {
           </select>
         </div>
         <div class="field">
-          <span class="label">דגם ושנים</span>
-          <input class="mono" name="fits" value="${esc(d.fits || '')}" placeholder="TOYOTA COROLLA E210 · 2016—2023">
+          <span class="label">התאמה לרכב · לא חובה</span>
+          <div class="row" style="gap: var(--s3)">
+            <select name="vehicle_kind" style="flex:1">
+              <option value="">סוג רכב</option>
+              ${S.vehicles.map((v) => `<option value="${esc(v.id)}" ${vKind === v.id ? 'selected' : ''}>${esc(v.label)}</option>`).join('')}
+            </select>
+            <select name="vehicle_make" style="flex:1" ${vMakes.length ? '' : 'disabled'}>
+              ${makeOptions(vMakes, d.vehicle_make || '')}
+            </select>
+          </div>
+        </div>
+        <div class="row" style="gap: var(--s3)">
+          <div class="field" style="flex:2"><span class="label">דגם</span><input class="mono" name="vehicle_model" value="${esc(d.vehicle_model || '')}" placeholder="COROLLA E210"></div>
+          <div class="field" style="flex:1"><span class="label">משנת</span><input class="mono" name="year_from" type="number" min="1950" max="2100" value="${esc(d.year_from != null ? d.year_from : '')}" placeholder="2016"></div>
+          <div class="field" style="flex:1"><span class="label">עד שנת</span><input class="mono" name="year_to" type="number" min="1950" max="2100" value="${esc(d.year_to != null ? d.year_to : '')}" placeholder="2023"></div>
         </div>
         <div class="row" style="gap: var(--s3)">
           <div class="field" style="flex:1"><span class="label">מחיר ₪</span><input class="mono" name="price" type="number" min="0" required value="${esc(d.price != null ? d.price : '')}" placeholder="210"></div>
@@ -719,6 +773,12 @@ function go(screen) {
 }
 
 /* ============================ טעינת נתונים ============================ */
+async function loadVehicles() {
+  // הרשימה מגיעה אחרי הציור הראשון, ולכן מציירים מחדש — אחרת הפאנל
+  // נשאר עם "טוען…" עד לניווט הבא.
+  try { S.vehicles = (await api('/vehicles')).kinds; render(); } catch (e) { /* המסננים פשוט יהיו ריקים */ }
+}
+
 async function loadStats() {
   try { S.stats = await api('/stats'); render(); } catch (e) { /* המסך עובד גם בלי */ }
 }
@@ -730,6 +790,8 @@ async function loadSearch() {
     if (S.q) params.set('q', S.q);
     if (S.kind !== 'all') params.set('kind', S.kind);
     if (S.category !== 'all') params.set('category', S.category);
+    if (S.vkind !== 'all') params.set('vehicle_kind', S.vkind);
+    if (S.vmake !== 'all') params.set('vehicle_make', S.vmake);
     params.set('limit', '50');
     const data = await api(`/parts?${params}`);
     S.items = data.items;
@@ -798,13 +860,32 @@ function syncDraft() {
   S.draft.name = text('name');
   S.draft.part_no = text('part_no');
   S.draft.maker = text('maker');
-  S.draft.fits = text('fits');
   S.draft.category = text('category') || S.draft.category;
+  S.draft.vehicle_kind = text('vehicle_kind');
+  S.draft.vehicle_make = text('vehicle_make');
+  S.draft.vehicle_model = text('vehicle_model');
+  const yFrom = text('year_from');
+  const yTo = text('year_to');
+  S.draft.year_from = yFrom === '' ? null : Number(yFrom);
+  S.draft.year_to = yTo === '' ? null : Number(yTo);
   const price = text('price');
   const qty = text('qty');
   S.draft.price = price === '' ? null : Number(price);
   S.draft.qty = qty === '' ? 0 : Number(qty);
 }
+
+// בחירת סוג רכב מחליפה את רשימת היצרנים. מעדכנים את ה-select במקום
+// ולא מציירים מחדש — כדי שלא לאבד את מה שכבר הוקלד בטופס.
+document.addEventListener('change', (ev) => {
+  const el = ev.target;
+  if (!el.matches || !el.matches('select[name="vehicle_kind"]')) return;
+  const form = el.closest('form');
+  const make = form && form.querySelector('select[name="vehicle_make"]');
+  if (!make) return;
+  const chosen = S.vehicles.find((v) => v.id === el.value);
+  make.innerHTML = makeOptions(chosen ? chosen.makes : [], '');
+  make.disabled = !chosen;
+});
 
 
 // פותח וסוגר את הפאנל בלי לצייר את המסך מחדש: מחליף מחלקה על
@@ -825,7 +906,7 @@ document.addEventListener('click', async (ev) => {
   const act = el.dataset.act;
 
   // ניווט
-  if (act === 'home') { S.q = ''; S.category = 'all'; go('home'); loadStats(); return; }
+  if (act === 'home') { S.q = ''; S.category = 'all'; S.vkind = 'all'; S.vmake = 'all'; go('home'); loadStats(); return; }
   if (act === 'search') { go('search'); return; }
   if (act === 'stock') { go('stock'); loadStock(); return; }
   if (act === 'chats') { go('chats'); loadChats(); return; }
@@ -840,10 +921,39 @@ document.addEventListener('click', async (ev) => {
   if (act === 'sheet-open') { setSheet(true); return; }
   if (act === 'sheet-close') { setSheet(false); return; }
 
-  if (act === 'quick') { S.sheet = false; S.q = el.dataset.q; S.kind = 'all'; S.category = 'all'; go('search'); loadSearch(); return; }
   if (act === 'cat') {
     S.sheet = false; S.category = el.dataset.cat; S.q = '';
     go('search'); loadSearch(); return;
+  }
+  // סוג רכב נבחר בתוך הפאנל ולא סוגר אותו — היצרנים נפתחים מתחתיו
+  if (act === 'vkind') {
+    const next = el.dataset.vkind;
+    S.vkind = S.vkind === next ? 'all' : next;
+    S.vmake = 'all';
+    // הפאנל מצויר מחדש, אז שומרים את מיקום הגלילה שלו ומגלגלים
+    // אל רשימת היצרנים שנפתחה — אחרת היא נפתחת מתחת לקצה המסך.
+    const before = document.querySelector('.sheet');
+    const y = before ? before.scrollTop : 0;
+    render();
+    const after = document.querySelector('.sheet');
+    if (after) {
+      after.scrollTop = y;
+      const box = after.querySelector('[data-makes]');
+      if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    return;
+  }
+  if (act === 'vmake') {
+    S.vmake = el.dataset.vmake;
+    if (S.vmake === 'all') { render(); return; }
+    S.sheet = false;
+    go('search'); loadSearch();
+    return;
+  }
+
+  if (act === 'clear-filters') {
+    S.category = 'all'; S.vkind = 'all'; S.vmake = 'all';
+    loadSearch(); return;
   }
   if (act === 'kind') { S.kind = el.dataset.kind; loadSearch(); return; }
   if (act === 'toggle') { S.openPart = S.openPart === Number(el.dataset.id) ? null : Number(el.dataset.id); S.keepScroll = true; render(); return; }
@@ -935,13 +1045,27 @@ document.addEventListener('submit', async (ev) => {
 
   if (act === 'save-part') {
     const d = S.draft || {};
+    const num = (k) => {
+      const v = (fd.get(k) || '').toString().trim();
+      return v === '' ? null : Number(v);
+    };
+    const vehicleKind = (fd.get('vehicle_kind') || '').toString() || null;
+    const vehicleMake = (fd.get('vehicle_make') || '').toString() || null;
+    const vehicleModel = (fd.get('vehicle_model') || '').toString().trim() || null;
+    const yearFrom = num('year_from');
+    const yearTo = num('year_to');
     const payload = {
       name: (fd.get('name') || '').toString().trim(),
       part_no: (fd.get('part_no') || '').toString().trim(),
       category: fd.get('category'),
       maker: (fd.get('maker') || '').toString().trim() || null,
-      fits: (fd.get('fits') || '').toString().trim() || null,
       kind: d.kind || 'copy',
+      vehicle_kind: vehicleKind,
+      vehicle_make: vehicleKind ? vehicleMake : null,
+      vehicle_model: vehicleModel,
+      year_from: yearFrom,
+      year_to: yearTo,
+      fits: fitsText(vehicleMake, vehicleModel, yearFrom, yearTo) || (d.fits || null),
       price: Number(fd.get('price')),
       qty: Number(fd.get('qty')),
       interchange_numbers: (d.nums || []).map((n) => ({ number: n })),
@@ -1029,6 +1153,6 @@ render();
 
 // רצף הפתיחה נגמר ב-2.2 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
 const splashFloor = new Promise((resolve) => setTimeout(resolve, 2300));
-Promise.allSettled([loadStats(), loadMe()])
+Promise.allSettled([loadStats(), loadMe(), loadVehicles()])
   .then(() => splashFloor)
   .then(hideSplash);
