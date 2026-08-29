@@ -8,6 +8,13 @@ const partsRoutes = require('./routes/parts');
 const categoriesRoutes = require('./routes/categories');
 const sellersRoutes = require('./routes/sellers');
 
+// בלי סוד ל-JWT השרת עולה אבל כל ההתחברות נשברת רק בזמן ריצה —
+// עדיף ליפול מיד עם הסבר ברור.
+if (!process.env.JWT_SECRET) {
+  console.error('❌ JWT_SECRET חסר. העתק את .env.example ל-.env והגדר סוד ארוך ואקראי.');
+  process.exit(1);
+}
+
 const app = express();
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));

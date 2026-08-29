@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { requireSellerAuth } = require('../middleware/sellerAuth');
+const { asyncHandler } = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -18,7 +19,16 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+// כרטיס ספק כפי שהוא נחשף לכל העולם — בלי הסיסמה ובלי האימייל,
+// שהוא גם שם המשתמש להתחברות לקבינט.
 function publicSeller(row) {
+  if (!row) return null;
+  const { password_hash, email, ...rest } = row;
+  return rest;
+}
+
+// כרטיס ספק כפי שהוא מוצג לספק עצמו בקבינט — האימייל שלו נשאר.
+function ownSeller(row) {
   if (!row) return null;
   const { password_hash, ...rest } = row;
   return rest;
@@ -55,11 +65,14 @@ router.get('/:id', (req, res) => {
 /* ---------- הרשמה / התחברות ---------- */
 
 // POST /api/sellers/register — יצירת כרטיס ספק חדש עם כל הפרטים
-router.post('/register', async (req, res) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const { name, city, phone, whatsapp, email, password } = req.body || {};
 
   if (!name || !city || !phone || !email || !password) {
     return res.status(400).json({ error: 'נא למלא שם עסק, עיר, טלפון, אימייל וסיסמה' });
+  }
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'אימייל וסיסמה חייבים להיות טקסט' });
   }
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: 'כתובת אימייל לא תקינה' });
@@ -84,14 +97,17 @@ router.post('/register', async (req, res) => {
   const seller = db.prepare('SELECT * FROM sellers WHERE id = ?').get(result.lastInsertRowid);
   const token = signSellerToken(seller);
 
-  res.status(201).json({ token, seller: publicSeller(seller) });
-});
+  res.status(201).json({ token, seller: ownSeller(seller) });
+}));
 
 // POST /api/sellers/login
-router.post('/login', async (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ error: 'נא למלא אימייל וסיסמה' });
+  }
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'אימייל וסיסמה חייבים להיות טקסט' });
   }
 
   const seller = db.prepare('SELECT * FROM sellers WHERE email = ?').get(email.toLowerCase());
@@ -105,8 +121,8 @@ router.post('/login', async (req, res) => {
   }
 
   const token = signSellerToken(seller);
-  res.json({ token, seller: publicSeller(seller) });
-});
+  res.json({ token, seller: ownSeller(seller) });
+}));
 
 /* ---------- קבינט הספק (דורש התחברות) ---------- */
 
@@ -114,7 +130,7 @@ router.post('/login', async (req, res) => {
 router.get('/me/profile', requireSellerAuth, (req, res) => {
   const seller = db.prepare('SELECT * FROM sellers WHERE id = ?').get(req.seller.id);
   if (!seller) return res.status(404).json({ error: 'הספק לא נמצא' });
-  res.json({ seller: publicSeller(seller) });
+  res.json({ seller: ownSeller(seller) });
 });
 
 // PATCH /api/sellers/me/profile — עדכון פרטי הספק
@@ -134,7 +150,7 @@ router.patch('/me/profile', requireSellerAuth, (req, res) => {
   });
 
   const updated = db.prepare('SELECT * FROM sellers WHERE id = ?').get(req.seller.id);
-  res.json({ seller: publicSeller(updated) });
+  res.json({ seller: ownSeller(updated) });
 });
 
 // GET /api/sellers/me/parts — כל כרטיסי המוצר של הספק המחובר
@@ -207,6 +223,10 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
 
   const { name, sub, category, price, stock, icon, interchange_numbers } = req.body || {};
 
+  if (price !== undefined && (typeof price !== 'number' || price < 0)) {
+    return res.status(400).json({ error: 'המחיר חייב להיות מספר חיובי' });
+  }
+
   db.prepare(
     `UPDATE parts SET name=@name, sub=@sub, category=@category, price=@price, stock=@stock, icon=@icon WHERE id=@id`
   ).run({
@@ -214,7 +234,7 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
     sub: sub ?? current.sub,
     category: category ?? current.category,
     price: price ?? current.price,
-    stock: stock ?? current.stock,
+    stock: stock === undefined ? current.stock : stock === 'low' ? 'low' : 'in',
     icon: icon ?? current.icon,
     id: partId,
   });

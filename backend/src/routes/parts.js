@@ -30,10 +30,11 @@ router.get('/', (req, res) => {
   }
   if (q) {
     where.push(`(
-      name LIKE @q OR sub LIKE @q OR part_no LIKE @q
-      OR id IN (SELECT part_id FROM interchange_numbers WHERE number LIKE @q)
+      name LIKE @q ESCAPE '\\' OR sub LIKE @q ESCAPE '\\' OR part_no LIKE @q ESCAPE '\\'
+      OR id IN (SELECT part_id FROM interchange_numbers WHERE number LIKE @q ESCAPE '\\')
     )`);
-    params.q = `%${q}%`;
+    // % ו-_ הם תווי חיפוש של LIKE — בלי בריחה, חיפוש "%" מחזיר את כל הקטלוג
+    params.q = `%${String(q).replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   }
 
   const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
