@@ -1,571 +1,121 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>autoparts — כל חלק. כל רכב. מחיר אחד ברור.</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#efece8">
+<title>autoparts — כל חלק. כל רכב.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='9' fill='%23f2761b'/%3E%3Cpath d='M8.6 19.4 13 8.6h2l4.4 10.8h-2.3l-1-2.6h-4.2l-1 2.6zm4-4.5h2.8L14 11.2z' fill='%2316140f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Heebo:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Heebo:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0A0C11;
-    --surface:#12161E;
-    --surface-2:#171C26;
-    --line:#242C38;
-    --line-soft:#1B222C;
-    --text:#E8ECF3;
-    --text-soft:#AAB4C4;
-    --muted:#6D7787;
-    --acid:#C7F94E;
-    --acid-dim:#9FCC2E;
-    --cyan:#3ED8D0;
-    --green:#3DDC84;
-    --amber:#FFB020;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html{scroll-behavior:smooth;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:'Heebo', sans-serif;
-    line-height:1.5;
-    -webkit-font-smoothing:antialiased;
-    /* техно-подложка: тонкая сетка + мягкое свечение сверху */
-    background-image:
-      radial-gradient(900px 420px at 50% -140px, rgba(199,249,78,0.10), transparent 70%),
-      linear-gradient(var(--line-soft) 1px, transparent 1px),
-      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px);
-    background-size:auto, 46px 46px, 46px 46px;
-    background-attachment:fixed;
-  }
-  h1,h2,h3, .display{
-    font-family:'Rubik', sans-serif;
-    letter-spacing:-0.015em;
-  }
-  .mono{ font-family:'JetBrains Mono', monospace; }
-  a{color:inherit; text-decoration:none;}
-  button{font-family:inherit; cursor:pointer;}
-  ::selection{background:var(--acid); color:#0A0C11;}
-  :focus-visible{outline:2px solid var(--acid); outline-offset:2px;}
+:root{
+  --bg:#efece8; --card:#f7f5f2; --chip:#ece8e2; --ink:#16140f; --muted:#8b847b;
+  --line:#e4dfd8; --hair:#d6cfc5; --orange:#f2761b;
+  --orig-bg:#e2ecda; --orig-fg:#3c6a31;
+  --copy-bg:#eae6df; --copy-fg:#5d574f;
+  --used-bg:#fbe4cf; --used-fg:#a3560f;
+  --sans:Heebo,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --disp:Rubik,Heebo,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --island:linear-gradient(165deg,#fdfcfb 0%,#e7e3dc 42%,#c9c5bd 74%,#eae6e0 100%);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:#d9dadd;color:var(--ink);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;display:flex;justify-content:center;
+}
+#app{
+  width:100%;max-width:460px;background:var(--bg);min-height:100dvh;
+  display:flex;flex-direction:column;position:relative;overflow:hidden;
+}
+@media(min-width:520px){
+  body{align-items:center;padding:22px 0}
+  #app{height:min(880px,calc(100dvh - 44px));min-height:0;border-radius:38px;box-shadow:0 18px 44px rgba(22,20,15,.22)}
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:var(--mono);direction:ltr;unicode-bidi:isolate}
 
-  .wrap{max-width:1180px; margin:0 auto; padding:0 24px;}
+/* ---------- шапка ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 0;flex:none}
+.brand{display:flex;align-items:center;gap:9px;direction:ltr}
+.brand b{font:600 12.5px/1 var(--mono);letter-spacing:1.6px}
+.iconbtn{width:40px;height:40px;border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;flex:none}
+.iconbtn:active{background:var(--chip)}
 
-  /* HEADER */
-  header{
-    position:sticky; top:0; z-index:50;
-    background:rgba(10,12,17,0.86);
-    backdrop-filter:blur(12px);
-    border-bottom:1px solid var(--line);
-  }
-  .header-inner{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:14px 24px; gap:16px; flex-wrap:wrap;
-  }
-  .logo{
-    display:flex; align-items:center; gap:10px;
-    font-family:'Rubik', sans-serif; font-weight:900; font-size:1.25rem;
-  }
-  .logo-text{display:flex; flex-direction:column; line-height:1.06;}
-  .logo-name{font-family:'Rubik', sans-serif; font-weight:900; letter-spacing:-0.02em;}
-  .logo-by{
-    font-family:'JetBrains Mono', monospace; font-weight:400;
-    font-size:0.62rem; letter-spacing:0.16em; color:var(--muted);
-  }
-  .logo-mark{
-    width:34px; height:34px; border-radius:9px;
-    background:var(--acid); color:#0A0C11;
-    display:flex; align-items:center; justify-content:center;
-    font-family:'JetBrains Mono', monospace; font-weight:600; font-size:0.8rem;
-    box-shadow:0 0 22px -6px rgba(199,249,78,0.7);
-  }
-  nav{display:flex; gap:26px; font-size:0.92rem; color:var(--text-soft);}
-  nav a{transition:color .15s;}
-  nav a:hover{color:var(--acid);}
-  @media (max-width:820px){ nav{display:none;} }
+/* ---------- прокручиваемая область ---------- */
+.scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:112px}
+.pad{padding:0 18px}
 
-  /* HERO */
-  .hero{ padding:60px 0 34px; text-align:center; }
-  .hero-inner{position:relative;}
-  .eyebrow{
-    display:inline-flex; align-items:center; gap:8px;
-    font-family:'JetBrains Mono', monospace; font-size:0.75rem;
-    letter-spacing:0.04em; color:var(--text-soft);
-    background:var(--surface); border:1px solid var(--line);
-    border-radius:999px; padding:6px 14px; margin-bottom:22px;
-  }
-  .eyebrow .dot{
-    width:7px; height:7px; border-radius:50%; background:var(--green);
-    box-shadow:0 0 0 3px rgba(61,220,132,0.16);
-  }
-  .hero h1{
-    font-size:clamp(2.4rem, 6vw, 4.3rem);
-    font-weight:900; line-height:1.02;
-    max-width:860px; margin:0 auto 18px;
-  }
-  .hero h1 .accent{
-    color:var(--acid);
-    text-shadow:0 0 34px rgba(199,249,78,0.35);
-  }
-  .hero p{ color:var(--text-soft); font-size:1.05rem; max-width:490px; margin:0 auto; }
+/* ---------- поиск ---------- */
+.searchbar{background:var(--card);border-radius:999px;padding:15px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(22,20,15,.07)}
+.searchbar input{flex:1;border:0;background:none;outline:none;font-size:14.5px;min-width:0}
+.searchbar input::placeholder{color:var(--muted)}
 
-  /* HEADER SEARCH */
-  .header-search{
-    flex:1; max-width:480px;
-    display:flex; align-items:stretch;
-    background:var(--surface); border:1px solid var(--line);
-    border-radius:10px; overflow:hidden;
-    transition:border-color .15s, box-shadow .15s;
-  }
-  .header-search:focus-within{
-    border-color:var(--acid);
-    box-shadow:0 0 0 3px rgba(199,249,78,0.14);
-  }
-  .header-search input{
-    flex:1; border:none; background:transparent; outline:none;
-    font-family:'JetBrains Mono', monospace; font-weight:500; font-size:0.9rem;
-    color:var(--text); padding:11px 16px;
-  }
-  .header-search input::placeholder{color:var(--muted); font-weight:400;}
-  .header-search button{
-    background:var(--acid); color:#0A0C11; border:none;
-    padding:0 20px; font-weight:700; font-size:0.84rem;
-    display:flex; align-items:center; gap:6px;
-    transition:background .15s;
-  }
-  .header-search button:hover{background:#DBFF6B;}
-  @media (max-width:820px){ .header-search{max-width:none;} }
-  @media (max-width:600px){ .header-search input{padding:10px 12px; font-size:0.8rem;} .header-search button{padding:0 14px;} }
+/* ---------- чипы ---------- */
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{padding:9px 14px;border-radius:999px;background:var(--chip);font:500 11.5px var(--sans);white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.num{display:inline-block;padding:4px 9px;border-radius:999px;background:var(--chip);font:500 10.5px var(--mono);letter-spacing:.3px;color:#4f4941;direction:ltr}
+.tag{display:inline-block;padding:5px 11px;border-radius:999px;font:500 10.5px var(--sans)}
+.tag.orig{background:var(--orig-bg);color:var(--orig-fg)}
+.tag.copy{background:var(--copy-bg);color:var(--copy-fg)}
+.tag.used{background:var(--used-bg);color:var(--used-fg)}
 
-  /* CATEGORY STRIP */
-  .categories{
-    padding:6px 0 34px;
-    display:flex; gap:9px; overflow-x:auto;
-    justify-content:center; flex-wrap:wrap;
-  }
-  .chip{
-    background:var(--surface); border:1px solid var(--line);
-    border-radius:8px; padding:9px 16px;
-    font-size:0.86rem; font-weight:500; color:var(--text-soft);
-    white-space:nowrap; transition:all .15s;
-    display:flex; align-items:center; gap:7px;
-  }
-  .chip:hover{border-color:var(--acid-dim); color:var(--text);}
-  .chip.active{
-    background:var(--acid); color:#0A0C11; border-color:var(--acid); font-weight:700;
-  }
+/* ---------- карточки ---------- */
+.card{background:var(--card);border-radius:20px;overflow:hidden}
+.thumb{border-radius:14px;flex:none;background:repeating-linear-gradient(135deg,#e7e2db 0 7px,#f1eee9 7px 14px);display:flex;align-items:center;justify-content:center;font:400 8px var(--mono);color:#a9a29a;background-size:cover;background-position:center}
+.price{font:600 15px var(--mono);direction:ltr}
+.muted{color:var(--muted)}
+.label{font:500 11px var(--sans);color:var(--muted)}
+.hr{border-top:1px solid var(--line)}
 
-  /* CATALOG */
-  .catalog-head{
-    display:flex; justify-content:space-between; align-items:baseline;
-    margin-bottom:20px; padding-top:8px; flex-wrap:wrap; gap:10px;
-  }
-  .catalog-head h2{font-size:1.4rem; font-weight:800;}
-  .result-count{
-    font-family:'JetBrains Mono', monospace;
-    color:var(--muted); font-size:0.82rem;
-  }
-  .grid{
-    display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr));
-    gap:16px; padding-bottom:70px;
-  }
-  .empty{
-    grid-column:1/-1; padding:44px 18px; text-align:center;
-    color:var(--muted); background:var(--surface);
-    border:1px dashed var(--line); border-radius:12px;
-  }
-  .card{
-    position:relative; overflow:hidden;
-    background:var(--surface); border:1px solid var(--line); border-radius:12px;
-    padding:18px; display:flex; flex-direction:column; gap:10px;
-    transition:border-color .18s, transform .18s;
-  }
-  /* тонкая линия сверху — «подсветка» карточки при наведении */
-  .card::before{
-    content:''; position:absolute; inset:0 0 auto 0; height:1px;
-    background:linear-gradient(90deg, transparent, var(--acid), transparent);
-    opacity:0; transition:opacity .18s;
-  }
-  .card:hover{border-color:#38434F; transform:translateY(-2px);}
-  .card:hover::before{opacity:0.8;}
-  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
-  .icon-tile{
-    width:46px; height:46px; border-radius:10px;
-    background:var(--surface-2); border:1px solid var(--line);
-    display:flex; align-items:center; justify-content:center;
-    font-size:1.35rem; flex-shrink:0;
-  }
-  .stock-badge{
-    font-family:'JetBrains Mono', monospace;
-    font-size:0.68rem; font-weight:600; padding:4px 9px; border-radius:6px;
-    display:flex; align-items:center; gap:5px; white-space:nowrap;
-  }
-  .stock-badge.in{background:rgba(61,220,132,0.10); color:var(--green); border:1px solid rgba(61,220,132,0.25);}
-  .stock-badge.low{background:rgba(255,176,32,0.10); color:var(--amber); border:1px solid rgba(255,176,32,0.25);}
-  .card h3{font-size:1rem; font-weight:700; line-height:1.3;}
-  .card .sub{font-size:0.8rem; color:var(--text-soft);}
-  .part-no{
-    font-size:0.72rem; color:var(--text-soft); letter-spacing:0.03em;
-    background:var(--surface-2); border:1px solid var(--line);
-    border-radius:6px; padding:3px 8px; width:fit-content;
-  }
-  .card-bottom{
-    display:flex; align-items:center; justify-content:space-between;
-    /* прижимаем цену и блок продавца вниз, чтобы карточки в ряду выравнивались */
-    margin-top:auto; padding-top:12px; border-top:1px solid var(--line);
-  }
-  .price{
-    font-family:'JetBrains Mono',monospace; font-weight:600; font-size:1.2rem;
-    color:var(--acid);
-  }
-  .price .ils{font-size:0.72rem; color:var(--muted); margin-left:2px; font-weight:400;}
+/* ---------- нижний островной навбар ---------- */
+.dock{position:absolute;bottom:20px;inset-inline:0;display:flex;align-items:center;justify-content:center;gap:12px;pointer-events:none;z-index:20}
+.island{display:flex;align-items:center;gap:4px;border-radius:999px;padding:9px 12px;background:var(--island);border:1px solid rgba(255,255,255,.75);box-shadow:0 10px 26px rgba(22,20,15,.2);pointer-events:auto}
+.tab{width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(22,20,15,.42)}
+.tab[aria-current="page"]{background:rgba(22,20,15,.09);color:var(--ink)}
+.fab{width:56px;height:56px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(22,20,15,.32);pointer-events:auto}
+.fab:active{transform:scale(.95)}
 
-  /* INTERCHANGE NUMBERS */
-  .interchange{
-    display:flex; flex-direction:column; gap:7px;
-    background:var(--surface-2); border:1px solid var(--line-soft);
-    border-radius:9px; padding:10px 12px;
-  }
-  .interchange-label{
-    font-size:0.66rem; font-weight:700; color:var(--muted);
-    letter-spacing:0.08em; text-transform:uppercase;
-    display:flex; align-items:center; gap:6px;
-  }
-  .interchange-list{display:flex; flex-wrap:wrap; gap:6px;}
-  .interchange-tag{
-    font-family:'JetBrains Mono', monospace; font-size:0.72rem;
-    background:var(--bg); border:1px solid var(--line); border-radius:6px;
-    padding:3px 8px; display:flex; align-items:center; gap:6px; color:var(--text-soft);
-  }
-  .interchange-tag .brand{color:var(--cyan); font-family:'Heebo'; font-weight:600; font-size:0.66rem;}
+/* ---------- формы ---------- */
+.field{display:flex;flex-direction:column;gap:7px}
+.field input,.field select,.field textarea{
+  background:var(--card);border-radius:14px;padding:14px 16px;border:0;outline:none;width:100%;font-size:14px;
+}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:0 0 0 2px var(--hair)}
+.field .mono{font:500 13px var(--mono);text-align:right}
+.btn{background:var(--ink);color:#fff;border-radius:999px;padding:15px;text-align:center;font:500 14px var(--sans);width:100%}
+.btn:active{opacity:.85}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.btn.line{background:none;border:1px solid var(--hair)}
 
-  /* SELLER CARD */
-  .seller-toggle{
-    display:flex; align-items:center; justify-content:space-between;
-    background:var(--surface-2); border:1px solid var(--line); border-radius:9px;
-    padding:9px 12px; font-size:0.82rem; font-weight:600; color:var(--text);
-    transition:all .15s; width:100%;
-  }
-  .seller-toggle:hover{border-color:var(--acid-dim);}
-  .seller-toggle .arrow{transition:transform .2s; color:var(--muted); font-size:0.72rem;}
-  .seller-toggle.open .arrow{transform:rotate(180deg);}
-  .seller-card{
-    display:none; flex-direction:column; gap:9px;
-    background:var(--bg); border:1px solid var(--line); border-radius:10px;
-    padding:14px; margin-top:2px;
-  }
-  .seller-card.open{display:flex;}
-  .seller-name-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-  .seller-name{font-weight:700; font-size:0.9rem;}
-  .verified-badge{
-    font-size:0.66rem; font-weight:700; color:var(--green);
-    background:rgba(61,220,132,0.10); border:1px solid rgba(61,220,132,0.25);
-    border-radius:6px; padding:3px 8px;
-    display:flex; align-items:center; gap:4px; white-space:nowrap;
-  }
-  .seller-meta{
-    display:flex; flex-wrap:wrap; gap:12px; font-size:0.78rem; color:var(--muted);
-  }
-  .seller-meta span{display:flex; align-items:center; gap:5px;}
-  .seller-rating{color:var(--amber); font-weight:700;}
-  .seller-actions{display:flex; gap:8px; margin-top:4px;}
-  .seller-actions a{
-    flex:1; text-align:center; border-radius:8px; padding:9px 10px;
-    font-size:0.8rem; font-weight:600; transition:all .15s;
-  }
-  .call-btn{background:var(--acid); color:#0A0C11;}
-  .call-btn:hover{background:#DBFF6B;}
-  .wa-btn{background:transparent; color:var(--green); border:1px solid rgba(61,220,132,0.35);}
-  .wa-btn:hover{background:rgba(61,220,132,0.12);}
+/* ---------- чат ---------- */
+.bubble{max-width:82%;padding:13px 15px;font:400 14px/1.6 var(--sans);border-radius:18px}
+.bubble.me{align-self:flex-end;background:var(--ink);color:#fff;border-end-end-radius:6px}
+.bubble.them{align-self:flex-start;background:var(--card);border-end-start-radius:6px}
+.time{font:400 10px var(--mono);color:#b0a9a0}
 
-  /* TRUST STRIP */
-  .trust{
-    background:var(--surface);
-    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
-    padding:44px 0;
-  }
-  .trust-grid{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:28px; text-align:center;
-  }
-  .trust-grid .num{
-    font-family:'JetBrains Mono', monospace; font-weight:600;
-    font-size:1.9rem; color:var(--acid);
-  }
-  .trust-grid .label{font-size:0.82rem; color:var(--muted); margin-top:6px;}
-
-  /* FOOTER */
-  footer{padding:46px 0 34px; border-top:1px solid var(--line); background:var(--bg);}
-  .foot-grid{
-    display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:32px;
-  }
-  .foot-grid h4{
-    font-size:0.72rem; margin-bottom:14px; color:var(--muted);
-    letter-spacing:0.08em; text-transform:uppercase;
-  }
-  .foot-grid ul{list-style:none; display:flex; flex-direction:column; gap:9px;}
-  .foot-grid ul a{font-size:0.86rem; color:var(--text-soft);}
-  .foot-grid ul a:hover{color:var(--acid);}
-  @media (max-width:720px){ .foot-grid{grid-template-columns:1fr 1fr;} }
-  .foot-bottom{
-    margin-top:40px; padding-top:20px; border-top:1px solid var(--line);
-    display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
-    font-size:0.78rem; color:var(--muted);
-  }
-
-  @media (prefers-reduced-motion:reduce){
-    *{transition:none !important; scroll-behavior:auto !important;}
-  }
+/* ---------- служебное ---------- */
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:40px 30px}
+.spin{width:26px;height:26px;border:2.5px solid var(--hair);border-top-color:var(--ink);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:absolute;bottom:96px;inset-inline:18px;background:var(--ink);color:#fff;border-radius:14px;padding:13px 16px;font:500 13px var(--sans);z-index:40;box-shadow:0 10px 24px rgba(22,20,15,.3)}
+.toast.err{background:#8c2f14}
+.stack{display:flex;flex-direction:column}
+.row{display:flex;align-items:center}
+.between{justify-content:space-between}
+svg{flex:none}
 </style>
 </head>
 <body>
-
-<header>
-  <div class="header-inner wrap">
-    <div class="logo">
-      <div class="logo-mark">AP</div>
-      <span class="logo-text">
-        <span class="logo-name" dir="ltr">autoparts</span>
-        <span class="logo-by" dir="ltr">by autolick</span>
-      </span>
-    </div>
-    <div class="header-search">
-      <input type="text" id="searchInput" placeholder="חפש לפי מק״ט או שם חלק, למשל BRK-4471" />
-      <button id="searchGo">🔍 חיפוש</button>
-    </div>
-    <nav>
-      <a href="#catalog">קטלוג</a>
-      <a href="#trust">למה אנחנו</a>
-      <a href="#footer">יצירת קשר</a>
-    </nav>
-  </div>
-</header>
-
-<section class="hero">
-  <div class="wrap hero-inner">
-    <div class="eyebrow"><span class="dot"></span> 41,000+ חלקים זמינים היום ממלאי חי</div>
-    <h1>כל חלק. כל רכב.<br><span class="accent">מחיר אחד ברור.</span></h1>
-    <p>הקלידו מק״ט או שם חלק בחיפוש למעלה — נשווה עבורכם בין ספקים מורשים ונציג מחיר וזמינות בזמן אמת.</p>
-  </div>
-</section>
-
-<div class="wrap">
-  <div class="categories" id="categories">
-    <button class="chip active" data-cat="all">🔧 הכל</button>
-    <button class="chip" data-cat="brakes">🛑 בלמים</button>
-    <button class="chip" data-cat="filters">🧰 מסננים</button>
-    <button class="chip" data-cat="battery">🔋 מצברים</button>
-    <button class="chip" data-cat="lights">💡 תאורה</button>
-    <button class="chip" data-cat="oil">🛢️ שמנים</button>
-    <button class="chip" data-cat="suspension">⚙️ מתלים</button>
-  </div>
+<div id="app">
+  <div id="screen" class="stack" style="flex:1;min-height:0"></div>
+  <div class="dock" id="dock"></div>
 </div>
-
-<main class="wrap" id="catalog">
-  <div class="catalog-head">
-    <h2>תוצאות מהמחסן</h2>
-    <div class="result-count"><span id="resultCount">12</span> חלקים נמצאו</div>
-  </div>
-  <div class="grid" id="grid"></div>
-</main>
-
-<section class="trust" id="trust">
-  <div class="wrap trust-grid">
-    <div><div class="num">340+</div><div class="label">ספקים מורשים ברשת</div></div>
-    <div><div class="num">24 שעות</div><div class="label">זמן אספקה ממוצע ארצי</div></div>
-    <div><div class="num">98%</div><div class="label">התאמה מדויקת לדגם הרכב</div></div>
-    <div><div class="num">4.8/5</div><div class="label">דירוג שביעות רצון לקוחות</div></div>
-  </div>
-</section>
-
-<footer id="footer">
-  <div class="wrap">
-    <div class="foot-grid">
-      <div>
-        <div class="logo" style="margin-bottom:12px;"><div class="logo-mark">AP</div>
-      <span class="logo-text">
-        <span class="logo-name" dir="ltr">autoparts</span>
-        <span class="logo-by" dir="ltr">by autolick</span>
-      </span></div>
-        <p style="color:var(--text-soft); font-size:0.86rem; max-width:270px;">אתר הדגמה בלבד — הנתונים, המחירים והספקים המוצגים כאן הם לצורכי המחשה בלבד.</p>
-      </div>
-      <div>
-        <h4>קטגוריות</h4>
-        <ul>
-          <li><a href="#">בלמים</a></li>
-          <li><a href="#">מסננים</a></li>
-          <li><a href="#">מצברים</a></li>
-          <li><a href="#">תאורה</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>החברה</h4>
-        <ul>
-          <li><a href="#">אודות</a></li>
-          <li><a href="#">ספקים</a></li>
-          <li><a href="#">קריירה</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4>תמיכה</h4>
-        <ul>
-          <li><a href="#">שאלות נפוצות</a></li>
-          <li><a href="#">משלוחים</a></li>
-          <li><a href="#">צור קשר</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="foot-bottom">
-      <span>© 2026 autoparts — אתר הדגמה</span>
-      <span class="mono" style="letter-spacing:0.02em;" dir="ltr">autolick</span>
-    </div>
-  </div>
-</footer>
-
-<script>
-// כתובת ה-API: כשהדף מוגש על ידי השרת נשתמש בנתיב יחסי,
-// וכשפותחים את הקובץ ישירות מהדיסק — בשרת המקומי.
-const API_BASE = location.protocol.startsWith('http') ? '/api' : 'http://localhost:4000/api';
-
-let PARTS = [];
-
-function esc(value){
-  return String(value ?? '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  })[c]);
-}
-
-// ממירים תשובת API למבנה שהתבנית למטה מצפה לו
-function normalizePart(p){
-  return {
-    name: p.name,
-    sub: p.sub || '',
-    cat: p.category,
-    icon: p.icon || '🔧',
-    part: p.part_no,
-    price: p.price,
-    stock: p.stock,
-    seller: p.seller ? {
-      name: p.seller.name,
-      city: p.seller.city,
-      phone: p.seller.phone,
-      whatsapp: p.seller.whatsapp,
-      rating: p.seller.rating,
-      reviews: p.seller.reviews_count,
-      verified: !!p.seller.verified,
-    } : null,
-    interchange: (p.interchange_numbers || []).map(x => ({ n: x.number, b: x.brand })),
-  };
-}
-
-const grid = document.getElementById('grid');
-const resultCount = document.getElementById('resultCount');
-let activeCat = 'all';
-let query = '';
-
-// הסינון נעשה בצד השרת: קטגוריה ו-q (כולל חיפוש לפי מספרים חלופיים)
-async function load(){
-  const params = new URLSearchParams({ limit: '100' });
-  if(activeCat !== 'all') params.set('category', activeCat);
-  if(query.trim()) params.set('q', query.trim());
-
-  grid.innerHTML = '<div class="empty">טוען קטלוג…</div>';
-  try {
-    const res = await fetch(`${API_BASE}/parts?${params}`);
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    PARTS = (data.items || []).map(normalizePart);
-    render();
-  } catch (err) {
-    resultCount.textContent = '0';
-    grid.innerHTML = '<div class="empty">לא הצלחנו לטעון את הקטלוג מהשרת. ודאו שה-API פועל ונסו שוב.</div>';
-  }
-}
-
-function render(){
-  resultCount.textContent = PARTS.length;
-  if(!PARTS.length){
-    grid.innerHTML = '<div class="empty">לא נמצאו חלקים מתאימים לחיפוש.</div>';
-    return;
-  }
-  grid.innerHTML = PARTS.map((p,i)=>`
-    <div class="card">
-      <div class="card-top">
-        <div class="icon-tile">${esc(p.icon)}</div>
-        <div class="stock-badge ${p.stock==='in' ? 'in' : 'low'}">${p.stock==='in' ? '● במלאי' : '● מלאי נמוך'}</div>
-      </div>
-      <h3>${esc(p.name)}</h3>
-      <div class="sub">${esc(p.sub)}</div>
-      <div class="part-no mono">מק״ט ${esc(p.part)}</div>
-
-      <div class="interchange">
-        <div class="interchange-label">🔁 מספרים חלופיים (תואמים)</div>
-        <div class="interchange-list">
-          ${p.interchange.map(x=>`<span class="interchange-tag">${esc(x.n)} <span class="brand">${esc(x.b)}</span></span>`).join('')}
-        </div>
-      </div>
-
-      <div class="card-bottom">
-        <div class="price">₪${esc(p.price)}<span class="ils"> כולל מע״מ</span></div>
-      </div>
-
-      ${p.seller ? `
-      <button class="seller-toggle" data-idx="${i}">
-        <span>👤 ${esc(p.seller.name)}</span>
-        <span class="arrow">▾</span>
-      </button>
-      <div class="seller-card" id="seller-${i}">
-        <div class="seller-name-row">
-          <span class="seller-name">${esc(p.seller.name)}</span>
-          ${p.seller.verified ? '<span class="verified-badge">✓ ספק מאומת</span>' : ''}
-        </div>
-        <div class="seller-meta">
-          <span>📍 ${esc(p.seller.city)}</span>
-          <span class="seller-rating">★ ${esc(p.seller.rating)}</span>
-          <span>(${esc(p.seller.reviews)} ביקורות)</span>
-        </div>
-        <div class="seller-actions">
-          <a class="call-btn" href="tel:${esc(p.seller.phone)}">📞 ${esc(p.seller.phone)}</a>
-          ${p.seller.whatsapp ? `<a class="wa-btn" href="https://wa.me/${encodeURIComponent(p.seller.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
-        </div>
-      </div>` : ''}
-    </div>
-  `).join('');
-
-  grid.querySelectorAll('.seller-toggle').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const idx = btn.dataset.idx;
-      const card = document.getElementById(`seller-${idx}`);
-      const isOpen = card.classList.toggle('open');
-      btn.classList.toggle('open', isOpen);
-    });
-  });
-}
-
-document.querySelectorAll('.chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-    activeCat = chip.dataset.cat;
-    load();
-  });
-});
-
-const searchInput = document.getElementById('searchInput');
-document.getElementById('searchGo').addEventListener('click', ()=>{
-  query = searchInput.value;
-  load();
-  document.getElementById('catalog').scrollIntoView({behavior:'smooth'});
-});
-searchInput.addEventListener('keydown', e=>{
-  if(e.key==='Enter'){
-    query = searchInput.value;
-    load();
-    document.getElementById('catalog').scrollIntoView({behavior:'smooth'});
-  }
-});
-
-load();
-</script>
-
+<script src="/app.js"></script>
 </body>
 </html>

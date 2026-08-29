@@ -7,6 +7,8 @@ const { asyncHandler } = require('../asyncHandler');
 
 const router = express.Router();
 
+const KINDS = new Set(['orig', 'copy', 'used']);
+
 function signSellerToken(seller) {
   return jwt.sign(
     { sub: seller.id, email: seller.email, name: seller.name, role: 'seller' },
@@ -161,9 +163,29 @@ router.get('/me/parts', requireSellerAuth, (req, res) => {
   res.json({ parts });
 });
 
+// GET /api/sellers/me/stats — המספרים שמופיעים בראש מסך "המלאי שלי"
+router.get('/me/stats', requireSellerAuth, (req, res) => {
+  const inStock = db
+    .prepare('SELECT COALESCE(SUM(qty), 0) AS c FROM parts WHERE seller_id = ?')
+    .get(req.seller.id).c;
+  const outOfStock = db
+    .prepare('SELECT COUNT(*) AS c FROM parts WHERE seller_id = ? AND qty = 0')
+    .get(req.seller.id).c;
+  const requests = db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM order_requests r
+       JOIN conversations c ON c.id = r.conversation_id
+       WHERE c.seller_id = ? AND r.status = 'sent'`
+    )
+    .get(req.seller.id).c;
+
+  res.json({ in_stock: inStock, out_of_stock: outOfStock, requests });
+});
+
 // POST /api/sellers/me/parts — יצירת כרטיס מוצר חדש
 router.post('/me/parts', requireSellerAuth, (req, res) => {
-  const { name, sub, category, part_no, price, stock, icon, interchange_numbers } = req.body || {};
+  const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers } =
+    req.body || {};
 
   if (!name || !category || !part_no || price === undefined) {
     return res.status(400).json({ error: 'נא למלא שם, קטגוריה, מק״ט ומחיר' });
@@ -171,17 +193,26 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
   if (typeof price !== 'number' || price < 0) {
     return res.status(400).json({ error: 'המחיר חייב להיות מספר חיובי' });
   }
+  if (kind !== undefined && !KINDS.has(kind)) {
+    return res.status(400).json({ error: 'מצב החלק חייב להיות מקורי, חלופי או משומש' });
+  }
+  if (qty !== undefined && (!Number.isInteger(qty) || qty < 0)) {
+    return res.status(400).json({ error: 'הכמות חייבת להיות מספר שלם אי-שלילי' });
+  }
 
-  const existing = db.prepare('SELECT id FROM parts WHERE part_no = ?').get(part_no);
+  // מק״ט ייחודי בתוך המוכר בלבד — אותו חלק מוצע במקביל על ידי מוכרים אחרים.
+  const existing = db
+    .prepare('SELECT id FROM parts WHERE part_no = ? AND seller_id = ?')
+    .get(part_no, req.seller.id);
   if (existing) {
-    return res.status(409).json({ error: 'כבר קיים חלק עם מק״ט זה' });
+    return res.status(409).json({ error: 'כבר קיים אצלך חלק עם מק״ט זה' });
   }
 
   const createPart = db.transaction(() => {
     const result = db
       .prepare(
-        `INSERT INTO parts (name, sub, category, part_no, price, stock, icon, seller_id)
-         VALUES (@name, @sub, @category, @part_no, @price, @stock, @icon, @seller_id)`
+        `INSERT INTO parts (name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, seller_id)
+         VALUES (@name, @sub, @category, @part_no, @price, @kind, @maker, @fits, @qty, @image_url, @icon, @seller_id)`
       )
       .run({
         name,
@@ -189,7 +220,11 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
         category,
         part_no,
         price,
-        stock: stock === 'low' ? 'low' : 'in',
+        kind: kind || 'copy',
+        maker: maker || null,
+        fits: fits || null,
+        qty: qty === undefined ? 0 : qty,
+        image_url: image_url || null,
         icon: icon || '🔧',
         seller_id: req.seller.id,
       });
@@ -221,20 +256,41 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
     return res.status(404).json({ error: 'הכרטיס לא נמצא בקבינט שלך' });
   }
 
-  const { name, sub, category, price, stock, icon, interchange_numbers } = req.body || {};
+  const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers } =
+    req.body || {};
 
   if (price !== undefined && (typeof price !== 'number' || price < 0)) {
     return res.status(400).json({ error: 'המחיר חייב להיות מספר חיובי' });
   }
+  if (kind !== undefined && !KINDS.has(kind)) {
+    return res.status(400).json({ error: 'מצב החלק חייב להיות מקורי, חלופי או משומש' });
+  }
+  if (qty !== undefined && (!Number.isInteger(qty) || qty < 0)) {
+    return res.status(400).json({ error: 'הכמות חייבת להיות מספר שלם אי-שלילי' });
+  }
+  if (part_no !== undefined) {
+    if (!part_no) return res.status(400).json({ error: 'מק״ט הוא שדה חובה' });
+    const clash = db
+      .prepare('SELECT id FROM parts WHERE part_no = ? AND seller_id = ? AND id != ?')
+      .get(part_no, req.seller.id, partId);
+    if (clash) return res.status(409).json({ error: 'כבר קיים אצלך חלק עם מק״ט זה' });
+  }
 
   db.prepare(
-    `UPDATE parts SET name=@name, sub=@sub, category=@category, price=@price, stock=@stock, icon=@icon WHERE id=@id`
+    `UPDATE parts SET name=@name, sub=@sub, category=@category, part_no=@part_no, price=@price,
+            kind=@kind, maker=@maker, fits=@fits, qty=@qty, image_url=@image_url, icon=@icon
+     WHERE id=@id`
   ).run({
     name: name ?? current.name,
     sub: sub ?? current.sub,
     category: category ?? current.category,
+    part_no: part_no ?? current.part_no,
     price: price ?? current.price,
-    stock: stock === undefined ? current.stock : stock === 'low' ? 'low' : 'in',
+    kind: kind ?? current.kind,
+    maker: maker ?? current.maker,
+    fits: fits ?? current.fits,
+    qty: qty ?? current.qty,
+    image_url: image_url ?? current.image_url,
     icon: icon ?? current.icon,
     id: partId,
   });
