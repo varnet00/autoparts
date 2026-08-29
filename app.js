@@ -28,9 +28,8 @@ const ICON = {
   logout: o => I('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>', o),
 };
 
-const LOGO = `<svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-  <rect width="28" height="28" rx="9" fill="#f2761b"/>
-  <path d="M8.6 19.4 13 8.6h2l4.4 10.8h-2.3l-1-2.6h-4.2l-1 2.6zm4-4.5h2.8L14 11.2z" fill="#16140f"/>
+const LOGO = `<svg width="38" height="26" viewBox="70 173 502 345" fill="none" aria-hidden="true">
+  <path fill="#f2761b" fill-rule="evenodd" d="M 76 179 L 566 179 L 516 462 Q 509 512 459 512 L 181 512 Q 131 512 124 462 Z M 99 203 L 223 203 L 139 418 Z M 541 203 L 417 203 L 501 418 Z M 320 249 L 383 447 L 257 447 Z"/>
 </svg>`;
 
 /* ============================ עזרים ============================ */
