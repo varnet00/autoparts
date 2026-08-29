@@ -697,8 +697,6 @@ const VIEWS = {
   create: viewCreate, chats: viewChats, chat: viewChat, profile: viewProfile,
 };
 
-let lastScreen = null;
-
 function render() {
   const view = VIEWS[S.screen] || viewHome;
   const el = $('#screen');
@@ -706,14 +704,6 @@ function render() {
   const y = keepScroll ? keepScroll.scrollTop : 0;
 
   el.innerHTML = view();
-
-  if (S.screen !== lastScreen) {
-    el.classList.remove('enter');
-    void el.offsetWidth;          // מאלץ חישוב מחדש כדי שהאנימציה תרוץ שוב
-    el.classList.add('enter');
-    lastScreen = S.screen;
-  }
-
   renderDock();
 
   // בשיחה גוללים לסוף; בשאר המסכים שומרים על מיקום הגלילה
@@ -816,6 +806,18 @@ function syncDraft() {
   S.draft.qty = qty === '' ? 0 : Number(qty);
 }
 
+
+// פותח וסוגר את הפאנל בלי לצייר את המסך מחדש: מחליף מחלקה על
+// האלמנט שכבר קיים, וכך המעבר באמת רץ במקום שהאלמנט יופיע פתוח.
+function setSheet(open) {
+  S.sheet = open;
+  const sheet = document.querySelector('.sheet');
+  const scrim = document.querySelector('.scrim');
+  if (!sheet || !scrim) { render(); return; }
+  sheet.classList.toggle('open', open);
+  scrim.classList.toggle('open', open);
+}
+
 /* ============================ אירועים ============================ */
 document.addEventListener('click', async (ev) => {
   const el = ev.target.closest('[data-act]');
@@ -835,8 +837,8 @@ document.addEventListener('click', async (ev) => {
     go('create'); return;
   }
 
-  if (act === 'sheet-open') { S.sheet = true; render(); return; }
-  if (act === 'sheet-close') { S.sheet = false; render(); return; }
+  if (act === 'sheet-open') { setSheet(true); return; }
+  if (act === 'sheet-close') { setSheet(false); return; }
 
   if (act === 'quick') { S.sheet = false; S.q = el.dataset.q; S.kind = 'all'; S.category = 'all'; go('search'); loadSearch(); return; }
   if (act === 'cat') {
@@ -996,8 +998,8 @@ document.addEventListener('touchend', (ev) => {
   if (touchY === null || S.screen !== 'home') return;
   const dy = ev.changedTouches[0].clientY - touchY;
   touchY = null;
-  if (dy < -48 && !S.sheet) { S.sheet = true; render(); }
-  else if (dy > 48 && S.sheet) { S.sheet = false; render(); }
+  if (dy < -48 && !S.sheet) setSheet(true);
+  else if (dy > 48 && S.sheet) setSheet(false);
 }, { passive: true });
 
 // במחשב אין החלקה — גלגלת כלפי מטה פותחת, כלפי מעלה סוגרת
@@ -1006,8 +1008,8 @@ document.addEventListener('wheel', (ev) => {
   if (S.screen !== 'home') return;
   const now = Date.now();
   if (now - wheelLock < 600) return;
-  if (ev.deltaY > 24 && !S.sheet) { wheelLock = now; S.sheet = true; render(); }
-  else if (ev.deltaY < -24 && S.sheet) { wheelLock = now; S.sheet = false; render(); }
+  if (ev.deltaY > 24 && !S.sheet) { wheelLock = now; setSheet(true); }
+  else if (ev.deltaY < -24 && S.sheet) { wheelLock = now; setSheet(false); }
 }, { passive: true });
 
 /* ============================ אתחול ============================ */
