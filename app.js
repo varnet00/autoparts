@@ -126,19 +126,22 @@ function toast(msg, isError) {
 }
 
 /* ============================ רכיבים משותפים ============================ */
+// בממשק RTL האיבר הראשון יושב מימין. הכפתורים בהתחלה (ימין),
+// הלוגו בסוף — כלומר בפינה השמאלית העליונה.
 function topBar(opts) {
   const o = opts || {};
-  const right = o.back
+  const nav = o.back
     ? `<button class="iconbtn" data-act="${esc(o.back)}">${ICON.back()}</button>`
-    : `<span class="brand">${LOGO}<b>AUTOPARTS</b></span>`;
-  const title = o.title ? `<span style="font:600 16px var(--disp)">${esc(o.title)}</span>` : '';
-  const left = o.actions === undefined
-    ? `<span class="row" style="gap:8px">
+    : '';
+  const actions = o.actions === undefined
+    ? `<span class="row" style="gap: var(--s2)">
          <button class="iconbtn" data-act="chats">${ICON.chat({ s: 17 })}</button>
          <button class="iconbtn" data-act="profile">${ICON.user({ s: 17 })}</button>
        </span>`
     : o.actions;
-  return `<div class="top">${right}${title}${left}</div>`;
+  const title = o.title ? `<span style="font:600 var(--fs-lead) var(--disp)">${esc(o.title)}</span>` : '';
+  const brand = `<span class="brand">${LOGO}<b>AUTOPARTS</b></span>`;
+  return `<div class="top">${nav}${actions}${title}${brand}</div>`;
 }
 
 function kindTag(kind) {
@@ -155,13 +158,13 @@ function thumb(part, size) {
 function partNums(part, max) {
   const nums = (part.interchange_numbers || []).slice(0, max || 3);
   if (!nums.length) return '';
-  return `<div class="chips" style="gap:5px">${nums.map((n) => `<span class="num">${esc(n.number)}</span>`).join('')}</div>`;
+  return `<div class="chips" style="gap: var(--s2)">${nums.map((n) => `<span class="num">${esc(n.number)}</span>`).join('')}</div>`;
 }
 
 function emptyState(icon, title, sub) {
   return `<div class="center">
     <div style="color:var(--muted)">${icon}</div>
-    <div style="font:600 16px var(--disp)">${esc(title)}</div>
+    <div style="font:600 var(--fs-body) var(--disp)">${esc(title)}</div>
     ${sub ? `<div class="label" style="max-width:260px">${esc(sub)}</div>` : ''}
   </div>`;
 }
@@ -177,25 +180,25 @@ function viewHome() {
   return `
     ${topBar({})}
     <div class="scroll" style="display:flex;flex-direction:column">
-      <div class="center" style="padding:30px 26px 26px;gap:26px">
-        <div style="font:600 27px/1.35 var(--disp);text-wrap:pretty">כל חלק. כל רכב.<br>מחיר אחד וברור.</div>
-        <div class="stack" style="width:100%;gap:11px">
+      <div class="center" style="flex:none;padding: var(--s8) var(--s6) var(--s7);gap: var(--s6)">
+        <div style="font:600 var(--fs-hero)/1.35 var(--disp);text-wrap:pretty">כל חלק. כל רכב.<br>מחיר אחד וברור.</div>
+        <div class="stack" style="width:100%;gap: var(--s3)">
           <form class="searchbar" data-act="search-submit">
             ${ICON.search({ s: 19 })}
             <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
-            <button type="submit" aria-label="חיפוש">${ICON.scan({ s: 19 })}</button>
+            <button type="submit" aria-label="חיפוש" style="width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;margin:calc(var(--s1) * -1) 0">${ICON.scan({ s: 19 })}</button>
           </form>
           <div class="chips" style="justify-content:center">
             ${quick.map((t) => `<button class="chip" data-act="quick" data-q="${esc(t)}">${esc(t)}</button>`).join('')}
           </div>
         </div>
-        <div class="row" style="gap:14px;font:400 11.5px var(--sans);color:var(--muted)">
+        <div class="row" style="gap: var(--s4);font:400 var(--fs-label) var(--sans);color:var(--muted)">
           ${st ? `<span>${st.numbers} מק״טים</span>
                   <span style="width:4px;height:4px;border-radius:999px;background:#c8c1b7"></span>
                   <span>${st.verified_sellers} מוכרים מאומתים</span>` : '<span>טוען…</span>'}
         </div>
       </div>
-      <div class="pad stack" style="gap:11px;padding-bottom:30px;flex:none">
+      <div class="pad stack" style="gap: var(--s3);padding-bottom: var(--s7);flex:none">
         <span class="label">קטגוריות</span>
         <div class="chips">
           ${Object.keys(CATEGORY_LABEL).map((c) => `<button class="chip" data-act="cat" data-cat="${c}">${CATEGORY_LABEL[c]}</button>`).join('')}
@@ -210,7 +213,7 @@ function viewSearch() {
   return `
     ${topBar({})}
     <div class="scroll">
-      <div class="pad stack" style="gap:11px;padding-top:16px">
+      <div class="pad stack" style="gap: var(--s3);padding-top: var(--s4)">
         <form class="searchbar" data-act="search-submit">
           ${ICON.search({ s: 18 })}
           <input name="q" placeholder="חיפוש לפי תיאור או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
@@ -223,11 +226,11 @@ function viewSearch() {
           <button class="label" data-act="cat" data-cat="all" style="text-decoration:underline">נקה</button>
         </div>` : ''}
       </div>
-      <div class="pad row between" style="padding-top:18px">
+      <div class="pad row between" style="padding-top: var(--s5)">
         <span class="label">תוצאות</span>
         <span class="label mono">${S.total}</span>
       </div>
-      <div class="pad stack" style="gap:9px;padding-top:10px">
+      <div class="pad stack" style="gap: var(--s3);padding-top: var(--s3)">
         ${S.loading ? loader()
           : S.items.length
             ? S.items.map(resultCard).join('')
@@ -240,34 +243,34 @@ function viewSearch() {
 function resultCard(p) {
   const open = S.openPart === p.id;
   return `<div class="card">
-    <div class="row" style="align-items:flex-start;gap:14px;padding:16px 17px;cursor:pointer" data-act="toggle" data-id="${p.id}">
-      <div class="stack" style="flex:1;gap:8px;min-width:0">
-        <span style="font:500 15.5px/1.25 var(--sans)">${esc(p.name)}</span>
-        <span class="mono" style="font-weight:600;font-size:13.5px;letter-spacing:.4px">${esc(p.part_no)}</span>
-        ${p.fits ? `<span class="mono muted" style="font-size:10.5px">${esc(p.fits)}</span>` : ''}
+    <div class="row" style="align-items:flex-start;gap: var(--s4);padding: var(--s4) 17px;cursor:pointer" data-act="toggle" data-id="${p.id}">
+      <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
+        <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc(p.name)}</span>
+        <span class="mono" style="font-weight:600;font-size:var(--fs-sub);letter-spacing:.4px">${esc(p.part_no)}</span>
+        ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
         ${partNums(p)}
         <span>${kindTag(p.kind)}</span>
       </div>
-      <div class="row" style="gap:9px">
-        <div class="stack" style="align-items:center;gap:8px">
+      <div class="row" style="gap: var(--s3)">
+        <div class="stack" style="align-items:center;gap: var(--s2)">
           ${thumb(p, 72)}
           <span class="price">${shekel(p.price)}</span>
         </div>
         <span style="color:#b8b0a6;transform:rotate(${open ? '-90' : '0'}deg);transition:.15s">${ICON.chevron({ s: 18 })}</span>
       </div>
     </div>
-    ${open ? `<div class="hr stack" style="padding:15px 17px;gap:12px">
+    ${open ? `<div class="hr stack" style="padding: var(--s4) 17px;gap: var(--s3)">
       <div class="row between">
         <span class="label">מוכר</span>
-        <span style="font:500 12.5px var(--sans)">${esc(p.seller ? p.seller.name : '—')}</span>
+        <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.seller ? p.seller.name : '—')}</span>
       </div>
       <div class="row between">
         <span class="label">עיר</span>
-        <span style="font:500 12.5px var(--sans)">${esc(p.seller ? p.seller.city : '—')}</span>
+        <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.seller ? p.seller.city : '—')}</span>
       </div>
       <div class="row between">
         <span class="label">מלאי</span>
-        <span class="mono" style="font-size:12.5px">${p.qty > 0 ? `${p.qty} יח׳` : 'אזל'}</span>
+        <span class="mono" style="font-size:var(--fs-sub)">${p.qty > 0 ? `${p.qty} יח׳` : 'אזל'}</span>
       </div>
       <button class="btn" data-act="open-part" data-id="${p.id}">לכרטיס החלק</button>
     </div>` : ''}
@@ -284,43 +287,43 @@ function viewPart() {
   return `
     ${topBar({ back: 'search', actions: '' })}
     <div class="scroll">
-      <div class="pad row" style="align-items:flex-start;gap:14px;padding-top:20px">
-        <div class="stack" style="flex:1;gap:9px;min-width:0">
-          <span style="font:600 19px/1.25 var(--disp)">${esc(p.name)}</span>
-          <span class="mono" style="font-weight:600;font-size:15px;letter-spacing:.4px">${esc(p.part_no)}</span>
-          <div class="row" style="gap:7px;flex-wrap:wrap">
+      <div class="pad row" style="align-items:flex-start;gap: var(--s4);padding-top: var(--s5)">
+        <div class="stack" style="flex:1;gap: var(--s3);min-width:0">
+          <span style="font:600 var(--fs-lead)/1.25 var(--disp)">${esc(p.name)}</span>
+          <span class="mono" style="font-weight:600;font-size:var(--fs-body);letter-spacing:.4px">${esc(p.part_no)}</span>
+          <div class="row" style="gap: var(--s2);flex-wrap:wrap">
             ${kindTag(p.kind)}
-            ${p.maker ? `<span class="mono muted" style="font-size:11px">${esc(p.maker)}</span>` : ''}
+            ${p.maker ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.maker)}</span>` : ''}
           </div>
-          ${p.fits ? `<span class="mono muted" style="font-size:11px">${esc(p.fits)}</span>` : ''}
+          ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
         </div>
         ${thumb(p, 96)}
       </div>
 
-      ${nums.length ? `<div class="pad stack" style="gap:9px;padding-top:20px">
+      ${nums.length ? `<div class="pad stack" style="gap: var(--s3);padding-top: var(--s5)">
         <span class="label">מק״טים של אותו חלק · ${nums.length}</span>
-        <div class="chips" style="gap:6px">
-          ${nums.map((n) => `<span class="num" style="font-size:12px;padding:6px 10px;color:var(--ink)" title="${esc(n.brand || '')}">${esc(n.number)}</span>`).join('')}
+        <div class="chips" style="gap: var(--s2)">
+          ${nums.map((n) => `<span class="num" style="font-size:var(--fs-sub);padding: var(--s2) 10px;color:var(--ink)" title="${esc(n.brand || '')}">${esc(n.number)}</span>`).join('')}
         </div>
       </div>` : ''}
 
-      <div class="pad" style="padding-top:16px">
+      <div class="pad" style="padding-top: var(--s4)">
         <div class="card">
-          <div class="row" style="gap:11px;padding:15px 17px;cursor:pointer" data-act="toggle-sup">
-            <div style="width:32px;height:32px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 12px var(--mono)">${esc((s && s.name ? s.name.trim()[0] : '?'))}</div>
-            <div class="stack" style="flex:1;gap:2px;min-width:0">
-              <span style="font:500 14px var(--sans)">${esc(s ? s.name : 'לא ידוע')}</span>
+          <div class="row" style="gap: var(--s3);padding: var(--s4) 17px;cursor:pointer" data-act="toggle-sup">
+            <div style="width:32px;height:32px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 var(--fs-sub) var(--mono)">${esc((s && s.name ? s.name.trim()[0] : '?'))}</div>
+            <div class="stack" style="flex:1;gap: var(--s1);min-width:0">
+              <span style="font:500 var(--fs-body) var(--sans)">${esc(s ? s.name : 'לא ידוע')}</span>
               <span class="label">המוכר · ${esc(s ? s.city : '')}</span>
             </div>
-            ${s && s.verified ? `<span class="row" style="gap:6px;padding:6px 10px;border:1px solid #b9c4ae;border-radius:6px;background:#eef3e8;color:var(--orig-fg);font:600 10px var(--sans)">${ICON.badge({ s: 12 })}מאומת</span>` : ''}
+            ${s && s.verified ? `<span class="row" style="gap: var(--s2);padding: var(--s2) 10px;border:1px solid #b9c4ae;border-radius:6px;background:#eef3e8;color:var(--orig-fg);font:600 var(--fs-micro) var(--sans)">${ICON.badge({ s: 12 })}מאומת</span>` : ''}
             <span class="label">${S.supOpen ? 'הסתר' : 'הצג'}</span>
           </div>
-          ${S.supOpen && s ? `<div class="hr stack" style="padding:15px 17px;gap:12px">
-            <div class="row between"><span class="label">טלפון</span><span class="mono" style="font-size:12.5px">${esc(s.phone)}</span></div>
-            <div class="row between"><span class="label">מלאי</span><span style="font:500 12.5px var(--sans)">${p.qty > 0 ? `${p.qty} יחידות` : 'אזל מהמלאי'}</span></div>
-            <div class="row between"><span class="label">דירוג</span><span class="mono" style="font-size:12.5px">${s.rating} · ${s.reviews_count}</span></div>
-            <div class="row between" style="align-items:baseline"><span style="font:500 13px var(--sans)">מחיר</span><span class="mono" style="font:600 22px var(--mono)">${shekel(p.price)}</span></div>
-            <div class="row" style="gap:8px">
+          ${S.supOpen && s ? `<div class="hr stack" style="padding: var(--s4) 17px;gap: var(--s3)">
+            <div class="row between"><span class="label">טלפון</span><span class="mono" style="font-size:var(--fs-sub)">${esc(s.phone)}</span></div>
+            <div class="row between"><span class="label">מלאי</span><span style="font:500 var(--fs-sub) var(--sans)">${p.qty > 0 ? `${p.qty} יחידות` : 'אזל מהמלאי'}</span></div>
+            <div class="row between"><span class="label">דירוג</span><span class="mono" style="font-size:var(--fs-sub)">${s.rating} · ${s.reviews_count}</span></div>
+            <div class="row between" style="align-items:baseline"><span style="font:500 var(--fs-sub) var(--sans)">מחיר</span><span class="mono" style="font:600 var(--fs-lead) var(--mono)">${shekel(p.price)}</span></div>
+            <div class="row" style="gap: var(--s2)">
               <button class="btn" data-act="start-chat" data-id="${p.id}" style="flex:1">בקשה בצ׳אט</button>
               <a class="btn ghost" href="tel:${esc(s.phone)}" style="width:50px;display:flex;align-items:center;justify-content:center;text-decoration:none">${ICON.phone({ s: 17 })}</a>
             </div>
@@ -328,21 +331,21 @@ function viewPart() {
         </div>
       </div>
 
-      <div class="pad stack" style="gap:9px;padding-top:20px">
+      <div class="pad stack" style="gap: var(--s3);padding-top: var(--s5)">
         <div class="row between">
           <span class="label">אנלוגים זמינים</span>
           <span class="label mono">${S.analogs.length}</span>
         </div>
         ${S.analogs.length
-          ? S.analogs.map((a) => `<div class="card row" style="gap:11px;padding:14px 16px;cursor:pointer" data-act="open-part" data-id="${a.id}">
-              <div class="stack" style="flex:1;gap:5px;min-width:0">
-                <span class="mono" style="font-weight:600;font-size:12.5px">${esc(a.part_no)}</span>
-                <span class="mono muted" style="font-size:10.5px">${esc(a.maker || (a.seller ? a.seller.name : ''))}</span>
+          ? S.analogs.map((a) => `<div class="card row" style="gap: var(--s3);padding: var(--s4) 16px;cursor:pointer" data-act="open-part" data-id="${a.id}">
+              <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
+                <span class="mono" style="font-weight:600;font-size:var(--fs-sub)">${esc(a.part_no)}</span>
+                <span class="mono muted" style="font-size:var(--fs-label)">${esc(a.maker || (a.seller ? a.seller.name : ''))}</span>
               </div>
               ${kindTag(a.kind)}
-              <span class="price" style="font-size:13px">${shekel(a.price)}</span>
+              <span class="price" style="font-size:var(--fs-sub)">${shekel(a.price)}</span>
             </div>`).join('')
-          : `<div class="card" style="padding:16px 17px"><span class="label">לא נמצאו הצעות מקבילות</span></div>`}
+          : `<div class="card" style="padding: var(--s4) 17px"><span class="label">לא נמצאו הצעות מקבילות</span></div>`}
       </div>
     </div>`;
 }
@@ -357,35 +360,35 @@ function viewStock() {
   return `
     ${topBar({ actions: `<button class="iconbtn" data-act="profile">${ICON.settings({ s: 17 })}</button>` })}
     <div class="scroll">
-      <div class="pad stack" style="gap:3px;padding-top:20px">
-        <span style="font:600 21px var(--disp)">המלאי שלי</span>
+      <div class="pad stack" style="gap: var(--s1);padding-top: var(--s5)">
+        <span style="font:600 var(--fs-lead) var(--disp)">המלאי שלי</span>
         <span class="label">${esc(S.me ? S.me.name : '')}${S.me && S.me.verified ? ' · מוכר מאומת' : ''}</span>
       </div>
-      <div class="pad row" style="gap:8px;padding-top:16px">
-        <div class="stack" style="flex:1;background:var(--ink);color:#fff;border-radius:16px;padding:15px 16px;gap:5px">
-          <span class="mono" style="font:600 22px var(--mono)">${st ? st.in_stock : '—'}</span>
-          <span style="font:400 10.5px var(--sans);color:rgba(255,255,255,.6)">יחידות במלאי</span>
+      <div class="pad row" style="gap: var(--s2);padding-top: var(--s4)">
+        <div class="stack" style="flex:1;background:var(--ink);color:#fff;border-radius:16px;padding: var(--s4) 16px;gap: var(--s2)">
+          <span class="mono" style="font:600 var(--fs-lead) var(--mono)">${st ? st.in_stock : '—'}</span>
+          <span style="font:400 var(--fs-label) var(--sans);color:rgba(255,255,255,.6)">יחידות במלאי</span>
         </div>
-        <div class="stack" style="flex:1;background:var(--card);border-radius:16px;padding:15px 16px;gap:5px">
-          <span class="mono" style="font:600 22px var(--mono)">${st ? st.out_of_stock : '—'}</span>
-          <span class="label" style="font-size:10.5px">אזלו</span>
+        <div class="stack" style="flex:1;background:var(--card);border-radius:16px;padding: var(--s4) 16px;gap: var(--s2)">
+          <span class="mono" style="font:600 var(--fs-lead) var(--mono)">${st ? st.out_of_stock : '—'}</span>
+          <span class="label" style="font-size:var(--fs-label)">אזלו</span>
         </div>
-        <div class="stack" style="flex:1;background:var(--card);border-radius:16px;padding:15px 16px;gap:5px">
-          <span class="mono" style="font:600 22px var(--mono)">${st ? st.requests : '—'}</span>
-          <span class="label" style="font-size:10.5px">בקשות</span>
+        <div class="stack" style="flex:1;background:var(--card);border-radius:16px;padding: var(--s4) 16px;gap: var(--s2)">
+          <span class="mono" style="font:600 var(--fs-lead) var(--mono)">${st ? st.requests : '—'}</span>
+          <span class="label" style="font-size:var(--fs-label)">בקשות</span>
         </div>
       </div>
-      <div class="pad row between" style="padding-top:20px">
+      <div class="pad row between" style="padding-top: var(--s5)">
         <span class="label">הפוזיציות שלי</span>
         <span class="label mono">${S.stock.length}</span>
       </div>
-      <div class="pad stack" style="gap:9px;padding-top:10px">
+      <div class="pad stack" style="gap: var(--s3);padding-top: var(--s3)">
         ${S.loading ? loader() : S.stock.map(stockCard).join('')}
         ${!S.loading && !S.stock.length ? emptyState(ICON.package({ s: 30 }), 'אין עדיין פוזיציות', 'הוסיפו את החלק הראשון עם הכפתור למטה') : ''}
-        ${st && st.out_of_stock > 0 ? `<div class="card row" style="gap:12px;padding:16px 17px;border-inline-start:3px solid #d1791f">
+        ${st && st.out_of_stock > 0 ? `<div class="card row" style="gap: var(--s3);padding: var(--s4) 17px;border-inline-start:3px solid #d1791f">
           ${ICON.warn({ s: 19 })}
-          <div class="stack" style="flex:1;gap:3px">
-            <span style="font:500 13.5px var(--sans)">${st.out_of_stock} פוזיציות אזלו מהמלאי</span>
+          <div class="stack" style="flex:1;gap: var(--s1)">
+            <span style="font:500 var(--fs-sub) var(--sans)">${st.out_of_stock} פוזיציות אזלו מהמלאי</span>
             <span class="label">קונים רואים אותן כלא זמינות</span>
           </div>
         </div>` : ''}
@@ -394,24 +397,24 @@ function viewStock() {
 }
 
 function stockCard(p) {
-  return `<div class="card stack" style="padding:16px 17px;gap:13px">
-    <div class="row" style="align-items:flex-start;gap:14px">
-      <div class="stack" style="flex:1;gap:7px;min-width:0">
-        <span style="font:500 15px/1.25 var(--sans)">${esc(p.name)}</span>
-        <span class="mono" style="font-weight:600;font-size:13px">${esc(p.part_no)}</span>
-        ${p.fits ? `<span class="mono muted" style="font-size:10.5px">${esc(p.fits)}</span>` : ''}
+  return `<div class="card stack" style="padding: var(--s4) 17px;gap: var(--s4)">
+    <div class="row" style="align-items:flex-start;gap: var(--s4)">
+      <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
+        <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc(p.name)}</span>
+        <span class="mono" style="font-weight:600;font-size:var(--fs-sub)">${esc(p.part_no)}</span>
+        ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
         <span>${kindTag(p.kind)}</span>
       </div>
-      <div class="stack" style="align-items:center;gap:8px">
+      <div class="stack" style="align-items:center;gap: var(--s2)">
         ${thumb(p, 66)}
-        <span class="price" style="font-size:14px">${shekel(p.price)}</span>
-        <span class="mono muted" style="font-size:10.5px">${p.qty > 0 ? `×${p.qty} במלאי` : 'אזל'}</span>
+        <span class="price" style="font-size:var(--fs-body)">${shekel(p.price)}</span>
+        <span class="mono muted" style="font-size:var(--fs-label)">${p.qty > 0 ? `×${p.qty} במלאי` : 'אזל'}</span>
       </div>
     </div>
-    ${partNums(p, 4) ? `<div class="stack" style="gap:8px"><span class="label">מק״טים חלופיים</span>${partNums(p, 4)}</div>` : ''}
-    <div class="row hr" style="gap:8px;padding-top:12px">
-      <button class="btn line row" data-act="edit" data-id="${p.id}" style="flex:1;justify-content:center;gap:7px;padding:11px;font-size:12px">${ICON.pencil({ s: 14 })}ערוך</button>
-      <button class="btn ghost" data-act="delete" data-id="${p.id}" style="width:46px;padding:11px;display:flex;align-items:center;justify-content:center">${ICON.trash({ s: 16 })}</button>
+    ${partNums(p, 4) ? `<div class="stack" style="gap: var(--s2)"><span class="label">מק״טים חלופיים</span>${partNums(p, 4)}</div>` : ''}
+    <div class="row hr" style="gap: var(--s2);padding-top: var(--s3)">
+      <button class="btn line row" data-act="edit" data-id="${p.id}" style="flex:1;justify-content:center;gap: var(--s2);padding: var(--s3);font-size:var(--fs-sub)">${ICON.pencil({ s: 14 })}ערוך</button>
+      <button class="btn ghost" data-act="delete" data-id="${p.id}" style="width:46px;padding: var(--s3);display:flex;align-items:center;justify-content:center">${ICON.trash({ s: 16 })}</button>
     </div>
   </div>`;
 }
@@ -425,19 +428,19 @@ function viewCreate() {
   return `
     <div class="top">
       <button class="iconbtn" data-act="stock">${ICON.close({ s: 17 })}</button>
-      <span style="font:600 16px var(--disp)">${editing ? 'עריכת פוזיציה' : 'פוזיציה חדשה'}</span>
+      <span style="font:600 var(--fs-body) var(--disp)">${editing ? 'עריכת פוזיציה' : 'פוזיציה חדשה'}</span>
       <span style="width:40px"></span>
     </div>
     <div class="scroll">
-      <form class="pad stack" style="gap:15px;padding-top:20px" data-act="save-part">
-        <div class="row" style="gap:10px;align-items:flex-start">
-          <div class="stack" style="width:96px;height:96px;border-radius:16px;border:1px dashed #c9c2b8;background:var(--card);align-items:center;justify-content:center;gap:6px;color:var(--muted)">
-            ${ICON.camera({ s: 20 })}<span style="font:400 10.5px var(--sans)">הוסף תמונה</span>
+      <form class="pad stack" style="gap: var(--s4);padding-top: var(--s5)" data-act="save-part">
+        <div class="row" style="gap: var(--s3);align-items:flex-start">
+          <div class="stack" style="width:96px;height:96px;border-radius:16px;border:1px dashed #c9c2b8;background:var(--card);align-items:center;justify-content:center;gap: var(--s2);color:var(--muted)">
+            ${ICON.camera({ s: 20 })}<span style="font:400 var(--fs-label) var(--sans)">הוסף תמונה</span>
           </div>
           <div class="field" style="flex:1">
             <span class="label">שם החלק</span>
             <input name="name" required value="${esc(d.name || '')}" placeholder="רפידות בלימה קדמיות">
-            <span class="label" style="font-size:10.5px">הצילום מגדיל סיכוי למכירה</span>
+            <span class="label" style="font-size:var(--fs-label)">הצילום מגדיל סיכוי למכירה</span>
           </div>
         </div>
         <div class="field">
@@ -447,16 +450,16 @@ function viewCreate() {
         <div class="field">
           <span class="label">מק״טים מתחלפים · יופיעו בחיפוש</span>
           <div class="chips" id="numsBox">
-            ${nums.map((n, i) => `<span class="num" style="display:flex;align-items:center;gap:7px;padding:8px 12px;font-size:11.5px;color:var(--ink)">${esc(n)}<button type="button" data-act="rm-num" data-i="${i}" aria-label="הסר">${ICON.close({ s: 11 })}</button></span>`).join('')}
-            <button type="button" class="row" data-act="add-num" style="gap:6px;padding:8px 12px;border-radius:999px;border:1px dashed #c9c2b8;font:500 11.5px var(--sans);color:var(--muted)">${ICON.plus({ s: 12 })}הוסף מק״ט</button>
+            ${nums.map((n, i) => `<span class="num" style="display:flex;align-items:center;gap: var(--s2);padding: var(--s2) 12px;font-size:var(--fs-label);color:var(--ink)">${esc(n)}<button type="button" data-act="rm-num" data-i="${i}" aria-label="הסר">${ICON.close({ s: 11 })}</button></span>`).join('')}
+            <button type="button" class="row" data-act="add-num" style="gap: var(--s2);padding: var(--s2) 12px;border-radius:999px;border:1px dashed #c9c2b8;font:500 var(--fs-label) var(--sans);color:var(--muted)">${ICON.plus({ s: 12 })}הוסף מק״ט</button>
           </div>
         </div>
-        <div class="row" style="gap:9px;align-items:flex-start">
+        <div class="row" style="gap: var(--s3);align-items:flex-start">
           <div class="field" style="flex:1"><span class="label">יצרן</span><input class="mono" name="maker" value="${esc(d.maker || '')}" placeholder="ADVICS"></div>
           <div class="field" style="flex:1">
             <span class="label">מצב</span>
-            <div class="row" style="gap:5px">
-              ${kinds.map(([k, t]) => `<button type="button" class="chip" data-act="set-kind" data-kind="${k}" aria-pressed="${(d.kind || 'copy') === k}" style="flex:1;text-align:center;border-radius:12px;padding:12px 0">${t}</button>`).join('')}
+            <div class="row" style="gap: var(--s2)">
+              ${kinds.map(([k, t]) => `<button type="button" class="chip" data-act="set-kind" data-kind="${k}" aria-pressed="${(d.kind || 'copy') === k}" style="flex:1;text-align:center;border-radius:12px;padding: var(--s3) 0">${t}</button>`).join('')}
             </div>
           </div>
         </div>
@@ -470,11 +473,11 @@ function viewCreate() {
           <span class="label">דגם ושנים</span>
           <input class="mono" name="fits" value="${esc(d.fits || '')}" placeholder="TOYOTA COROLLA E210 · 2016—2023">
         </div>
-        <div class="row" style="gap:9px">
+        <div class="row" style="gap: var(--s3)">
           <div class="field" style="flex:1"><span class="label">מחיר ₪</span><input class="mono" name="price" type="number" min="0" required value="${esc(d.price != null ? d.price : '')}" placeholder="210"></div>
           <div class="field" style="flex:1"><span class="label">כמות</span><input class="mono" name="qty" type="number" min="0" required value="${esc(d.qty != null ? d.qty : 0)}" placeholder="6"></div>
         </div>
-        <button class="btn" type="submit" style="margin-top:4px">${editing ? 'שמור שינויים' : 'פרסם פוזיציה'}</button>
+        <button class="btn" type="submit" style="margin-top: var(--s1)">${editing ? 'שמור שינויים' : 'פרסם פוזיציה'}</button>
       </form>
     </div>`;
 }
@@ -488,19 +491,19 @@ function viewChats() {
   return `
     ${topBar({ actions: '' })}
     <div class="scroll">
-      <div class="pad" style="padding-top:20px"><span style="font:600 21px var(--disp)">הודעות</span></div>
-      <div class="pad stack" style="gap:9px;padding-top:16px">
+      <div class="pad" style="padding-top: var(--s5)"><span style="font:600 var(--fs-lead) var(--disp)">הודעות</span></div>
+      <div class="pad stack" style="gap: var(--s3);padding-top: var(--s4)">
         ${S.loading ? loader()
           : S.conversations.length
             ? S.conversations.map((c) => {
                 const other = isSeller() ? (c.buyer && c.buyer.name) : (c.seller && c.seller.name);
-                return `<div class="card row" style="gap:11px;padding:14px 16px;cursor:pointer" data-act="open-chat" data-id="${c.id}">
-                  <div style="width:40px;height:40px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 13px var(--mono)">${esc(other ? other.trim()[0] : '?')}</div>
-                  <div class="stack" style="flex:1;gap:3px;min-width:0">
-                    <span style="font:500 14px var(--sans)">${esc(other || '—')}</span>
+                return `<div class="card row" style="gap: var(--s3);padding: var(--s4) 16px;cursor:pointer" data-act="open-chat" data-id="${c.id}">
+                  <div style="width:40px;height:40px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 var(--fs-sub) var(--mono)">${esc(other ? other.trim()[0] : '?')}</div>
+                  <div class="stack" style="flex:1;gap: var(--s1);min-width:0">
+                    <span style="font:500 var(--fs-body) var(--sans)">${esc(other || '—')}</span>
                     <span class="label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.last_message ? c.last_message.body : (c.part ? c.part.name : ''))}</span>
                   </div>
-                  ${c.part ? `<span class="mono muted" style="font-size:10.5px">${esc(c.part.part_no)}</span>` : ''}
+                  ${c.part ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(c.part.part_no)}</span>` : ''}
                 </div>`;
               }).join('')
             : emptyState(ICON.chat({ s: 30 }), 'אין עדיין שיחות', 'פנו למוכר מתוך כרטיס החלק')}
@@ -517,13 +520,13 @@ function viewChat() {
   const pending = S.requests.filter((r) => r.status === 'sent');
 
   return `
-    <div class="top" style="padding-bottom:14px;border-bottom:1px solid var(--line)">
+    <div class="top" style="padding-bottom: var(--s4);border-bottom:1px solid var(--line)">
       <button class="iconbtn" data-act="chats">${ICON.back({ s: 17 })}</button>
-      <div class="row" style="flex:1;gap:11px;margin-inline-start:11px">
-        <div style="width:40px;height:40px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 13px var(--mono)">${esc(other && other.name ? other.name.trim()[0] : '?')}</div>
-        <div class="stack" style="flex:1;gap:2px;min-width:0">
-          <div class="row" style="gap:6px">
-            <span style="font:500 14px var(--sans)">${esc(other ? other.name : '—')}</span>
+      <div class="row" style="flex:1;gap: var(--s3);margin-inline-start:11px">
+        <div style="width:40px;height:40px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 var(--fs-sub) var(--mono)">${esc(other && other.name ? other.name.trim()[0] : '?')}</div>
+        <div class="stack" style="flex:1;gap: var(--s1);min-width:0">
+          <div class="row" style="gap: var(--s2)">
+            <span style="font:500 var(--fs-body) var(--sans)">${esc(other ? other.name : '—')}</span>
             ${!isSeller() && c.seller && c.seller.verified ? `<span style="color:var(--orig-fg)">${ICON.badge({ s: 14 })}</span>` : ''}
           </div>
           ${!isSeller() && c.seller ? `<span class="label">${esc(c.seller.city)}</span>` : ''}
@@ -531,19 +534,19 @@ function viewChat() {
       </div>
     </div>
 
-    ${p ? `<div class="pad" style="padding-top:14px">
-      <div class="card row" style="gap:12px;padding:13px 15px">
+    ${p ? `<div class="pad" style="padding-top: var(--s4)">
+      <div class="card row" style="gap: var(--s3);padding: var(--s4) 15px">
         ${thumb(p, 46)}
-        <div class="stack" style="flex:1;gap:5px;min-width:0">
-          <span style="font:500 13.5px var(--sans)">${esc(p.name)}</span>
-          <span class="mono" style="font-weight:600;font-size:12px">${esc(p.part_no)}</span>
+        <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
+          <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.name)}</span>
+          <span class="mono" style="font-weight:600;font-size:var(--fs-sub)">${esc(p.part_no)}</span>
         </div>
-        <span class="price" style="font-size:13px">${shekel(p.price)}</span>
+        <span class="price" style="font-size:var(--fs-sub)">${shekel(p.price)}</span>
       </div>
     </div>` : ''}
 
-    <div class="scroll" id="thread" style="padding-bottom:20px">
-      <div class="pad stack" style="gap:9px;padding-top:16px">
+    <div class="scroll" id="thread" style="padding-bottom: var(--s5)">
+      <div class="pad stack" style="gap: var(--s3);padding-top: var(--s4)">
         ${S.messages.length ? '' : `<span class="label" style="align-self:center">אין עדיין הודעות</span>`}
         ${S.messages.map((m) => {
           const mine = m.sender_role === S.role;
@@ -551,26 +554,26 @@ function viewChat() {
                   <span class="time" style="align-self:${mine ? 'flex-end' : 'flex-start'}">${timeOf(m.created_at)}</span>`;
         }).join('')}
 
-        ${S.requests.map((r) => `<div class="card stack" style="align-self:${isSeller() ? 'flex-start' : 'flex-end'};width:88%;padding:15px 16px;gap:11px">
+        ${S.requests.map((r) => `<div class="card stack" style="align-self:${isSeller() ? 'flex-start' : 'flex-end'};width:88%;padding: var(--s4) 16px;gap: var(--s3)">
           <span class="label">בקשת הזמנה · ${r.status === 'sent' ? 'ממתינה' : r.status === 'accepted' ? 'אושרה' : 'נדחתה'}</span>
-          <div class="stack" style="gap:7px">
-            <div class="row between"><span class="label">מק״ט</span><span class="mono" style="font-size:12px">${esc(r.part_no || '—')}</span></div>
-            <div class="row between"><span class="label">כמות</span><span class="mono" style="font-size:12px">${r.qty}</span></div>
-            ${r.vehicle ? `<div class="row between"><span class="label">רכב</span><span class="mono" style="font-size:12px">${esc(r.vehicle)}</span></div>` : ''}
+          <div class="stack" style="gap: var(--s2)">
+            <div class="row between"><span class="label">מק״ט</span><span class="mono" style="font-size:var(--fs-sub)">${esc(r.part_no || '—')}</span></div>
+            <div class="row between"><span class="label">כמות</span><span class="mono" style="font-size:var(--fs-sub)">${r.qty}</span></div>
+            ${r.vehicle ? `<div class="row between"><span class="label">רכב</span><span class="mono" style="font-size:var(--fs-sub)">${esc(r.vehicle)}</span></div>` : ''}
           </div>
-          ${isSeller() && r.status === 'sent' ? `<div class="row" style="gap:8px">
-            <button class="btn" data-act="answer" data-id="${r.id}" data-status="accepted" style="flex:1;padding:13px;font-size:12.5px">אשר</button>
-            <button class="btn ghost" data-act="answer" data-id="${r.id}" data-status="declined" style="padding:13px 16px;font-size:12.5px">דחה</button>
+          ${isSeller() && r.status === 'sent' ? `<div class="row" style="gap: var(--s2)">
+            <button class="btn" data-act="answer" data-id="${r.id}" data-status="accepted" style="flex:1;padding: var(--s4);font-size:var(--fs-sub)">אשר</button>
+            <button class="btn ghost" data-act="answer" data-id="${r.id}" data-status="declined" style="padding: var(--s4) 16px;font-size:var(--fs-sub)">דחה</button>
           </div>` : ''}
         </div>`).join('')}
       </div>
     </div>
 
-    <div class="row" style="padding:12px 18px calc(24px + env(safe-area-inset-bottom));gap:9px;flex:none">
+    <div class="row" style="padding: var(--s3) 18px calc(24px + env(safe-area-inset-bottom));gap: var(--s3);flex:none">
       ${!isSeller() && p ? `<button class="iconbtn" data-act="order-form" style="border-radius:999px;width:46px;height:46px">${ICON.plus({ s: 18 })}</button>` : ''}
-      <form class="row" data-act="send-msg" style="flex:1;gap:9px">
+      <form class="row" data-act="send-msg" style="flex:1;gap: var(--s3)">
         <input name="body" placeholder="כתוב הודעה…" autocomplete="off"
-               style="flex:1;background:var(--card);border-radius:999px;padding:15px 18px;border:0;outline:none;font-size:14px;min-width:0">
+               style="flex:1;background:var(--card);border-radius:999px;padding: var(--s4) 18px;border:0;outline:none;font-size:var(--fs-body);min-width:0">
         <button type="submit" style="width:46px;height:46px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center">${ICON.send({ s: 18 })}</button>
       </form>
     </div>`;
@@ -582,13 +585,13 @@ function viewProfile() {
     return `
       ${topBar({ actions: '' })}
       <div class="scroll">
-        <div class="pad stack" style="gap:20px;padding-top:24px">
-          <div class="stack" style="gap:4px">
-            <span style="font:600 21px var(--disp)">${esc(S.me ? S.me.name : 'החשבון שלי')}</span>
+        <div class="pad stack" style="gap: var(--s5);padding-top: var(--s6)">
+          <div class="stack" style="gap: var(--s1)">
+            <span style="font:600 var(--fs-lead) var(--disp)">${esc(S.me ? S.me.name : 'החשבון שלי')}</span>
             <span class="label">${isSeller() ? 'חשבון מוכר' : 'חשבון קונה'}${S.me && S.me.city ? ' · ' + esc(S.me.city) : ''}</span>
           </div>
           ${isSeller() ? `<button class="btn ghost" data-act="stock">למלאי שלי</button>` : ''}
-          <button class="btn line row" data-act="logout" style="justify-content:center;gap:8px">${ICON.logout({ s: 16 })}התנתקות</button>
+          <button class="btn line row" data-act="logout" style="justify-content:center;gap: var(--s2)">${ICON.logout({ s: 16 })}התנתקות</button>
         </div>
       </div>`;
   }
@@ -598,17 +601,17 @@ function viewProfile() {
   return `
     ${topBar({ actions: '' })}
     <div class="scroll">
-      <div class="center" style="padding:36px 26px 12px;gap:10px">
+      <div class="center" style="padding: var(--s7) 26px 12px;gap: var(--s3)">
         ${LOGO}
-        <span style="font:600 20px var(--disp)">ברוכים הבאים ל-autoparts</span>
+        <span style="font:600 var(--fs-lead) var(--disp)">ברוכים הבאים ל-autoparts</span>
         <span class="label" style="max-width:280px">${asSeller ? 'נהלו את כרטיסי המוצר שלכם' : 'מצאו כל חלק לפי מק״ט'}</span>
       </div>
-      <div class="pad stack" style="gap:14px">
-        <div class="row" style="gap:5px;background:var(--card);border-radius:14px;padding:5px">
-          <button class="chip" data-act="auth-tab" data-tab="buyer" aria-pressed="${!asSeller}" style="flex:1;text-align:center;border-radius:10px;padding:11px 0;${!asSeller ? '' : 'background:transparent'}">קונה</button>
-          <button class="chip" data-act="auth-tab" data-tab="seller" aria-pressed="${asSeller}" style="flex:1;text-align:center;border-radius:10px;padding:11px 0;${asSeller ? '' : 'background:transparent'}">מוכר</button>
+      <div class="pad stack" style="gap: var(--s4)">
+        <div class="row" style="gap: var(--s2);background:var(--card);border-radius:14px;padding: var(--s2)">
+          <button class="chip" data-act="auth-tab" data-tab="buyer" aria-pressed="${!asSeller}" style="flex:1;text-align:center;border-radius:10px;padding: var(--s3) 0;${!asSeller ? '' : 'background:transparent'}">קונה</button>
+          <button class="chip" data-act="auth-tab" data-tab="seller" aria-pressed="${asSeller}" style="flex:1;text-align:center;border-radius:10px;padding: var(--s3) 0;${asSeller ? '' : 'background:transparent'}">מוכר</button>
         </div>
-        <form class="stack" style="gap:11px" data-act="auth-submit">
+        <form class="stack" style="gap: var(--s3)" data-act="auth-submit">
           ${reg ? `<div class="field"><span class="label">${asSeller ? 'שם העסק' : 'שם'}</span><input name="name" required></div>` : ''}
           ${reg && asSeller ? `<div class="field"><span class="label">עיר</span><input name="city" required></div>
                                <div class="field"><span class="label">טלפון</span><input class="mono" name="phone" required></div>` : ''}
