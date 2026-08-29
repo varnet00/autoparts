@@ -93,9 +93,25 @@ const seed = db.transaction(() => {
   return numCount;
 });
 
-const numCount = seed();
-const counts = db.prepare('SELECT COUNT(*) AS parts FROM parts').get();
-const outOfStock = db.prepare('SELECT COUNT(*) AS c FROM parts WHERE qty = 0').get().c;
+function run() {
+  const numCount = seed();
+  const counts = db.prepare('SELECT COUNT(*) AS parts FROM parts').get();
+  const outOfStock = db.prepare('SELECT COUNT(*) AS c FROM parts WHERE qty = 0').get().c;
 
-console.log(`✅ מוכרים: ${sellers.length} | חלקים: ${counts.parts} (מהם ${outOfStock} אזלו מהמלאי) | מספרים חלופיים: ${numCount}`);
-console.log(`🔑 סיסמת דמו לכל המוכרים: ${DEMO_PASSWORD}`);
+  console.log(`✅ מוכרים: ${sellers.length} | חלקים: ${counts.parts} (מהם ${outOfStock} אזלו מהמלאי) | מספרים חלופיים: ${numCount}`);
+  console.log(`🔑 סיסמת דמו לכל המוכרים: ${DEMO_PASSWORD}`);
+}
+
+// באחסון חינמי הדיסק נמחק בכל פריסה, אז שרת שעולה על בסיס ריק
+// ממלא את עצמו — אחרת המשתמש מקבל קטלוג ריק בלי להבין למה.
+function seedIfEmpty() {
+  const { c } = db.prepare('SELECT COUNT(*) AS c FROM parts').get();
+  if (c > 0) return false;
+  console.log('📦 בסיס הנתונים ריק — ממלא נתוני דמו');
+  run();
+  return true;
+}
+
+if (require.main === module) run();
+
+module.exports = { run, seedIfEmpty, DEMO_PASSWORD };

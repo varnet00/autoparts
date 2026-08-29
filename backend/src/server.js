@@ -17,6 +17,9 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
+const { seedIfEmpty } = require('./seed');
+seedIfEmpty();
+
 const app = express();
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));

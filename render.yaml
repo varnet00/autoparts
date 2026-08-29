@@ -1,0 +1,18 @@
+# פריסה בלחיצה אחת ל-Render: New → Blueprint → בוחרים את המאגר.
+# הכול כאן כבר מוגדר, חוץ מהסוד שנוצר אוטומטית.
+services:
+  - type: web
+    name: autoparts
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true      # Render מייצר מחרוזת אקראית; לא נשמרת במאגר
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        value: "*"               # לפני production: לצמצם לדומיין אחד
