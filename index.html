@@ -141,14 +141,14 @@ svg{flex:none}
 
 /* ---------- מסך הבית: כותרת וחיפוש בלבד ---------- */
 .home{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
-/* הזוג יושב על השליש העליון: החלל מתחתיו כפול מזה שמעליו.
-   מרווחים גמישים ביחס 1:2 שומרים על היחס בכל גובה מסך. */
+/* הזוג יושב מעט מעל השליש העליון: החלל מתחתיו גדול פי 2.5 מזה
+   שמעליו. מרווחים גמישים שומרים על היחס בכל גובה מסך. */
 .hero{
   flex:1;display:flex;flex-direction:column;align-items:center;
   gap:var(--s6);padding:0 var(--s6);text-align:center;
 }
-.hero::before{content:'';flex:1}
-.hero::after {content:'';flex:2}
+.hero::before{content:'';flex:2}
+.hero::after {content:'';flex:5}
 .hero .searchbar{width:100%}
 
 /* הרמז להחלקה: שברון בלבד, בלי גוף חץ */
