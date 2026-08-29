@@ -30,6 +30,10 @@ app.get('/api/health', (req, res) => {
 const ROOT = path.join(__dirname, '..', '..');
 const STOREFRONT = path.join(ROOT, 'index.html');
 
+// מניפסט ואייקונים — כדי ש"הוסף למסך הבית" ייתן אפליקציה במסך מלא.
+// רק public/ נחשף; שאר התיקייה (קוד השרת, .git) לא.
+app.use(express.static(path.join(ROOT, 'public'), { maxAge: '1h' }));
+
 app.get('/', (req, res) => res.sendFile(STOREFRONT));
 app.get('/app.js', (req, res) => res.sendFile(path.join(ROOT, 'app.js')));
 // הקבינט הפך למסך בתוך האפליקציה — הקישור הישן ממשיך לעבוד

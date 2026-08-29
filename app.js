@@ -567,7 +567,7 @@ function viewChat() {
       </div>
     </div>
 
-    <div class="row" style="padding:12px 18px 24px;gap:9px;flex:none">
+    <div class="row" style="padding:12px 18px calc(24px + env(safe-area-inset-bottom));gap:9px;flex:none">
       ${!isSeller() && p ? `<button class="iconbtn" data-act="order-form" style="border-radius:999px;width:46px;height:46px">${ICON.plus({ s: 18 })}</button>` : ''}
       <form class="row" data-act="send-msg" style="flex:1;gap:9px">
         <input name="body" placeholder="כתוב הודעה…" autocomplete="off"
