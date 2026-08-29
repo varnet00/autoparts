@@ -111,7 +111,9 @@ input,select,textarea{font:inherit;color:inherit}
 .hr{border-top:1px solid var(--line)}
 
 /* ---------- нижний островной навбар ---------- */
-.dock{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));inset-inline:0;display:flex;align-items:center;justify-content:center;gap: var(--s3);pointer-events:none;z-index:20}
+.dock{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));inset-inline:0;
+      display:flex;align-items:center;justify-content:center;gap: var(--s3);
+      pointer-events:none;z-index:40}   /* מעל השטרה — הניווט תמיד במקומו */
 .island{
   position:relative;display:flex;align-items:center;gap: var(--s1);
   border-radius:999px;padding: var(--s3) 12px;pointer-events:auto;
@@ -169,7 +171,7 @@ input,select,textarea{font:inherit;color:inherit}
 .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap: var(--s3);text-align:center;padding: var(--s8) 30px}
 .spin{width:26px;height:26px;border:2.5px solid var(--hair);border-top-color:var(--ink);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-.toast{position:absolute;bottom:calc(96px + env(safe-area-inset-bottom));inset-inline:18px;background:var(--ink);color:#fff;border-radius:14px;padding: var(--s4) 16px;font:500 var(--fs-sub) var(--sans);z-index:40;box-shadow:0 10px 24px rgba(22,20,15,.3)}
+.toast{position:absolute;bottom:calc(96px + env(safe-area-inset-bottom));inset-inline:18px;background:var(--ink);color:#fff;border-radius:14px;padding: var(--s4) 16px;font:500 var(--fs-sub) var(--sans);z-index:50;box-shadow:0 10px 24px rgba(22,20,15,.3)}
 .toast.err{background:#8c2f14}
 .stack{display:flex;flex-direction:column}
 .row{display:flex;align-items:center}
@@ -210,7 +212,7 @@ svg{flex:none}
 
 /* ---------- הפאנל הנפתח ---------- */
 .scrim{
-  position:absolute;inset:0;z-index:25;background:rgba(22,20,15,.18);
+  position:absolute;inset:0;z-index:25;background:rgba(22,20,15,.10);
   opacity:0;visibility:hidden;transition:opacity .4s var(--ease), visibility .4s;
 }
 .scrim.open{opacity:1;visibility:visible}
@@ -219,7 +221,7 @@ svg{flex:none}
   position:absolute;inset-inline:0;bottom:0;z-index:30;
   background:var(--card);border-radius:28px 28px 0 0;
   box-shadow:0 -12px 34px rgba(22,20,15,.18);
-  padding-bottom:calc(var(--s7) + env(safe-area-inset-bottom));
+  padding-bottom:calc(112px + env(safe-area-inset-bottom));   /* מתחת לאי */
   transform:translateY(100%);will-change:transform;
   transition:transform .58s var(--ease);
   max-height:76%;overflow-y:auto;

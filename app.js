@@ -441,7 +441,7 @@ function stockCard(p) {
     </div>
     ${partNums(p, 4) ? `<div class="stack" style="gap: var(--s2)"><span class="label">מק״טים חלופיים</span>${partNums(p, 4)}</div>` : ''}
     <div class="row hr" style="gap: var(--s2);padding-top: var(--s3)">
-      <button class="btn line row" data-act="edit" data-id="${p.id}" style="flex:1;justify-content:center;gap: var(--s2);padding: var(--s3);font-size:var(--fs-sub)">${ICON.pencil({ s: 14 })}ערוך</button>
+      <button class="btn row" data-act="edit" data-id="${p.id}" style="flex:1;justify-content:center;gap: var(--s2);padding: var(--s3);font-size:var(--fs-sub)">${ICON.pencil({ s: 14 })}ערוך</button>
       <button class="btn ghost" data-act="delete" data-id="${p.id}" style="width:46px;padding: var(--s3);display:flex;align-items:center;justify-content:center">${ICON.trash({ s: 16 })}</button>
     </div>
   </div>`;
