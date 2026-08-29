@@ -141,7 +141,13 @@ function topBar(opts) {
     : o.actions;
   const title = o.title ? `<span style="font:600 var(--fs-lead) var(--disp)">${esc(o.title)}</span>` : '';
   const brand = `<span class="brand">${LOGO}<b>AUTOPARTS</b></span>`;
-  return `<div class="top">${nav}${actions}${title}${brand}</div>`;
+  // הכפתורים נעטפים תמיד, גם כשאין אף אחד: כך בשורה יש בדיוק שני צדדים
+  // ו-space-between שולח את הלוגו לקצה. שוליים לוגיים לא מתאימים כאן —
+  // ל-.brand יש direction:ltr משלו, והם נמדדים לפיו ולא לפי השורה.
+  return `<div class="top">
+    <span class="row" style="gap: var(--s2)">${nav}${actions}</span>
+    ${title}${brand}
+  </div>`;
 }
 
 function kindTag(kind) {
@@ -941,8 +947,8 @@ S.authTab = 'buyer';
 S.authMode = 'login';
 render();
 
-// רצף הפתיחה נגמר ב-1.4 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
-const splashFloor = new Promise((resolve) => setTimeout(resolve, 1500));
+// רצף הפתיחה נגמר ב-2.2 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
+const splashFloor = new Promise((resolve) => setTimeout(resolve, 2300));
 Promise.allSettled([loadStats(), loadMe()])
   .then(() => splashFloor)
   .then(hideSplash);

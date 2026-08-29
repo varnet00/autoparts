@@ -149,40 +149,40 @@ svg{flex:none}
 #splash{
   position:absolute;inset:0;z-index:60;background:var(--bg);
   display:flex;align-items:center;justify-content:center;
-  transition:opacity .4s ease, visibility .4s;
+  transition:opacity .5s ease, visibility .5s;
 }
 #splash.gone{opacity:0;visibility:hidden}
 
 #splash .brandline{display:flex;align-items:center;direction:ltr}
 
 #splash .mark{
-  width:84px;flex:none;opacity:0;transform:scale(.9);
-  animation:sp-mark .55s cubic-bezier(.2,.7,.3,1) forwards;
+  width:84px;flex:none;opacity:0;transform:scale(.94);
+  animation:sp-mark .8s cubic-bezier(.4,0,.2,1) forwards;
 }
 #splash .word{
   overflow:hidden;max-width:0;
-  animation:sp-open .6s cubic-bezier(.2,.7,.3,1) .8s forwards;
+  animation:sp-open .85s cubic-bezier(.4,0,.2,1) 1.35s forwards;
 }
 #splash .word b{
   display:block;padding-inline-start:var(--s4);white-space:nowrap;
   font:600 var(--fs-lead)/1 var(--mono);letter-spacing:2.5px;color:var(--ink);
-  transform:translateX(-16px);
-  animation:sp-slide .6s cubic-bezier(.2,.7,.3,1) .8s forwards;
+  transform:translateX(-14px);
+  animation:sp-slide .85s cubic-bezier(.4,0,.2,1) 1.35s forwards;
 }
 #splash .hint{
   position:absolute;bottom:calc(var(--s8) + env(safe-area-inset-bottom));
   font:400 var(--fs-label) var(--sans);color:var(--muted);
-  opacity:0;animation:sp-fade .4s ease 2.4s forwards;  /* רק אם ההמתנה נמשכת */
+  opacity:0;animation:sp-fade .45s ease 3.4s forwards;  /* רק אם ההמתנה נמשכת */
 }
 @keyframes sp-mark{to{opacity:1;transform:none}}
-@keyframes sp-open{to{max-width:340px}}
+@keyframes sp-open{to{max-width:180px}}
 @keyframes sp-slide{to{transform:none}}
 @keyframes sp-fade{to{opacity:1}}
 
 /* מי שביקש פחות תנועה מקבל את אותו מסך, מיד ובלי תנועה */
 @media (prefers-reduced-motion: reduce){
   #splash .mark,#splash .word b,#splash .hint{animation:none;opacity:1;transform:none}
-  #splash .word{animation:none;max-width:340px}
+  #splash .word{animation:none;max-width:180px}
   #splash{transition:opacity .01s}
 }
 }
