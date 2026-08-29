@@ -73,6 +73,7 @@ const S = {
   requests: [],
   loading: false,
   draft: null,
+  sheet: false,   // הפאנל התחתון של מסך הבית
 };
 
 const isSeller = () => S.role === 'seller';
@@ -183,19 +184,46 @@ function loader() {
 function viewHome() {
   const st = S.stats;
   const quick = ['רפידות בלימה', 'מסנן שמן', 'מצבר'];
+  const open = S.sheet ? ' open' : '';
+
   return `
     ${topBar({})}
-    <div class="scroll" style="display:flex;flex-direction:column">
-      <div class="center" style="flex:none;padding: var(--s8) var(--s6) var(--s7);gap: var(--s6)">
+
+    <!-- המסך עצמו: כותרת וחיפוש בלבד -->
+    <div class="home">
+      <div class="hero">
         <div style="font:600 var(--fs-hero)/1.35 var(--disp);text-wrap:pretty">כל חלק. כל רכב.<br>מחיר אחד וברור.</div>
-        <div class="stack" style="width:100%;gap: var(--s3)">
-          <form class="searchbar" data-act="search-submit">
-            ${ICON.search({ s: 19 })}
-            <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
-            <button type="submit" aria-label="חיפוש" style="width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;margin:calc(var(--s1) * -1) 0">${ICON.scan({ s: 19 })}</button>
-          </form>
-          <div class="chips" style="justify-content:center">
+        <form class="searchbar" data-act="search-submit">
+          ${ICON.search({ s: 19 })}
+          <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
+          <button type="submit" aria-label="חיפוש" style="width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;margin:calc(var(--s1) * -1) 0">${ICON.scan({ s: 19 })}</button>
+        </form>
+      </div>
+
+      <!-- רמז להחלקה: שברון בלבד, בלי גוף חץ -->
+      <button class="swipeup" data-act="sheet-open" aria-label="עוד אפשרויות">
+        <svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M2 12 L13 2 L24 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="scrim${open}" data-act="sheet-close"></div>
+
+    <section class="sheet${open}" data-sheet>
+      <div class="grab"></div>
+      <div class="stack" style="gap: var(--s6);padding: var(--s2) var(--s5) 0">
+        <div class="stack" style="gap: var(--s3)">
+          <span class="label">חיפושים נפוצים</span>
+          <div class="chips">
             ${quick.map((t) => `<button class="chip" data-act="quick" data-q="${esc(t)}">${esc(t)}</button>`).join('')}
+          </div>
+        </div>
+        <div class="stack" style="gap: var(--s3)">
+          <span class="label">קטגוריות</span>
+          <div class="chips">
+            ${Object.keys(CATEGORY_LABEL).map((c) => `<button class="chip" data-act="cat" data-cat="${c}">${CATEGORY_LABEL[c]}</button>`).join('')}
           </div>
         </div>
         <div class="row" style="gap: var(--s4);font:400 var(--fs-label) var(--sans);color:var(--muted)">
@@ -204,13 +232,7 @@ function viewHome() {
                   <span>${st.verified_sellers} מוכרים מאומתים</span>` : '<span>טוען…</span>'}
         </div>
       </div>
-      <div class="pad stack" style="gap: var(--s3);padding-bottom: var(--s7);flex:none">
-        <span class="label">קטגוריות</span>
-        <div class="chips">
-          ${Object.keys(CATEGORY_LABEL).map((c) => `<button class="chip" data-act="cat" data-cat="${c}">${CATEGORY_LABEL[c]}</button>`).join('')}
-        </div>
-      </div>
-    </div>`;
+    </section>`;
 }
 
 /* ============================ מסך: חיפוש ============================ */
@@ -676,6 +698,7 @@ function render() {
 }
 
 function go(screen) {
+  if (screen !== 'home') S.sheet = false;
   S.screen = screen;
   render();
 }
@@ -787,9 +810,12 @@ document.addEventListener('click', async (ev) => {
     go('create'); return;
   }
 
-  if (act === 'quick') { S.q = el.dataset.q; S.kind = 'all'; S.category = 'all'; go('search'); loadSearch(); return; }
+  if (act === 'sheet-open') { S.sheet = true; render(); return; }
+  if (act === 'sheet-close') { S.sheet = false; render(); return; }
+
+  if (act === 'quick') { S.sheet = false; S.q = el.dataset.q; S.kind = 'all'; S.category = 'all'; go('search'); loadSearch(); return; }
   if (act === 'cat') {
-    S.category = el.dataset.cat; S.q = '';
+    S.sheet = false; S.category = el.dataset.cat; S.q = '';
     go('search'); loadSearch(); return;
   }
   if (act === 'kind') { S.kind = el.dataset.kind; loadSearch(); return; }
@@ -931,6 +957,33 @@ document.addEventListener('submit', async (ev) => {
     return;
   }
 });
+
+
+/* ============================ מחוות ============================
+   החלקה אנכית על מסך הבית פותחת וסוגרת את הפאנל. סף של 48 פיקסל
+   כדי שגלילה קלה או רעד יד לא יפעילו אותו בטעות. */
+let touchY = null;
+document.addEventListener('touchstart', (ev) => {
+  touchY = S.screen === 'home' ? ev.touches[0].clientY : null;
+}, { passive: true });
+
+document.addEventListener('touchend', (ev) => {
+  if (touchY === null || S.screen !== 'home') return;
+  const dy = ev.changedTouches[0].clientY - touchY;
+  touchY = null;
+  if (dy < -48 && !S.sheet) { S.sheet = true; render(); }
+  else if (dy > 48 && S.sheet) { S.sheet = false; render(); }
+}, { passive: true });
+
+// במחשב אין החלקה — גלגלת כלפי מטה פותחת, כלפי מעלה סוגרת
+let wheelLock = 0;
+document.addEventListener('wheel', (ev) => {
+  if (S.screen !== 'home') return;
+  const now = Date.now();
+  if (now - wheelLock < 600) return;
+  if (ev.deltaY > 24 && !S.sheet) { wheelLock = now; S.sheet = true; render(); }
+  else if (ev.deltaY < -24 && S.sheet) { wheelLock = now; S.sheet = false; render(); }
+}, { passive: true });
 
 /* ============================ אתחול ============================ */
 
