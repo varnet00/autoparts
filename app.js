@@ -629,10 +629,9 @@ function viewProfile() {
   return `
     ${topBar({ actions: '' })}
     <div class="scroll">
-      <div class="center" style="padding: var(--s7) 26px 12px;gap: var(--s3)">
-        ${LOGO}
-        <span style="font:600 var(--fs-lead) var(--disp)">ברוכים הבאים ל-autoparts</span>
-        <span class="label" style="max-width:280px">${asSeller ? 'נהלו את כרטיסי המוצר שלכם' : 'מצאו כל חלק לפי מק״ט'}</span>
+      <div class="pad stack" style="gap: var(--s2);padding-top: var(--s8);padding-bottom: var(--s7)">
+        <span style="font:600 var(--fs-hero)/1.2 var(--disp)">ברוכים הבאים</span>
+        <span class="label">${asSeller ? 'נהלו את כרטיסי המוצר שלכם' : 'מצאו כל חלק לפי מק״ט'}</span>
       </div>
       <div class="pad stack" style="gap: var(--s4)">
         <div class="row" style="gap: var(--s2);background:var(--card);border-radius:14px;padding: var(--s2)">
@@ -661,6 +660,20 @@ function renderDock() {
   const dock = $('#dock');
   if (hidden) { dock.innerHTML = ''; return; }
 
+  // אם האי כבר מצויר, רק מזיזים את הגלולה ומחליפים סימון —
+  // ציור מחדש היה יוצר אלמנט חדש והתנועה הייתה נבלעת
+  const pill = dock.querySelector('.tabpill');
+  if (pill) {
+    const cur = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
+    const order = ['home', 'stock', 'chats', 'profile'];
+    const at = Math.max(0, order.indexOf(cur));
+    pill.style.setProperty('--i', at);
+    dock.querySelectorAll('.tab').forEach((el, i) => {
+      el.setAttribute('aria-current', i === at ? 'page' : 'false');
+    });
+    return;
+  }
+
   const tabs = [
     ['home', ICON.house()],
     ['stock', ICON.package()],
@@ -669,8 +682,10 @@ function renderDock() {
   ];
   const current = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
 
+  const active = Math.max(0, tabs.findIndex(([k]) => k === current));
   dock.innerHTML = `
     <div class="island">
+      <span class="tabpill" style="--i:${active}" aria-hidden="true"></span>
       ${tabs.map(([k, ic]) => `<button class="tab" data-act="${k}" aria-current="${current === k ? 'page' : 'false'}" aria-label="${k}">${ic}</button>`).join('')}
     </div>
     <button class="fab" data-act="create" aria-label="פוזיציה חדשה">${ICON.plus({ s: 24 })}</button>`;
@@ -682,6 +697,8 @@ const VIEWS = {
   create: viewCreate, chats: viewChats, chat: viewChat, profile: viewProfile,
 };
 
+let lastScreen = null;
+
 function render() {
   const view = VIEWS[S.screen] || viewHome;
   const el = $('#screen');
@@ -689,6 +706,14 @@ function render() {
   const y = keepScroll ? keepScroll.scrollTop : 0;
 
   el.innerHTML = view();
+
+  if (S.screen !== lastScreen) {
+    el.classList.remove('enter');
+    void el.offsetWidth;          // מאלץ חישוב מחדש כדי שהאנימציה תרוץ שוב
+    el.classList.add('enter');
+    lastScreen = S.screen;
+  }
+
   renderDock();
 
   // בשיחה גוללים לסוף; בשאר המסכים שומרים על מיקום הגלילה

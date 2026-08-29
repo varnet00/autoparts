@@ -44,6 +44,11 @@
 
   /* שטח נגיעה מינימלי — אצבע בשמן מנוע לא פוגעת ב-34 פיקסל */
   --tap:44px;
+
+  /* עקומה אחת לכל התנועה בממשק — קרובה לזו של iOS: יוצאת מהר,
+     נעצרת רך, בלי קפיצה בסוף */
+  --ease:cubic-bezier(.32,.72,0,1);
+  --tab-step:48px;   /* רוחב לשונית + מרווח, לתנועת הגלולה */
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -70,7 +75,8 @@ input,select,textarea{font:inherit;color:inherit}
 .brand{display:flex;align-items:center;gap: var(--s3);direction:ltr}
 .brand b{font:600 var(--fs-sub)/1 var(--mono);letter-spacing:1.6px}
 .iconbtn{width:var(--tap);height:var(--tap);border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;flex:none}
-.iconbtn:active{background:var(--chip)}
+.iconbtn{transition:background-color .22s var(--ease), transform .2s var(--ease)}
+.iconbtn:active{background:var(--chip);transform:scale(.92)}
 
 /* ---------- прокручиваемая область ---------- */
 .scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
@@ -87,6 +93,8 @@ input,select,textarea{font:inherit;color:inherit}
 .chip{min-height:40px;padding:0 var(--s4);border-radius:999px;background:var(--chip);
       font:500 var(--fs-label) var(--sans);white-space:nowrap;
       display:inline-flex;align-items:center;justify-content:center}
+.chip{transition:background-color .26s var(--ease), color .26s var(--ease), transform .2s var(--ease)}
+.chip:active{transform:scale(.95)}
 .chip[aria-pressed="true"]{background:var(--ink);color:#fff}
 .num{display:inline-block;padding: var(--s1) 9px;border-radius:999px;background:var(--chip);font:500 var(--fs-label) var(--mono);letter-spacing:.3px;color:#4f4941;direction:ltr}
 .tag{display:inline-block;padding: var(--s2) 11px;border-radius:999px;font:500 var(--fs-label) var(--sans)}
@@ -104,11 +112,39 @@ input,select,textarea{font:inherit;color:inherit}
 
 /* ---------- нижний островной навбар ---------- */
 .dock{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));inset-inline:0;display:flex;align-items:center;justify-content:center;gap: var(--s3);pointer-events:none;z-index:20}
-.island{display:flex;align-items:center;gap: var(--s1);border-radius:999px;padding: var(--s3) 12px;background:var(--island);border:1px solid rgba(255,255,255,.75);box-shadow:0 10px 26px rgba(22,20,15,.2);pointer-events:auto}
-.tab{width:var(--tap);height:var(--tap);border-radius:999px;display:flex;align-items:center;justify-content:center;color:rgba(22,20,15,.42)}
-.tab[aria-current="page"]{background:rgba(22,20,15,.09);color:var(--ink)}
+.island{
+  position:relative;display:flex;align-items:center;gap: var(--s1);
+  border-radius:999px;padding: var(--s3) 12px;pointer-events:auto;
+  /* זכוכית: מטשטש את מה שמאחור ומעלה את הרוויה, כמו במערכת */
+  background:rgba(247,245,242,.62);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);
+  backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid rgba(255,255,255,.5);
+  box-shadow:0 8px 30px rgba(22,20,15,.15), inset 0 1px 0 rgba(255,255,255,.55);
+}
+/* דפדפן בלי טשטוש מקבל רקע אטום, אחרת האי היה שקוף ובלתי קריא */
+@supports not (backdrop-filter:blur(1px)){
+  .island{background:rgba(247,245,242,.94)}
+}
+
+/* הגלולה מחליקה בין הלשוניות במקום לקפוץ */
+.tabpill{
+  position:absolute;top: var(--s3);inset-inline-start:12px;
+  width:var(--tap);height:var(--tap);border-radius:999px;
+  background:rgba(22,20,15,.09);
+  margin-inline-start:calc(var(--i, 0) * var(--tab-step));
+  transition:margin-inline-start .42s var(--ease);
+}
+.tab{
+  position:relative;z-index:1;width:var(--tap);height:var(--tap);border-radius:999px;
+  display:flex;align-items:center;justify-content:center;color:rgba(22,20,15,.42);
+  transition:color .28s var(--ease), transform .2s var(--ease);
+}
+.tab[aria-current="page"]{color:var(--ink)}
+.tab:active{transform:scale(.9)}
 .fab{width:56px;height:56px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(22,20,15,.32);pointer-events:auto}
-.fab:active{transform:scale(.95)}
+.fab{transition:transform .2s var(--ease), box-shadow .2s var(--ease)}
+.fab:active{transform:scale(.9)}
 
 /* ---------- формы ---------- */
 .field{display:flex;flex-direction:column;gap: var(--s2)}
@@ -118,7 +154,8 @@ input,select,textarea{font:inherit;color:inherit}
 .field input:focus,.field select:focus,.field textarea:focus{box-shadow:0 0 0 2px var(--hair)}
 .field .mono{font:500 var(--fs-sub) var(--mono);text-align:right}
 .btn{background:var(--ink);color:#fff;border-radius:999px;padding: var(--s4);text-align:center;font:500 var(--fs-body) var(--sans);width:100%}
-.btn:active{opacity:.85}
+.btn{transition:opacity .2s var(--ease), transform .2s var(--ease)}
+.btn:active{opacity:.9;transform:scale(.975)}
 .btn.ghost{background:var(--chip);color:var(--ink)}
 .btn.line{background:none;border:1px solid var(--hair)}
 
@@ -138,6 +175,15 @@ input,select,textarea{font:inherit;color:inherit}
 .row{display:flex;align-items:center}
 .between{justify-content:space-between}
 svg{flex:none}
+
+/* מעבר בין מסכים: הופעה קצרה עם הסטה קטנה, כמו דחיפה של מסך במערכת.
+   רק כשהמסך באמת מתחלף — לא בכל ציור מחדש. */
+@keyframes screen-in{from{opacity:0;transform:translateY(8px)}}
+#screen.enter > *{animation:screen-in .32s var(--ease) both}
+@media (prefers-reduced-motion: reduce){
+  #screen.enter > *{animation:none}
+  .tabpill{transition:none}
+}
 
 /* ---------- מסך הבית: כותרת וחיפוש בלבד ---------- */
 .home{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
@@ -170,7 +216,7 @@ svg{flex:none}
 /* ---------- הפאנל הנפתח ---------- */
 .scrim{
   position:absolute;inset:0;z-index:25;background:rgba(22,20,15,.18);
-  opacity:0;visibility:hidden;transition:opacity .3s ease, visibility .3s;
+  opacity:0;visibility:hidden;transition:opacity .4s var(--ease), visibility .4s;
 }
 .scrim.open{opacity:1;visibility:visible}
 
@@ -180,7 +226,7 @@ svg{flex:none}
   box-shadow:0 -12px 34px rgba(22,20,15,.18);
   padding-bottom:calc(var(--s7) + env(safe-area-inset-bottom));
   transform:translateY(100%);
-  transition:transform .38s cubic-bezier(.4,0,.2,1);
+  transition:transform .5s var(--ease);
   max-height:76%;overflow-y:auto;
 }
 .sheet.open{transform:none}
