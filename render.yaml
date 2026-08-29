@@ -9,6 +9,9 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/health
+    # כל דחיפה לענף מפעילה פריסה. זו ברירת המחדל, אבל עדיף שתהיה כתובה
+    # כאן מפורשות ולא תלויה במתג בלוח הבקרה שאיש לא זוכר שנגע בו.
+    autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
         value: "22"              # אותה גרסה שבה נבדק מקומית; בלי נעילה הגרסה זזה תחתינו
