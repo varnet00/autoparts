@@ -941,7 +941,8 @@ S.authTab = 'buyer';
 S.authMode = 'login';
 render();
 
-const splashFloor = new Promise((resolve) => setTimeout(resolve, 700));
+// רצף הפתיחה נגמר ב-1.4 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
+const splashFloor = new Promise((resolve) => setTimeout(resolve, 1500));
 Promise.allSettled([loadStats(), loadMe()])
   .then(() => splashFloor)
   .then(hideSplash);
