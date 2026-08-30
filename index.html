@@ -291,16 +291,19 @@ svg{flex:none}
   /* הפאנל עולה מעל האי התחתון ומכסה אותו, במקום להיעצר מעליו */
   position:absolute;inset-inline:0;bottom:0;z-index:45;
   background:var(--card);border-radius:28px 28px 0 0;
-  box-shadow:0 -12px 34px rgba(22,20,15,.18);
+  /* הצל שייך לפאנל שנמצא על המסך. כשהוא סגור הוא יושב מתחת לקצה,
+     והצל שלו היה נמרח כלפי מעלה ומצייר פס כהה בתחתית המסך. */
+  box-shadow:none;
   transform:translateY(100%);will-change:transform, height;
   /* הגובה נקבע ב-JS לפי התוכן: בבחירת יצרן או דגם הפאנל עולה מעט,
      בביטול הבחירה הוא יורד — במקום לקפוץ בין שני מצבים */
-  transition:transform .58s var(--ease), height .44s var(--ease);
+  transition:transform .58s var(--ease), height .44s var(--ease), box-shadow .5s var(--ease);
   max-height:88%;
   /* רק הרשימות נגללות; הכותרת והכפתור נשארים במקומם */
   display:flex;flex-direction:column;overflow:hidden;
 }
 .sheetscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+.sheet.open,.sheet.dragging{box-shadow:0 -12px 34px rgba(22,20,15,.18)}
 .sheet.dragging{transition:none}          /* בזמן משיכה הפאנל הולך אחרי האצבע */
 /* הכותרת היא גם אזור המשיכה: משם מורידים את הפאנל חזרה */
 .sheethead{
