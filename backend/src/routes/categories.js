@@ -1,12 +1,12 @@
 const express = require('express');
-const db = require('../db');
+const { PART_CATEGORIES } = require('../categories');
 
 const router = express.Router();
 
-// GET /api/categories
+// GET /api/categories — קטגוריות החלקים והתוויות שלהן.
+// הרשימה קבועה ולא נגזרת מהמלאי: קטגוריה ריקה עדיין צריכה להופיע בסינון.
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT DISTINCT category FROM parts ORDER BY category').all();
-  res.json({ categories: rows.map((r) => r.category) });
+  res.json({ categories: PART_CATEGORIES });
 });
 
 module.exports = router;

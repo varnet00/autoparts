@@ -177,6 +177,24 @@ if (hasGlobalPartNoUnique || partNoNullable) {
   db.pragma('foreign_keys = ON');
 }
 
+// --- מיגרציה: קטגוריות לפי מערכות הרכב ---
+// המלאי הישן ישב על מדפים ("מסננים", "שמנים"), והמסננים החדשים מדברים
+// במערכות. מעבירים את מה שיש ולא מוחקים כלום — פוזיציה בלי קטגוריה
+// מוכרת נופלת ל"אחר" והמוכר יכול לתקן אותה מהקבינט.
+const { CATEGORY_IDS, LEGACY_CATEGORY_MAP } = require('./categories');
+{
+  const setCategory = db.prepare('UPDATE parts SET category = ? WHERE category = ?');
+  const moveLegacy = db.transaction(() => {
+    for (const [from, to] of Object.entries(LEGACY_CATEGORY_MAP)) setCategory.run(to, from);
+    const known = [...CATEGORY_IDS];
+    db.prepare(
+      `UPDATE parts SET category = 'other'
+       WHERE category NOT IN (${known.map(() => '?').join(', ')})`
+    ).run(known);
+  });
+  moveLegacy();
+}
+
 // אינדקסים לסינון לפי רכב — נוצרים אחרי המיגרציה, כשהעמודות כבר קיימות
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_parts_vehicle ON parts(vehicle_kind, vehicle_make);

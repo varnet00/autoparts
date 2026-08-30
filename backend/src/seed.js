@@ -22,9 +22,9 @@ const parts = [
   { seller: 4, name: 'רפידות בלימה · פירוק', category: 'brakes', part_no: '04465-02220', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla E210', yf: 2016, yt: 2023, price: 120, kind: 'used', maker: 'USED · 60%', fits: 'TOYOTA COROLLA E210 · 2016—2023', qty: 1,
     nums: [['04465-02220', 'OEM Toyota'], ['GDB3426', 'TRW']] },
 
-  { seller: 1, name: 'מסנן שמן', category: 'filters', part_no: '90915-YZZD2', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 38, kind: 'orig', maker: 'TOYOTA GENUINE', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 60,
+  { seller: 1, name: 'מסנן שמן', category: 'service', part_no: '90915-YZZD2', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 38, kind: 'orig', maker: 'TOYOTA GENUINE', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 60,
     nums: [['90915-YZZD2', 'OEM Toyota'], ['90915-10003', 'OEM Toyota'], ['C-111', 'Mann-Filter'], ['OC90', 'Mahle']] },
-  { seller: 2, name: 'מסנן שמן Mann', category: 'filters', part_no: 'W712/75', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 29, kind: 'copy', maker: 'MANN-FILTER', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 25,
+  { seller: 2, name: 'מסנן שמן Mann', category: 'service', part_no: 'W712/75', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 29, kind: 'copy', maker: 'MANN-FILTER', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 25,
     nums: [['W712/75', 'Mann-Filter'], ['90915-YZZD2', 'OEM Toyota'], ['OC90', 'Mahle']] },
 
   { seller: 3, name: 'דיסק בלם אחורי', category: 'brakes', part_no: '58411-2K000', vehicle_kind: 'car', vehicle_make: 'Hyundai', vehicle_model: 'i20 / i30', yf: 2014, yt: 2021, price: 245, kind: 'orig', maker: 'HYUNDAI GENUINE', fits: 'HYUNDAI i20 / i30 · 2014—2021', qty: 8,
@@ -32,19 +32,19 @@ const parts = [
   { seller: 2, name: 'דיסק בלם אחורי TRW', category: 'brakes', part_no: 'DF6543', vehicle_kind: 'car', vehicle_make: 'Hyundai', vehicle_model: 'i20 / i30', yf: 2014, yt: 2021, price: 198, kind: 'copy', maker: 'TRW', fits: 'HYUNDAI i20 / i30 · 2014—2021', qty: 3,
     nums: [['DF6543', 'TRW'], ['58411-2K000', 'OEM Hyundai']] },
 
-  { seller: 1, name: 'מצבר 60 אמפר', category: 'battery', part_no: 'BAT-6012', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 410, kind: 'copy', maker: 'VARTA', fits: 'רוב הרכבים המשפחתיים', qty: 14,
+  { seller: 1, name: 'מצבר 60 אמפר', category: 'electrical', part_no: 'BAT-6012', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 410, kind: 'copy', maker: 'VARTA', fits: 'רוב הרכבים המשפחתיים', qty: 14,
     nums: [['DIN60', 'Universal'], ['L2-60', 'Varta']] },
-  { seller: 4, name: 'מצבר 45 אמפר קומפקטי', category: 'battery', part_no: 'BAT-4509', vehicle_kind: 'car', vehicle_make: 'Kia', vehicle_model: 'Picanto / Rio', yf: 2015, yt: 2023, price: 355, kind: 'copy', maker: 'VARTA', fits: 'רכבי סופר-מיני', qty: 2,
+  { seller: 4, name: 'מצבר 45 אמפר קומפקטי', category: 'electrical', part_no: 'BAT-4509', vehicle_kind: 'car', vehicle_make: 'Kia', vehicle_model: 'Picanto / Rio', yf: 2015, yt: 2023, price: 355, kind: 'copy', maker: 'VARTA', fits: 'רכבי סופר-מיני', qty: 2,
     nums: [['DIN45', 'Universal'], ['L1-45', 'Varta']] },
 
-  { seller: 3, name: 'פנס ראשי ימני LED', category: 'lights', part_no: 'LGT-2201', vehicle_kind: 'car', vehicle_make: 'Skoda', vehicle_model: 'Octavia', yf: 2020, yt: 2024, price: 520, kind: 'copy', maker: 'HELLA', fits: 'SKODA OCTAVIA · 2020+', qty: 5,
+  { seller: 3, name: 'פנס ראשי ימני LED', category: 'electrical', part_no: 'LGT-2201', vehicle_kind: 'car', vehicle_make: 'Skoda', vehicle_model: 'Octavia', yf: 2020, yt: 2024, price: 520, kind: 'copy', maker: 'HELLA', fits: 'SKODA OCTAVIA · 2020+', qty: 5,
     nums: [['5E1-941-006', 'OEM Skoda'], ['LPL584', 'Hella']] },
-  { seller: 1, name: 'נורת איתות אחורית', category: 'lights', part_no: 'LGT-0087', vehicle_kind: 'car', vehicle_make: 'Volkswagen', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 34, kind: 'copy', maker: 'OSRAM', fits: 'אוניברסלי, בית זוגי', qty: 40,
+  { seller: 1, name: 'נורת איתות אחורית', category: 'electrical', part_no: 'LGT-0087', vehicle_kind: 'car', vehicle_make: 'Volkswagen', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 34, kind: 'copy', maker: 'OSRAM', fits: 'אוניברסלי, בית זוגי', qty: 40,
     nums: [['7440', 'Universal'], ['WY21W', 'Osram']] },
 
-  { seller: 2, name: 'שמן מנוע סינתטי 5W-30', category: 'oil', part_no: 'OIL-5304', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 159, kind: 'copy', maker: 'CASTROL', fits: 'מיכל 4 ליטר', qty: 30,
+  { seller: 2, name: 'שמן מנוע סינתטי 5W-30', category: 'service', part_no: 'OIL-5304', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 159, kind: 'copy', maker: 'CASTROL', fits: 'מיכל 4 ליטר', qty: 30,
     nums: [['5W30-C3', 'Castrol'], ['5W30-LL', 'Mobil 1']] },
-  { seller: 4, name: 'שמן גיר אוטומטי ATF', category: 'oil', part_no: 'OIL-1102', vehicle_kind: 'car', vehicle_make: 'Honda', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 79, kind: 'copy', maker: 'MOTUL', fits: 'מיכל 1 ליטר', qty: 0,
+  { seller: 4, name: 'שמן גיר אוטומטי ATF', category: 'transmission', part_no: 'OIL-1102', vehicle_kind: 'car', vehicle_make: 'Honda', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 79, kind: 'copy', maker: 'MOTUL', fits: 'מיכל 1 ליטר', qty: 0,
     nums: [['ATF-DW1', 'OEM Honda'], ['ATF-3309', 'Motul']] },
 
   { seller: 3, name: 'בולם זעזועים קדמי', category: 'suspension', part_no: 'SUS-7734', vehicle_kind: 'car', vehicle_make: 'Honda', vehicle_model: 'Civic', yf: 2016, yt: 2021, price: 310, kind: 'copy', maker: 'MONROE', fits: 'HONDA CIVIC · 2016—2021', qty: 6,
@@ -52,7 +52,7 @@ const parts = [
   { seller: 1, name: 'זרוע היגוי תחתונה', category: 'suspension', part_no: 'SUS-3390', vehicle_kind: 'car', vehicle_make: 'Ford', vehicle_model: 'Focus', yf: 2012, yt: 2018, price: 225, kind: 'copy', maker: 'DELPHI', fits: 'FORD FOCUS · 2012—2018', qty: 4,
     nums: [['1719872', 'OEM Ford'], ['RBJ500280', 'Delphi']] },
 
-  { seller: 1, name: 'צינור מים עליון', category: 'suspension', part_no: '16571-0T030', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla', yf: 2014, yt: 2019, price: 95, kind: 'copy', maker: 'GATES', fits: 'TOYOTA COROLLA · 2014—2019', qty: 2,
+  { seller: 1, name: 'צינור מים עליון', category: 'cooling', part_no: '16571-0T030', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla', yf: 2014, yt: 2019, price: 95, kind: 'copy', maker: 'GATES', fits: 'TOYOTA COROLLA · 2014—2019', qty: 2,
     nums: [['16571-0T030', 'OEM Toyota'], ['CST-1215', 'Gates']] },
   // אזל מהמלאי — מופיע בקבינט כאזהרה
   { seller: 1, name: 'גומיות מייצב', category: 'suspension', part_no: '48815-02200', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla E210', yf: 2016, yt: 2023, price: 45, kind: 'copy', maker: 'FEBEST', fits: 'TOYOTA COROLLA E210 · 2016—2023', qty: 0,

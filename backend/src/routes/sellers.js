@@ -5,6 +5,7 @@ const db = require('../db');
 const { requireSellerAuth } = require('../middleware/sellerAuth');
 const { asyncHandler } = require('../asyncHandler');
 const { isKind, isMakeOfKind } = require('../vehicles');
+const { isCategory } = require('../categories');
 
 const router = express.Router();
 
@@ -17,10 +18,14 @@ function vehicleError(body, current) {
   const make = body.vehicle_make !== undefined ? body.vehicle_make : (current && current.vehicle_make);
   const from = body.year_from !== undefined ? body.year_from : (current && current.year_from);
   const to = body.year_to !== undefined ? body.year_to : (current && current.year_to);
+  // יצרן שנבחר מהרשימה נבדק מולה; יצרן שהוקלד ביד ("אחר") רק נבדק באורך,
+  // כי בדיוק בשבילו השדה קיים — רכב שאינו אחד מהנפוצים.
+  const custom = body.vehicle_make_custom === true;
 
   if (kind && !isKind(kind)) return 'סוג רכב לא תקין';
   if (make && !kind) return 'נא לבחור סוג רכב לפני היצרן';
-  if (make && !isMakeOfKind(kind, make)) return 'היצרן אינו מתאים לסוג הרכב שנבחר';
+  if (make && custom && String(make).trim().length > 40) return 'שם היצרן ארוך מדי';
+  if (make && !custom && !isMakeOfKind(kind, make)) return 'היצרן אינו מתאים לסוג הרכב שנבחר';
 
   const year = (y) => y === null || y === undefined || (Number.isInteger(y) && y >= 1950 && y <= 2100);
   if (!year(from) || !year(to)) return 'שנת דגם חייבת להיות בין 1950 ל-2100';
@@ -211,6 +216,9 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
   if (!name || !category || !part_no || price === undefined) {
     return res.status(400).json({ error: 'נא למלא שם, קטגוריה, מק״ט ומחיר' });
   }
+  if (!isCategory(category)) {
+    return res.status(400).json({ error: 'קטגוריה לא תקינה' });
+  }
   if (typeof price !== 'number' || price < 0) {
     return res.status(400).json({ error: 'המחיר חייב להיות מספר חיובי' });
   }
@@ -294,6 +302,9 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
   }
   if (kind !== undefined && !KINDS.has(kind)) {
     return res.status(400).json({ error: 'מצב החלק חייב להיות מקורי, חלופי או משומש' });
+  }
+  if (category !== undefined && !isCategory(category)) {
+    return res.status(400).json({ error: 'קטגוריה לא תקינה' });
   }
   if (qty !== undefined && (!Number.isInteger(qty) || qty < 0)) {
     return res.status(400).json({ error: 'הכמות חייבת להיות מספר שלם אי-שלילי' });
