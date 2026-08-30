@@ -177,6 +177,14 @@ if (hasGlobalPartNoUnique || partNoNullable) {
   db.pragma('foreign_keys = ON');
 }
 
+// --- מיגרציה: איזה מספר הוא המקורי ---
+// חלק חלופי או משומש מזוהה קודם כול לפי המק״ט המקורי שהוא מחליף,
+// ולכן צריך להבדיל אותו משאר המספרים החופפים.
+const interchangeColumns = new Set(db.prepare('PRAGMA table_info(interchange_numbers)').all().map((c) => c.name));
+if (!interchangeColumns.has('is_oem')) {
+  db.exec('ALTER TABLE interchange_numbers ADD COLUMN is_oem INTEGER NOT NULL DEFAULT 0');
+}
+
 // --- מיגרציה: קטגוריות לפי מערכות הרכב ---
 // המלאי הישן ישב על מדפים ("מסננים", "שמנים"), והמסננים החדשים מדברים
 // במערכות. מעבירים את מה שיש ולא מוחקים כלום — פוזיציה בלי קטגוריה

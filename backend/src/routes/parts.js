@@ -15,7 +15,9 @@ function like(value) {
 const sellerStmt = db.prepare(
   'SELECT id, name, city, phone, whatsapp, rating, reviews_count, verified FROM sellers WHERE id = ?'
 );
-const interchangeStmt = db.prepare('SELECT id, number, brand FROM interchange_numbers WHERE part_id = ?');
+const interchangeStmt = db.prepare(
+  'SELECT id, number, brand, is_oem FROM interchange_numbers WHERE part_id = ? ORDER BY is_oem DESC, id'
+);
 
 function attachSellerAndInterchange(parts) {
   return parts.map((part) => ({

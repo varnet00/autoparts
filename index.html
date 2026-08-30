@@ -85,6 +85,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 /* בלי הבזק אפור של הדפדפן על הקשה — באפליקציה התגובה היא התנועה עצמה */
 *{-webkit-tap-highlight-color:transparent}
 input,select,textarea{font:inherit;color:inherit}
+input[type=checkbox]{accent-color:var(--ink);width:18px;height:18px}
 .mono{font-family:var(--mono);direction:ltr;unicode-bidi:isolate}
 
 /* ---------- шапка ---------- */
@@ -123,6 +124,8 @@ input,select,textarea{font:inherit;color:inherit}
 .chip:active{transform:scale(.95)}
 .chip[aria-pressed="true"]{background:var(--ink);color:#fff}
 .num{display:inline-block;padding: var(--s1) 9px;border-radius:999px;background:var(--chip);font:500 var(--fs-label) var(--mono);letter-spacing:.3px;color:#4f4941;direction:ltr}
+/* מק״ט מקורי בולט משאר המספרים: הוא זה שמזהה את החלק */
+.num.oem{background:#e7ecdf;color:#3f5730}
 .tag{display:inline-block;padding: var(--s2) 11px;border-radius:999px;font:500 var(--fs-label) var(--sans)}
 .tag.orig{background:var(--orig-bg);color:var(--orig-fg)}
 .tag.copy{background:var(--copy-bg);color:var(--copy-fg)}

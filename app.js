@@ -425,6 +425,10 @@ function resultCard(p) {
       </div>
     </div>
     ${open ? `<div class="hr stack" style="padding: var(--s4) 17px;gap: var(--s3)">
+      ${(p.interchange_numbers || []).some((n) => n.is_oem) ? `<div class="row" style="gap: var(--s2);flex-wrap:wrap">
+        <span class="label">מחליף את</span>
+        ${(p.interchange_numbers || []).filter((n) => n.is_oem).map((n) => `<span class="num oem">${esc(n.number)}</span>`).join('')}
+      </div>` : ''}
       <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.seller ? p.seller.name : '—')}${p.seller ? ` · ${esc(p.seller.city)}` : ''}</span>
       <span class="label">${p.qty > 0 ? `${p.qty} במלאי` : 'אזל מהמלאי'}</span>
       <button class="btn" data-act="open-part" data-id="${p.id}">לכרטיס החלק</button>
@@ -437,7 +441,9 @@ function viewPart() {
   const p = S.part;
   if (!p) return `${topBar({ back: 'search' })}${loader()}`;
   const s = p.seller;
-  const nums = p.interchange_numbers || [];
+  const all = p.interchange_numbers || [];
+  const oems = all.filter((n) => n.is_oem);
+  const nums = all.filter((n) => !n.is_oem);
 
   return `
     ${topBar({ back: 'search', actions: '' })}
@@ -454,6 +460,13 @@ function viewPart() {
         </div>
         ${thumb(p, 96)}
       </div>
+
+      ${oems.length ? `<div class="pad stack" style="gap: var(--s3);padding-top: var(--s5)">
+        <span class="label">מק״ט מקורי · החלק שזה מחליף</span>
+        <div class="chips" style="gap: var(--s2)">
+          ${oems.map((n) => `<span class="num oem" style="font-size:var(--fs-sub);padding: var(--s2) 10px" title="${esc(n.brand || '')}">${esc(n.number)}</span>`).join('')}
+        </div>
+      </div>` : ''}
 
       ${nums.length ? `<div class="pad stack" style="gap: var(--s3);padding-top: var(--s5)">
         <span class="label">מק״טים של אותו חלק · ${nums.length}</span>
@@ -603,6 +616,10 @@ function viewCreate() {
   const editing = Boolean(d.id);
   const kinds = [['orig', 'מקורי'], ['copy', 'חלופי'], ['used', 'משומש']];
   const nums = d.nums || [];
+  const oems = d.oems || [];
+  // חלק חלופי או משומש נמצא לפי המק״ט המקורי שהוא מחליף, ולכן השדה
+  // הזה נפתח בדיוק כשהמצב אינו "מקורי"
+  const needsOem = (d.kind || 'copy') !== 'orig';
   const vKind = d.vehicle_kind || '';
   const vMakes = (S.vehicles.find((v) => v.id === vKind) || {}).makes || [];
   // יצרן שאינו ברשימה נשמר כמו שהוקלד, והטופס חוזר אליו במצב "אחר"
@@ -637,6 +654,15 @@ function viewCreate() {
           <span class="label">מספר מק״ט ראשי · חובה</span>
           <input class="mono" name="part_no" required value="${esc(d.part_no || '')}" placeholder="04465-02220">
         </div>
+        ${needsOem ? `<div class="field">
+          <span class="label">מק״ט מקורי · את איזה חלק זה מחליף</span>
+          <div class="chips">
+            ${oems.map((n, i) => `<span class="num oem" style="display:flex;align-items:center;gap: var(--s2);padding: var(--s2) 12px;font-size:var(--fs-label)">${esc(n)}<button type="button" data-act="rm-oem" data-i="${i}" aria-label="הסר">${ICON.close({ s: 11 })}</button></span>`).join('')}
+            <button type="button" class="row" data-act="add-oem" style="gap: var(--s2);padding: var(--s2) 12px;border-radius:999px;border:1px dashed #c9c2b8;font:500 var(--fs-label) var(--sans);color:var(--muted)">${ICON.plus({ s: 12 })}${oems.length ? 'עוד מק״ט מקורי' : 'הוסף מק״ט מקורי'}</button>
+          </div>
+          <span class="label" style="font-size:var(--fs-label)">${oems.length ? 'הקונים מחפשים לפי המספר הזה' : 'בלי המספר המקורי קשה למצוא את החלק'}</span>
+        </div>` : ''}
+
         <div class="field">
           <span class="label">מק״טים מתחלפים · יופיעו בחיפוש</span>
           <div class="chips" id="numsBox">
@@ -1668,7 +1694,7 @@ document.addEventListener('click', async (ev) => {
 
   if (act === 'create') {
     if (!authed() || !isSeller()) { toast('התחברו כמוכר כדי להוסיף פוזיציה', true); go('profile'); return; }
-    S.draft = { kind: 'copy', category: 'brakes', qty: 0, nums: [] };
+    S.draft = { kind: 'copy', category: 'brakes', qty: 0, nums: [], oems: [] };
     go('create'); return;
   }
 
@@ -1785,7 +1811,12 @@ document.addEventListener('click', async (ev) => {
   if (act === 'edit') {
     const p = S.stock.find((x) => x.id === Number(el.dataset.id));
     if (!p) return;
-    S.draft = { ...p, nums: (p.interchange_numbers || []).map((n) => n.number) };
+    const all = p.interchange_numbers || [];
+    S.draft = {
+      ...p,
+      nums: all.filter((n) => !n.is_oem).map((n) => n.number),
+      oems: all.filter((n) => n.is_oem).map((n) => n.number),
+    };
     go('create');
     fillFormModels(p.vehicle_kind, p.vehicle_make);
     return;
@@ -1806,6 +1837,13 @@ document.addEventListener('click', async (ev) => {
     return;
   }
   if (act === 'rm-num') { syncDraft(); S.draft.nums.splice(Number(el.dataset.i), 1); S.keepScroll = true; render(); return; }
+  if (act === 'add-oem') {
+    syncDraft();
+    const n = prompt('מק״ט מקורי — המספר של היצרן');
+    if (n && n.trim()) { S.draft.oems = [...(S.draft.oems || []), n.trim()]; S.keepScroll = true; render(); }
+    return;
+  }
+  if (act === 'rm-oem') { syncDraft(); S.draft.oems.splice(Number(el.dataset.i), 1); S.keepScroll = true; render(); return; }
 
   // חשבון
   if (act === 'auth-tab') { S.authTab = el.dataset.tab; render(); return; }
@@ -1866,7 +1904,11 @@ document.addEventListener('submit', async (ev) => {
       fits: fitsText(vehicleMake, vehicleModel, yearFrom, yearTo) || (d.fits || null),
       price: Number(fd.get('price')),
       qty: Number(fd.get('qty')),
-      interchange_numbers: (d.nums || []).map((n) => ({ number: n })),
+      // המקוריים נשמרים מסומנים, כדי שיוצגו בנפרד בכרטיס
+      interchange_numbers: [
+        ...((d.kind || 'copy') !== 'orig' ? (d.oems || []) : []).map((n) => ({ number: n, is_oem: true })),
+        ...(d.nums || []).map((n) => ({ number: n })),
+      ],
     };
     if (!payload.part_no) { toast('מק״ט הוא שדה חובה', true); return; }
     try {

@@ -63,7 +63,9 @@ function ownSeller(row) {
 }
 
 function attachInterchange(parts) {
-  const stmt = db.prepare('SELECT id, number, brand FROM interchange_numbers WHERE part_id = ?');
+  const stmt = db.prepare(
+    'SELECT id, number, brand, is_oem FROM interchange_numbers WHERE part_id = ? ORDER BY is_oem DESC, id'
+  );
   return parts.map((p) => ({ ...p, interchange_numbers: stmt.all(p.id) }));
 }
 
@@ -270,9 +272,9 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
     const partId = result.lastInsertRowid;
 
     if (Array.isArray(interchange_numbers)) {
-      const insertAlt = db.prepare('INSERT INTO interchange_numbers (part_id, number, brand) VALUES (?, ?, ?)');
+      const insertAlt = db.prepare('INSERT INTO interchange_numbers (part_id, number, brand, is_oem) VALUES (?, ?, ?, ?)');
       for (const alt of interchange_numbers) {
-        if (alt && alt.number) insertAlt.run(partId, alt.number, alt.brand || null);
+        if (alt && alt.number) insertAlt.run(partId, alt.number, alt.brand || null, alt.is_oem ? 1 : 0);
       }
     }
 
@@ -349,9 +351,9 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
   if (Array.isArray(interchange_numbers)) {
     const replaceAlts = db.transaction(() => {
       db.prepare('DELETE FROM interchange_numbers WHERE part_id = ?').run(partId);
-      const insertAlt = db.prepare('INSERT INTO interchange_numbers (part_id, number, brand) VALUES (?, ?, ?)');
+      const insertAlt = db.prepare('INSERT INTO interchange_numbers (part_id, number, brand, is_oem) VALUES (?, ?, ?, ?)');
       for (const alt of interchange_numbers) {
-        if (alt && alt.number) insertAlt.run(partId, alt.number, alt.brand || null);
+        if (alt && alt.number) insertAlt.run(partId, alt.number, alt.brand || null, alt.is_oem ? 1 : 0);
       }
     });
     replaceAlts();
