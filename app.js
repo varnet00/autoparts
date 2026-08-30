@@ -849,6 +849,18 @@ function goTab(name) {
 }
 
 let pillDrag = null;
+let pillTx = 0;          // כמה העיגול מוסט מהלשונית הראשונה, בפיקסלים
+
+// offsetLeft הוא פיזי, ולכן החישוב נכון גם בממשק מימין לשמאל
+// בלי להתעסק בסימנים
+function pillOffsets(tabs) {
+  return tabs.map((tab) => tab.offsetLeft - tabs[0].offsetLeft);
+}
+
+function placePill(pill, tabs, index) {
+  pillTx = pillOffsets(tabs)[index] || 0;
+  pill.style.transform = `translateX(${pillTx}px)`;
+}
 
 function nearestTab(clientX, tabs) {
   let best = 0;
@@ -867,10 +879,12 @@ document.addEventListener('pointerdown', (ev) => {
   const pill = island.querySelector('.tabpill');
   const tabs = [...island.querySelectorAll('.tab')];
   if (!pill || !tabs.length) return;
+  const offsets = pillOffsets(tabs);
   pillDrag = {
-    id: ev.pointerId, pill, tabs,
-    x0: ev.clientX, base: pill.getBoundingClientRect().left,
-    index: TABS.indexOf(S.screen) === -1 ? 0 : TABS.indexOf(S.screen),
+    id: ev.pointerId, pill, tabs, offsets,
+    x0: ev.clientX, startTx: pillTx,
+    min: Math.min(...offsets), max: Math.max(...offsets),
+    index: Math.max(0, TABS.indexOf(S.screen)),
     pending: true, moved: false,
   };
 });
@@ -885,13 +899,8 @@ document.addEventListener('pointermove', (ev) => {
   }
   const { pill, tabs } = pillDrag;
   // העיגול הולך אחרי האצבע, בתוך גבולות השורה
-  const first = tabs[0].getBoundingClientRect();
-  const last = tabs[tabs.length - 1].getBoundingClientRect();
-  const width = pill.getBoundingClientRect().width;
-  const min = Math.min(first.left, last.left);
-  const max = Math.max(first.left, last.left);
-  const left = Math.max(min, Math.min(max, ev.clientX - width / 2));
-  pill.style.transform = `translateX(${left - pillDrag.base}px)`;
+  pillTx = Math.max(pillDrag.min, Math.min(pillDrag.max, pillDrag.startTx + (ev.clientX - pillDrag.x0)));
+  pill.style.transform = `translateX(${pillTx}px)`;
 
   const index = nearestTab(ev.clientX, tabs);
   if (index !== pillDrag.index) {
@@ -902,13 +911,12 @@ document.addEventListener('pointermove', (ev) => {
 
 function endPillDrag() {
   if (!pillDrag) return;
-  const { pill, moved, index } = pillDrag;
+  const { pill, tabs, moved, index } = pillDrag;
   pillDrag = null;
   if (!moved) return;                       // לחיצה רגילה על לשונית
   swallowClick = true;
-  pill.classList.remove('dragging');
-  pill.style.transform = '';
-  pill.style.setProperty('--i', index);     // מחליק מהמקום שבו שוחרר אל הלשונית
+  pill.classList.remove('dragging');        // ההנפשה חוזרת
+  placePill(pill, tabs, index);             // ומחליקה מהמקום שבו שוחרר אל הלשונית
 }
 
 document.addEventListener('pointerup', endPillDrag);
@@ -925,8 +933,9 @@ function renderDock() {
   if (pill) {
     const cur = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
     const at = Math.max(0, TABS.indexOf(cur));
-    if (!pillDrag) pill.style.setProperty('--i', at);   // בזמן גרירה האצבע מובילה
-    dock.querySelectorAll('.tab').forEach((el, i) => {
+    const tabs = [...dock.querySelectorAll('.tab')];
+    if (!pillDrag) placePill(pill, tabs, at);           // בזמן גרירה האצבע מובילה
+    tabs.forEach((el, i) => {
       el.setAttribute('aria-current', i === at ? 'page' : 'false');
     });
     return;
@@ -942,10 +951,20 @@ function renderDock() {
   const active = Math.max(0, tabs.findIndex(([k]) => k === current));
   dock.innerHTML = `
     <div class="island glass">
-      <span class="tabpill" style="--i:${active}" aria-hidden="true"></span>
+      <span class="tabpill" aria-hidden="true"></span>
       ${tabs.map(([k, ic]) => `<button class="tab" data-act="${k}" aria-current="${current === k ? 'page' : 'false'}" aria-label="${k}">${ic}</button>`).join('')}
     </div>
     <button class="fab glass" data-act="create" aria-label="פוזיציה חדשה">${ICON.plus({ s: 24 })}</button>`;
+
+  // אחרי שהאי צויר אפשר למדוד את הלשוניות ולהציב את העיגול
+  const drawnPill = dock.querySelector('.tabpill');
+  const drawnTabs = [...dock.querySelectorAll('.tab')];
+  if (drawnPill && drawnTabs.length) {
+    drawnPill.classList.add('dragging');     // הצבה ראשונה בלי הנפשה
+    placePill(drawnPill, drawnTabs, active);
+    void drawnPill.offsetWidth;
+    drawnPill.classList.remove('dragging');
+  }
 }
 
 /* ============================ ציור ============================ */

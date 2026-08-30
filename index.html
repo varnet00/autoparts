@@ -48,23 +48,26 @@
   /* עקומה אחת לכל התנועה בממשק — קרובה לזו של iOS: יוצאת מהר,
      נעצרת רך, בלי קפיצה בסוף */
   --ease:cubic-bezier(.32,.72,0,1);
-  --tab-step:48px;   /* רוחב לשונית + מרווח, לתנועת הגלולה */
 }
 *{box-sizing:border-box}
 /* המסך עצמו לא זז: הגוף נעול למסך, ולכן אין גלילה של הדף ואין את
    הקפיצה של ספארי שחושפת רקע אפור מעל האפליקציה. גוללות רק הרשימות. */
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{
-  position:fixed;inset:0;margin:0;background:#d9dadd;color:var(--ink);font-family:var(--sans);
+  /* הרקע קרמי כמו האפליקציה: בטלפון שורת הכתובת נעלמת ומופיעה,
+     והפס שנחשף לרגע מתחת חייב להיות באותו צבע ולא אפור */
+  position:fixed;inset:0;margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
   -webkit-font-smoothing:antialiased;display:flex;justify-content:center;
   touch-action:manipulation;                 /* בלי זום בהקשה כפולה */
   -webkit-text-size-adjust:100%;
 }
 #app{
-  width:100%;max-width:460px;background:var(--bg);height:100%;
+  width:100%;max-width:460px;background:var(--bg);
+  height:100%;height:100dvh;      /* dvh עוקב אחרי הגובה שבאמת נראה */
   display:flex;flex-direction:column;position:relative;overflow:hidden;
 }
 @media(min-width:520px){
+  body{background:#d9dadd}   /* מסגרת אפורה מסביב ל"מכשיר" רק במסך רחב */
   body{align-items:center;padding: var(--s6) 0}
   #app{height:min(880px,calc(100dvh - 44px));min-height:0;border-radius:38px;box-shadow:0 18px 44px rgba(22,20,15,.22)}
   .top{padding-top: var(--s5)}
@@ -169,13 +172,15 @@ input,select,textarea{font:inherit;color:inherit}
 }
 
 /* הגלולה מחליקה בין הלשוניות במקום לקפוץ — עדשה בהירה על הזכוכית */
+/* העיגול גדול מהלשונית ויושב סביבה. הוא זז ב-transform ולא במרווח:
+   התנועה רצה בכרטיס המסך ולא מחשבת פריסה מחדש בכל פריים. */
 .tabpill{
-  position:absolute;top: var(--s3);inset-inline-start:12px;
-  width:var(--tap);height:var(--tap);border-radius:999px;
-  background:rgba(255,255,255,.58);
-  box-shadow:0 2px 8px rgba(22,20,15,.10), inset 0 1px 0 rgba(255,255,255,.75);
-  margin-inline-start:calc(var(--i, 0) * var(--tab-step));
-  transition:margin-inline-start .42s var(--ease), transform .42s var(--ease);
+  position:absolute;top:calc(var(--s3) - 5px);inset-inline-start:7px;
+  width:calc(var(--tap) + 10px);height:calc(var(--tap) + 10px);border-radius:999px;
+  background:rgba(255,255,255,.62);
+  box-shadow:0 3px 10px rgba(22,20,15,.12), inset 0 1px 0 rgba(255,255,255,.8);
+  will-change:transform;
+  transition:transform .46s var(--ease);
 }
 .tabpill.dragging{transition:none}          /* בזמן גרירה העיגול על האצבע */
 .island{touch-action:none}                  /* הגרירה שלנו, לא של הדפדפן */
