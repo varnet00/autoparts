@@ -171,8 +171,8 @@ function topBar(opts) {
     : '';
   const actions = o.actions === undefined
     ? `<span class="row" style="gap: var(--s2)">
-         <button class="iconbtn" data-act="chats">${ICON.chat({ s: 17 })}</button>
-         <button class="iconbtn" data-act="profile">${ICON.user({ s: 17 })}</button>
+         <button class="iconbtn" data-act="chats">${ICON.chat({ s: 18 })}</button>
+         <button class="iconbtn" data-act="profile">${ICON.user({ s: 18 })}</button>
        </span>`
     : o.actions;
   const title = o.title ? `<span style="font:600 var(--fs-lead) var(--disp)">${esc(o.title)}</span>` : '';
@@ -228,7 +228,7 @@ function viewHome() {
         <div style="font:600 var(--fs-hero)/1.35 var(--disp);text-wrap:pretty">כל חלק. כל רכב.<br>מחיר אחד וברור.</div>
         <form class="searchbar" data-act="search-submit">
           <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
-          <button class="searchgo" type="submit" aria-label="חיפוש">${ICON.search({ s: 19 })}</button>
+          <button class="searchgo" type="submit" aria-label="חיפוש">${ICON.search({ s: 18 })}</button>
         </form>
       </div>
 
@@ -261,7 +261,7 @@ function sheetHead() {
   return `
     <span class="grab"></span>
     <div class="row" style="gap: var(--s3)">
-      ${dep ? `<button class="iconbtn" data-act="dept-back" aria-label="חזרה">${ICON.back({ s: 17 })}</button>` : ''}
+      ${dep ? `<button class="iconbtn" data-act="dept-back" aria-label="חזרה">${ICON.back({ s: 18 })}</button>` : ''}
       <span class="sheettitle">${dep ? esc(dep.label) : 'מה מחפשים'}</span>
     </div>`;
 }
@@ -381,7 +381,7 @@ function viewSearch() {
       <div class="pad stack" style="gap: var(--s3);padding-top: var(--s4)">
         <form class="searchbar" data-act="search-submit">
           <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
-          <button class="searchgo" type="submit" aria-label="חיפוש">${ICON.search({ s: 19 })}</button>
+          <button class="searchgo" type="submit" aria-label="חיפוש">${ICON.search({ s: 18 })}</button>
         </form>
         <div class="chips">
           ${kinds.map(([k, t]) => `<button class="chip" data-act="kind" data-kind="${k}" aria-pressed="${S.kind === k}">${t}</button>`).join('')}
@@ -511,7 +511,7 @@ function viewStock() {
   }
   const st = S.sellerStats;
   return `
-    ${topBar({ actions: `<button class="iconbtn" data-act="profile">${ICON.settings({ s: 17 })}</button>` })}
+    ${topBar({ actions: `<button class="iconbtn" data-act="profile">${ICON.settings({ s: 18 })}</button>` })}
     <div class="scroll">
       <div class="pad stack" style="gap: var(--s1);padding-top: var(--s5)">
         <span style="font:600 var(--fs-lead) var(--disp)">המלאי שלי</span>
@@ -610,7 +610,7 @@ function viewCreate() {
   const formDept = deptOf(d.category) || S.depts[0] || { id: '', categories: [] };
   return `
     <div class="top">
-      <button class="iconbtn" data-act="stock">${ICON.close({ s: 17 })}</button>
+      <button class="iconbtn" data-act="stock">${ICON.close({ s: 18 })}</button>
       <span style="font:600 var(--fs-body) var(--disp)">${editing ? 'עריכת פוזיציה' : 'פוזיציה חדשה'}</span>
       <span style="width:40px"></span>
     </div>
@@ -725,7 +725,7 @@ function viewChat() {
 
   return `
     <div class="top" style="padding-bottom: var(--s4);border-bottom:1px solid var(--line)">
-      <button class="iconbtn" data-act="chats">${ICON.back({ s: 17 })}</button>
+      <button class="iconbtn" data-act="chats">${ICON.back({ s: 18 })}</button>
       <div class="row" style="flex:1;gap: var(--s3);margin-inline-start:11px">
         <div style="width:40px;height:40px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 var(--fs-sub) var(--mono)">${esc(other && other.name ? other.name.trim()[0] : '?')}</div>
         <div class="stack" style="flex:1;gap: var(--s1);min-width:0">
@@ -945,10 +945,10 @@ function renderDock() {
   }
 
   const tabs = [
-    ['home', ICON.house()],
-    ['stock', ICON.package()],
-    ['chats', ICON.chat()],
-    ['profile', ICON.user()],
+    ['home', ICON.house({ s: 20 })],
+    ['stock', ICON.package({ s: 20 })],
+    ['chats', ICON.chat({ s: 20 })],
+    ['profile', ICON.user({ s: 20 })],
   ];
   const current = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
   const active = Math.max(0, tabs.findIndex(([k]) => k === current));
