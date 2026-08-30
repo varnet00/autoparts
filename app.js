@@ -232,7 +232,7 @@ function viewHome() {
         </form>
       </div>
 
-      <button class="pulltab glass" data-drag="tab" data-act="sheet-open">
+      <button class="pulltab glass" data-act="sheet-open">
         <span class="line"></span>
         מה מחפשים
       </button>
@@ -241,7 +241,7 @@ function viewHome() {
     <div class="scrim${open}" data-act="sheet-close"></div>
 
     <section class="sheet${open}" data-sheet>
-      <div class="sheethead" data-drag="head" data-sheet-head>${sheetHead()}</div>
+      <div class="sheethead" data-sheet-head>${sheetHead()}</div>
       <div class="sheetscroll" data-sheet-body>${sheetBody()}</div>
       <div class="sheetfoot" data-sheet-foot>${sheetFoot()}</div>
     </section>`;
@@ -831,6 +831,89 @@ function viewProfile() {
 }
 
 /* ============================ ניווט תחתון ============================ */
+/* ============================ האי התחתון ============================
+   אפשר ללחוץ על לשונית, ואפשר לתפוס את העיגול ולגרור אותו: המסך
+   מתחלף תוך כדי, ברגע שהעיגול עובר ללשונית אחרת. */
+const TABS = ['home', 'stock', 'chats', 'profile'];
+
+function goTab(name) {
+  if (name === 'home') {
+    S.q = ''; S.dept = null; S.category = 'all'; S.sheetCount = null;
+    resetVehicleFilters();
+    go('home');
+    return;
+  }
+  if (name === 'stock') { go('stock'); loadStock(); return; }
+  if (name === 'chats') { go('chats'); loadChats(); return; }
+  if (name === 'profile') { go('profile'); loadMe(); }
+}
+
+let pillDrag = null;
+
+function nearestTab(clientX, tabs) {
+  let best = 0;
+  let bestDist = Infinity;
+  tabs.forEach((tab, i) => {
+    const r = tab.getBoundingClientRect();
+    const d = Math.abs(clientX - (r.left + r.width / 2));
+    if (d < bestDist) { bestDist = d; best = i; }
+  });
+  return best;
+}
+
+document.addEventListener('pointerdown', (ev) => {
+  const island = ev.target.closest && ev.target.closest('.island');
+  if (!island || ev.button > 0) return;
+  const pill = island.querySelector('.tabpill');
+  const tabs = [...island.querySelectorAll('.tab')];
+  if (!pill || !tabs.length) return;
+  pillDrag = {
+    id: ev.pointerId, pill, tabs,
+    x0: ev.clientX, base: pill.getBoundingClientRect().left,
+    index: TABS.indexOf(S.screen) === -1 ? 0 : TABS.indexOf(S.screen),
+    pending: true, moved: false,
+  };
+});
+
+document.addEventListener('pointermove', (ev) => {
+  if (!pillDrag || ev.pointerId !== pillDrag.id) return;
+  if (pillDrag.pending) {
+    if (Math.abs(ev.clientX - pillDrag.x0) < 6) return;
+    pillDrag.pending = false;
+    pillDrag.moved = true;
+    pillDrag.pill.classList.add('dragging');
+  }
+  const { pill, tabs } = pillDrag;
+  // העיגול הולך אחרי האצבע, בתוך גבולות השורה
+  const first = tabs[0].getBoundingClientRect();
+  const last = tabs[tabs.length - 1].getBoundingClientRect();
+  const width = pill.getBoundingClientRect().width;
+  const min = Math.min(first.left, last.left);
+  const max = Math.max(first.left, last.left);
+  const left = Math.max(min, Math.min(max, ev.clientX - width / 2));
+  pill.style.transform = `translateX(${left - pillDrag.base}px)`;
+
+  const index = nearestTab(ev.clientX, tabs);
+  if (index !== pillDrag.index) {
+    pillDrag.index = index;
+    goTab(TABS[index]);                     // המסך מתחלף תוך כדי הגרירה
+  }
+}, { passive: true });
+
+function endPillDrag() {
+  if (!pillDrag) return;
+  const { pill, moved, index } = pillDrag;
+  pillDrag = null;
+  if (!moved) return;                       // לחיצה רגילה על לשונית
+  swallowClick = true;
+  pill.classList.remove('dragging');
+  pill.style.transform = '';
+  pill.style.setProperty('--i', index);     // מחליק מהמקום שבו שוחרר אל הלשונית
+}
+
+document.addEventListener('pointerup', endPillDrag);
+document.addEventListener('pointercancel', endPillDrag);
+
 function renderDock() {
   const hidden = S.screen === 'create' || S.screen === 'chat';
   const dock = $('#dock');
@@ -841,9 +924,8 @@ function renderDock() {
   const pill = dock.querySelector('.tabpill');
   if (pill) {
     const cur = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
-    const order = ['home', 'stock', 'chats', 'profile'];
-    const at = Math.max(0, order.indexOf(cur));
-    pill.style.setProperty('--i', at);
+    const at = Math.max(0, TABS.indexOf(cur));
+    if (!pillDrag) pill.style.setProperty('--i', at);   // בזמן גרירה האצבע מובילה
     dock.querySelectorAll('.tab').forEach((el, i) => {
       el.setAttribute('aria-current', i === at ? 'page' : 'false');
     });
@@ -857,7 +939,6 @@ function renderDock() {
     ['profile', ICON.user()],
   ];
   const current = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
-
   const active = Math.max(0, tabs.findIndex(([k]) => k === current));
   dock.innerHTML = `
     <div class="island glass">
@@ -1150,37 +1231,63 @@ function setSheet(open, animate = true) {
 let drag = null;
 let swallowClick = false;
 
+// איפה התחילה הנגיעה: כל מסך הבית מושך את הפאנל למעלה, וכל שטח
+// הפאנל מוריד אותו חזרה. לא צריך לכוון לידית.
+function dragZone(target) {
+  if (!target || !target.closest) return null;
+  if (target.closest('.sheet')) return 'sheet';
+  if (target.closest('.home')) return 'home';
+  return null;
+}
+
 function onDragStart(ev) {
-  const zone = ev.target.closest && ev.target.closest('[data-drag]');
-  if (!zone || S.screen !== 'home') return;
-  // כפתור בתוך אזור המשיכה (כמו החזרה למדפים) הוא כפתור, לא ידית:
-  // תפיסת המצביע הייתה בולעת את הלחיצה שלו
-  const control = ev.target.closest('button, a, input, select, textarea');
-  if (control && control !== zone) return;
+  if (S.screen !== 'home' || ev.button > 0) return;
+  const zone = dragZone(ev.target);
+  if (!zone) return;
+  // בשדות טקסט הנגיעה שייכת לשדה — סימון, סמן, מקלדת
+  if (ev.target.closest('input, select, textarea')) return;
   const sheet = sheetEl();
   if (!sheet) return;
   if (!S.sheet) sizeSheet(false);          // מודדים לפני שמתחילים לזוז
-  const height = sheet.offsetHeight;
+
+  const scroller = ev.target.closest('.sheetscroll');
   drag = {
-    id: ev.pointerId, from: zone.dataset.drag, height,
-    y0: ev.clientY, y: S.sheet ? 0 : height,
-    base: S.sheet ? 0 : height, lastY: ev.clientY, lastT: performance.now(), v: 0, moved: false,
+    id: ev.pointerId, zone, height: sheet.offsetHeight,
+    x0: ev.clientX, y0: ev.clientY, y: S.sheet ? 0 : sheet.offsetHeight,
+    base: S.sheet ? 0 : sheet.offsetHeight,
+    lastY: ev.clientY, lastT: performance.now(), v: 0,
+    // רשימה שכבר נגללה שייכת לעצמה; מהראש שלה אפשר למשוך את הפאנל
+    inScroller: Boolean(scroller) && scroller.scrollTop > 0,
+    pending: true, active: false, moved: false,
   };
-  sheet.classList.add('dragging');
-  if (zone.setPointerCapture) { try { zone.setPointerCapture(ev.pointerId); } catch (e) { /* לא קריטי */ } }
 }
 
 function onDragMove(ev) {
   if (!drag || ev.pointerId !== drag.id) return;
   const dy = ev.clientY - drag.y0;
-  let y = drag.base + dy;
+
+  // ההכרעה נופלת בתנועה הראשונה: זו משיכה של הפאנל או גלילה ברשימה
+  if (drag.pending) {
+    const dx = ev.clientX - drag.x0;
+    if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+    if (Math.abs(dx) > Math.abs(dy) || drag.inScroller) { drag = null; return; }
+    if (drag.zone === 'sheet' && ev.target.closest('.sheetscroll') && dy < 0) { drag = null; return; }
+    drag.pending = false;
+    drag.active = true;
+    drag.y0 = ev.clientY;                  // מתחילים מהנקודה שבה הוכרע, בלי קפיצה
+    const sheet = sheetEl();
+    if (sheet) sheet.classList.add('dragging');
+    return;
+  }
+
+  let y = drag.base + (ev.clientY - drag.y0);
   // התנגדות בקצוות, כדי שהמשיכה תרגיש כמו חומר ולא כמו מתג
   if (y < 0) y /= 3;
   if (y > drag.height) y = drag.height + (y - drag.height) / 3;
   const now = performance.now();
   if (now > drag.lastT) drag.v = (ev.clientY - drag.lastY) / (now - drag.lastT);
   drag.lastY = ev.clientY; drag.lastT = now;
-  if (Math.abs(dy) > 3) drag.moved = true;
+  drag.moved = true;
   drag.y = y;
   paintSheet(y, drag.height);
 }
@@ -1189,9 +1296,8 @@ function onDragEnd() {
   if (!drag) return;
   const { v, y, height, moved } = drag;
   drag = null;
-  // בלי תנועה זו לחיצה רגילה: הידית פותחת דרך data-act, וכאן רק
-  // מחזירים את הפאנל למקום שממנו התחילו
-  if (!moved) { setSheet(S.sheet); return; }
+  // בלי תנועה זו לחיצה רגילה, והכפתור שמתחת לאצבע עושה את שלו
+  if (!moved) return;
   // מהירות מכריעה קודם: תנועה החלטית מסיימת את הכיוון גם באמצע הדרך
   const open = v < -0.35 ? true : (v > 0.35 ? false : y < height / 2);
   swallowClick = true;
@@ -1202,6 +1308,21 @@ document.addEventListener('pointerdown', onDragStart);
 document.addEventListener('pointermove', onDragMove, { passive: true });
 document.addEventListener('pointerup', onDragEnd);
 document.addEventListener('pointercancel', onDragEnd);
+
+/* ============================ המסך לא זז ============================
+   הדף עצמו לא נגלל ולא נמתח: מה שאין לו לאן לגלול פשוט לא זז, וכך
+   אין את הקפיצה האפורה של ספארי מעל האפליקציה. גם צביטה לזום
+   חסומה — באפליקציה מצפים שהמסך יישאר במידה שלו. */
+document.addEventListener('touchmove', (ev) => {
+  if (ev.touches.length > 1) { ev.preventDefault(); return; }   // צביטה
+  if (drag && drag.active) { ev.preventDefault(); return; }     // הפאנל זז, לא הדף
+  const scroller = ev.target.closest && ev.target.closest('.scroll, .sheetscroll');
+  if (!scroller) ev.preventDefault();
+}, { passive: false });
+
+for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(type, (ev) => ev.preventDefault());
+}
 
 /* הפאנל גבוה כמו התוכן שלו, ולא יותר מ-88% מהמסך: מספיק גבוה כדי
    לעבוד בו בנוחות, ועדיין רואים שהמסך ממשיך מאחוריו. */
@@ -1293,15 +1414,8 @@ document.addEventListener('click', async (ev) => {
   const act = el.dataset.act;
 
   // ניווט
-  if (act === 'home') {
-    S.q = ''; S.dept = null; S.category = 'all'; S.sheetCount = null;
-    resetVehicleFilters();
-    go('home'); return;
-  }
+  if (TABS.includes(act)) { goTab(act); return; }
   if (act === 'search') { go('search'); return; }
-  if (act === 'stock') { go('stock'); loadStock(); return; }
-  if (act === 'chats') { go('chats'); loadChats(); return; }
-  if (act === 'profile') { go('profile'); loadMe(); return; }
 
   if (act === 'create') {
     if (!authed() || !isSeller()) { toast('התחברו כמוכר כדי להוסיף פוזיציה', true); go('profile'); return; }
