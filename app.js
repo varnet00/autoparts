@@ -1252,6 +1252,10 @@ function setSheet(open, animate = true) {
   sheet.classList.remove('dragging');
   const dock = $('#dock');
   if (dock) { dock.style.opacity = ''; dock.classList.toggle('under', open); }
+  // ספארי צובע את הסרגל התחתון שלו בצבע העמוד. כשהמסך מוצל והסרגל
+  // נשאר בהיר, זה נראה כמו מדף מתחת לאפליקציה — אז הצבע מוצל איתו.
+  const theme = document.querySelector('meta[name="theme-color"]');
+  if (theme) theme.setAttribute('content', open ? '#d7d4d1' : '#efece8');
   sheet.style.transform = open ? 'translateY(0px)' : 'translateY(calc(100% + 24px))';
   scrim.style.opacity = '';
   scrim.style.visibility = '';
@@ -1354,13 +1358,27 @@ function onDragMove(ev) {
   paintSheet(y, drag.height);
 }
 
+// מה שמשיכה יכולה להשאיר אחריה: מחלקת dragging, הצללה שנשארת פרושה
+// וחוסמת הקשות, ואי שקוף למחצה
+function clearDragTraces() {
+  const sheet = sheetEl();
+  if (sheet) sheet.classList.remove('dragging');
+  const scrim = scrimEl();
+  if (scrim && !S.sheet) { scrim.style.opacity = ''; scrim.style.visibility = ''; }
+  const dock = $('#dock');
+  if (dock) dock.style.opacity = '';
+  const el = $('#screen');
+  if (el && el.style.transform) { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; }
+}
+
 function onDragEnd() {
   if (!drag) return;
   const { v, vx, y, height, moved, mode, dx } = drag;
   drag = null;
-  // בלי תנועה זו לחיצה רגילה — אבל עדיין מנקים את מה שהמשיכה הספיקה
-  // להשאיר: מחלקת dragging, ושכבת ההצללה שחוסמת הקשות כשהיא נשארת
-  if (!moved) { setSheet(S.sheet); return; }
+  // בלי תנועה זו לחיצה רגילה. מנקים רק את מה שהמשיכה הספיקה להשאיר,
+  // ובשום אופן לא מציירים את המסך מחדש: ציור כזה מוחק את הכפתור
+  // שמתחת לאצבע לפני שהלחיצה עליו נשלחת, והיא פשוט נעלמת.
+  if (!moved) { clearDragTraces(); return; }
   swallowClick = true;
 
   if (mode === 'page') {
