@@ -45,6 +45,8 @@
   /* שטח נגיעה מינימלי — אצבע בשמן מנוע לא פוגעת ב-34 פיקסל */
   --tap:44px;
   --isle-gap:10px;   /* מרווח אחיד: מהשוליים, ובין האיים */
+  --dock-h:68px;     /* גובה האי התחתון */
+  --dock-bottom:calc(8px + env(safe-area-inset-bottom));   /* כמה הוא מעל הקצה */
 
   /* עקומה אחת לכל התנועה בממשק — קרובה לזו של iOS: יוצאת מהר,
      נעצרת רך, בלי קפיצה בסוף */
@@ -64,7 +66,7 @@ body{
 }
 #app{
   width:100%;max-width:460px;background:var(--bg);
-  height:100%;height:100dvh;      /* dvh עוקב אחרי הגובה שבאמת נראה */
+  height:100%;                    /* הגוף נעול למסך, ולכן 100% הוא בדיוק מה שנראה */
   display:flex;flex-direction:column;position:relative;overflow:hidden;
 }
 @media(min-width:520px){
@@ -129,10 +131,10 @@ input,select,textarea{font:inherit;color:inherit}
 .hr{border-top:1px solid var(--line)}
 
 /* ---------- нижний островной навбар ---------- */
-.dock{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));inset-inline:0;
+.dock{position:absolute;bottom:var(--dock-bottom);inset-inline:0;
       display:flex;align-items:center;justify-content:center;gap: var(--s3);
       pointer-events:none;z-index:40;   /* מעל המסך, מתחת לפאנל שנפתח מעליו */
-      transition:opacity .38s var(--ease)}
+      transition:opacity .5s var(--ease)}
 /* כשהפאנל למעלה, כפתור החיפוש שלו תופס את מקום האי — ואין טעם בשניהם */
 .dock.under{opacity:0}
 .dock.under *{pointer-events:none}
@@ -269,7 +271,7 @@ svg{flex:none}
 /* ידית משיכה: מה שרואים כשהפאנל סגור. אפשר למשוך אותה באצבע
    ואפשר פשוט ללחוץ — שתי הדרכים פותחות. */
 .pulltab{
-  position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));inset-inline:0;
+  position:absolute;bottom:calc(var(--dock-bottom) + var(--dock-h) + var(--isle-gap));inset-inline:0;
   margin:0 auto;width:max-content;
   display:flex;flex-direction:column;align-items:center;gap: var(--s2);
   padding: var(--s3) 18px var(--s3);border-radius:18px 18px 14px 14px;
@@ -297,7 +299,7 @@ svg{flex:none}
 .sheetwrap{
   position:absolute;inset-inline:0;bottom:0;z-index:45;
   display:flex;flex-direction:column;justify-content:flex-end;gap: var(--isle-gap);
-  padding:0 var(--isle-gap) calc(20px + env(safe-area-inset-bottom));   /* על קו האי התחתון */
+  padding:0 var(--isle-gap) calc(var(--dock-bottom) + 6px);   /* על קו האי התחתון */
   max-height:88%;
   /* סגור = מתחת לקצה ועוד קצת, כדי ששגיאת עיגול לא תשאיר פס מציץ */
   transform:translateY(calc(100% + 24px));will-change:transform, height;
