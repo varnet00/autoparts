@@ -87,6 +87,13 @@ input,select,textarea{font:inherit;color:inherit}
 .searchbar{background:var(--card);border-radius:999px;padding: var(--s4) var(--s5);display:flex;align-items:center;gap: var(--s3);box-shadow:0 6px 20px rgba(22,20,15,.07)}
 .searchbar input{flex:1;border:0;background:none;outline:none;font-size:var(--fs-body);min-width:0}
 .searchbar input::placeholder{color:var(--muted)}
+/* כפתור אחד ברור בקצה השדה, במקום שני סמלים שנראים כמו אותו דבר */
+.searchgo{
+  flex:none;width:38px;height:38px;border-radius:999px;background:var(--ink);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  margin-block:-6px;transition:transform .2s var(--ease), opacity .2s var(--ease);
+}
+.searchgo:active{transform:scale(.94);opacity:.9}
 
 /* ---------- чипы ---------- */
 .chips{display:flex;gap: var(--s2);flex-wrap:wrap}
@@ -194,21 +201,20 @@ svg{flex:none}
 .hero::after {content:'';flex:5}
 .hero .searchbar{width:100%}
 
-/* הרמז להחלקה: שברון בלבד, בלי גוף חץ */
-.swipeup{
+/* ידית משיכה: מה שרואים כשהפאנל סגור. אפשר למשוך אותה באצבע
+   ואפשר פשוט ללחוץ — שתי הדרכים פותחות. */
+.pulltab{
   position:absolute;bottom:calc(104px + env(safe-area-inset-bottom));inset-inline:0;
-  margin:0 auto;width:var(--tap);height:var(--tap);
-  display:flex;align-items:center;justify-content:center;
-  color:var(--muted);
-  /* מרמז שלוש פעמים ונרגע: רמז נצחי מושך את העין לנצח,
-     וגם קשה יותר לפגוע במטרה שלא עומדת במקום */
-  animation:nudge 2.2s ease-in-out .8s 3 both;
+  margin:0 auto;width:max-content;
+  display:flex;flex-direction:column;align-items:center;gap: var(--s2);
+  padding: var(--s3) 18px var(--s3);border-radius:18px 18px 14px 14px;
+  background:var(--card);box-shadow:0 6px 20px rgba(22,20,15,.10);
+  font:500 var(--fs-label) var(--sans);color:var(--muted);
+  touch-action:none;cursor:grab;
+  transition:transform .2s var(--ease), opacity .3s var(--ease);
 }
-.swipeup:active{color:var(--ink)}
-@keyframes nudge{
-  0%,100%{transform:none;opacity:.6}
-  50%    {transform:translateY(-6px);opacity:1}
-}
+.pulltab:active{transform:scale(.97);cursor:grabbing}
+.pulltab .line{width:30px;height:4px;border-radius:999px;background:var(--hair)}
 
 /* ---------- הפאנל הנפתח ---------- */
 .scrim{
@@ -231,11 +237,17 @@ svg{flex:none}
   display:flex;flex-direction:column;overflow:hidden;
 }
 .sheetscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
-.sheet.open{transform:none}
-.sheet .grab{
-  width:38px;height:4px;border-radius:999px;background:var(--hair);
-  margin:var(--s3) auto var(--s4);
+.sheet.dragging{transition:none}          /* בזמן משיכה הפאנל הולך אחרי האצבע */
+/* הכותרת היא גם אזור המשיכה: משם מורידים את הפאנל חזרה */
+.sheethead{
+  flex:none;display:flex;flex-direction:column;align-items:center;gap: var(--s3);
+  padding: var(--s3) var(--s5) var(--s4);
+  touch-action:none;cursor:grab;
 }
+.sheethead:active{cursor:grabbing}
+.sheethead .grab{width:38px;height:4px;border-radius:999px;background:var(--hair)}
+.sheethead .row{width:100%}
+.sheettitle{font:600 var(--fs-sub) var(--disp)}
 
 /* שדה טקסט בתוך הפאנל — אותו משקל כמו הצ׳יפים שלידו */
 .sheet .fieldline{
@@ -269,7 +281,6 @@ svg{flex:none}
 .tile-s{font:400 var(--fs-label) var(--sans);color:var(--muted)}
 
 @media (prefers-reduced-motion: reduce){
-  .swipeup{animation:none;opacity:.8}
   .sheet{transition:transform .01s}
   .scrim{transition:opacity .01s}
 }

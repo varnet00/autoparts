@@ -10,8 +10,6 @@ const ICON = {
   tyre: o => I('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/>', o),
   battery: o => I('<rect x="2.5" y="8" width="15" height="8.5" rx="2"/><path d="M20 11v2.5"/><path d="M6.5 12h3M13 12h.01"/>', o),
   search: o => I('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', o),
-  scan: o => I('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/>', o),
-  bell: o => I('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>', o),
   user: o => I('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', o),
   house: o => I('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>', o),
   package: o => I('<path d="m7.5 4.3 9 5.2M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>', o),
@@ -93,7 +91,6 @@ const S = {
   analogs: [],
   supOpen: true,
   stock: [],
-  stats: null,
   sellerStats: null,
   conversations: [],
   conv: null,
@@ -220,39 +217,31 @@ function loader() {
 
 /* ============================ מסך: בית ============================ */
 function viewHome() {
-  const st = S.stats;
   const open = S.sheet ? ' open' : '';
-  // רשימת היצרנים נגזרת מסוג הרכב שנבחר — אין טעם להציע John Deere לרכב פרטי
-  const chosen = S.vehicles.find((v) => v.id === S.vkind);
-  const makes = chosen ? chosen.makes : [];
 
   return `
     ${topBar({})}
 
-    <!-- המסך עצמו: כותרת וחיפוש בלבד -->
+    <!-- המסך עצמו: כותרת, חיפוש, וידית למשיכת הפאנל -->
     <div class="home">
       <div class="hero">
         <div style="font:600 var(--fs-hero)/1.35 var(--disp);text-wrap:pretty">כל חלק. כל רכב.<br>מחיר אחד וברור.</div>
         <form class="searchbar" data-act="search-submit">
-          ${ICON.search({ s: 19 })}
           <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
-          <button type="submit" aria-label="חיפוש" style="width:var(--tap);height:var(--tap);display:flex;align-items:center;justify-content:center;margin:calc(var(--s1) * -1) 0">${ICON.scan({ s: 19 })}</button>
+          <button class="searchgo" type="submit" aria-label="חיפוש">${ICON.search({ s: 19 })}</button>
         </form>
       </div>
 
-      <!-- רמז להחלקה: שברון בלבד, בלי גוף חץ -->
-      <button class="swipeup" data-act="sheet-open" aria-label="עוד אפשרויות">
-        <svg width="26" height="14" viewBox="0 0 26 14" fill="none" stroke="currentColor"
-             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M2 12 L13 2 L24 12"/>
-        </svg>
+      <button class="pulltab" data-drag="tab" data-act="sheet-open">
+        <span class="line"></span>
+        מה מחפשים
       </button>
     </div>
 
     <div class="scrim${open}" data-act="sheet-close"></div>
 
     <section class="sheet${open}" data-sheet>
-      <div class="grab"></div>
+      <div class="sheethead" data-drag="head" data-sheet-head>${sheetHead()}</div>
       <div class="sheetscroll" data-sheet-body>${sheetBody()}</div>
       <div class="sheetfoot" data-sheet-foot>${sheetFoot()}</div>
     </section>`;
@@ -266,12 +255,22 @@ function sheetBody() {
   return S.dept ? sheetDepartment() : sheetDepartments();
 }
 
+// הכותרת: ידית משיכה, שם המדף הפתוח, וחזרה למדפים
+function sheetHead() {
+  const dep = currentDept();
+  return `
+    <span class="grab"></span>
+    <div class="row" style="gap: var(--s3)">
+      ${dep ? `<button class="iconbtn" data-act="dept-back" aria-label="חזרה">${ICON.back({ s: 17 })}</button>` : ''}
+      <span class="sheettitle">${dep ? esc(dep.label) : 'מה מחפשים'}</span>
+    </div>`;
+}
+
 // עמוד ראשון: ארבעה מדפים. בוחרים אחד ונכנסים למסננים שלו.
 function sheetDepartments() {
   const icons = { parts: ICON.wrench, chemistry: ICON.droplet, accessories: ICON.tyre, electronics: ICON.battery };
   return `
-    <div class="stack" style="gap: var(--s5);padding: var(--s2) var(--s5) 0">
-      <span class="label">מה מחפשים</span>
+    <div class="stack" style="gap: var(--s5);padding:0 var(--s5)">
       <div class="tiles">
         ${S.depts.map((d) => `<button class="tile" data-act="dept" data-dept="${esc(d.id)}">
           <span class="tile-i">${(icons[d.id] || ICON.package)({ s: 20 })}</span>
@@ -279,7 +278,6 @@ function sheetDepartments() {
           <span class="tile-s">${esc(d.hint || '')}</span>
         </button>`).join('') || '<span class="label">טוען…</span>'}
       </div>
-      ${statsRow()}
     </div>`;
 }
 
@@ -295,32 +293,26 @@ function sheetDepartment() {
   const makeChosen = S.vmake !== 'all';
   const modelKnown = S.models.includes(S.vmodel);
   const modelCustom = Boolean(S.vmodel) && !modelKnown;
-  const section = (id, label, inner, extra = '') => `
+  const section = (id, label, inner) => `
     <div class="stack" data-sec="${id}" style="gap: var(--s3)">
-      <div class="row between"><span class="label">${label}</span>${extra}</div>
+      <span class="label">${label}</span>
       ${inner}
     </div>`;
 
   return `
-    <div class="stack" style="gap: var(--s6);padding: var(--s2) var(--s5) 0">
-      <div class="row" style="gap: var(--s3)">
-        <button class="iconbtn" data-act="dept-back" aria-label="חזרה למדפים">${ICON.back({ s: 17 })}</button>
-        <span style="font:600 var(--fs-sub) var(--disp)">${esc(dep.label)}</span>
-      </div>
-
+    <div class="stack" style="gap: var(--s6);padding:0 var(--s5)">
       ${isParts ? `
         ${section('kind', 'סוג הרכב', `<div class="chips">
           ${S.vehicles.map((v) => `<button class="chip" data-act="vkind" data-vkind="${esc(v.id)}" aria-pressed="${S.vkind === v.id}">${esc(v.label)}</button>`).join('')
             || '<span class="label">טוען…</span>'}
         </div>`)}
 
-        ${makes.length ? section('make', 'יצרן', `<div class="chips">
+        ${makes.length ? section('make', 'יצרן הרכב', `<div class="chips">
           ${makes.map((m) => `<button class="chip" data-act="vmake" data-vmake="${esc(m)}" aria-pressed="${S.vmake === m}">${esc(m)}</button>`).join('')}
           <button class="chip" data-act="vmake" data-vmake="other" aria-pressed="${other}">אחר</button>
         </div>
         ${other ? `<input class="fieldline" data-field="makeq" value="${esc(S.vmakeq)}"
-                          placeholder="שם היצרן — למשל Chery" autocomplete="off">` : ''}`,
-          S.vmake !== 'all' ? '<button class="label" data-act="vmake" data-vmake="all" style="text-decoration:underline">נקה</button>' : '') : ''}
+                          placeholder="שם היצרן — למשל Chery" autocomplete="off">` : ''}`) : ''}
 
         ${makeChosen ? section('model', 'דגם', `
           <select data-field="model-select">${modelOptions()}</select>
@@ -338,8 +330,6 @@ function sheetDepartment() {
         <button class="chip" data-act="cat" data-cat="all" aria-pressed="${S.category === 'all'}">הכל</button>
         ${dep.categories.map((c) => `<button class="chip" data-act="cat" data-cat="${esc(c.id)}" aria-pressed="${S.category === c.id}">${esc(c.label)}</button>`).join('')}
       </div>`)}
-
-      ${statsRow()}
     </div>`;
 }
 
@@ -350,15 +340,6 @@ function modelOptions() {
   return `<option value="">כל הדגמים</option>` +
     S.models.map((m) => `<option value="${esc(m)}" ${S.vmodel === m ? 'selected' : ''}>${esc(m)}</option>`).join('') +
     `<option value="other" ${custom ? 'selected' : ''}>אחר…</option>`;
-}
-
-function statsRow() {
-  const st = S.stats;
-  return `<div class="row" style="gap: var(--s4);font:400 var(--fs-label) var(--sans);color:var(--muted)">
-    ${st ? `<span>${st.numbers} מק״טים</span>
-            <span style="width:4px;height:4px;border-radius:999px;background:#c8c1b7"></span>
-            <span>${st.verified_sellers} מוכרים מאומתים</span>` : '<span>טוען…</span>'}
-  </div>`;
 }
 
 // הכפתור יושב מחוץ לאזור הנגלל, ולכן נשאר במקומו גם ברשימות ארוכות
@@ -399,21 +380,20 @@ function viewSearch() {
     <div class="scroll">
       <div class="pad stack" style="gap: var(--s3);padding-top: var(--s4)">
         <form class="searchbar" data-act="search-submit">
-          ${ICON.search({ s: 18 })}
-          <input name="q" placeholder="חיפוש לפי תיאור או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
+          <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
+          <button class="searchgo" type="submit" aria-label="חיפוש">${ICON.search({ s: 19 })}</button>
         </form>
         <div class="chips">
           ${kinds.map(([k, t]) => `<button class="chip" data-act="kind" data-kind="${k}" aria-pressed="${S.kind === k}">${t}</button>`).join('')}
         </div>
-        ${activeFilters.length ? `<div class="row between">
-          <span class="label">${activeFilters.join(' · ')}</span>
-          <button class="label" data-act="clear-filters" style="text-decoration:underline">נקה</button>
-        </div>` : ''}
       </div>
       <div class="pad row between" style="padding-top: var(--s5)">
-        <span class="label">תוצאות</span>
-        <span class="label mono">${S.total}</span>
+        <span class="label">${S.loading ? 'מחפש…' : `${S.total} תוצאות`}</span>
+        ${activeFilters.length ? `<button class="label" data-act="clear-filters" style="text-decoration:underline">נקה סינון</button>` : ''}
       </div>
+      ${activeFilters.length ? `<div class="pad" style="padding-top: var(--s2)">
+        <span class="label">${esc(activeFilters.join(' · '))}</span>
+      </div>` : ''}
       <div class="pad stack" style="gap: var(--s3);padding-top: var(--s3)">
         ${S.loading ? loader()
           : S.items.length
@@ -423,7 +403,8 @@ function viewSearch() {
     </div>`;
 }
 
-// הכרטיס ברשימה מציג רק שם, מק״ט ותמונה; השאר נפתח בלחיצה
+/* הכרטיס ברשימה עונה על שאלה אחת: זה החלק שלי ובכמה. השאר —
+   מק״טים חלופיים, פרטי המוכר, אנלוגים — נמצא בכרטיס עצמו. */
 function resultCard(p) {
   const open = S.openPart === p.id;
   return `<div class="card">
@@ -431,31 +412,19 @@ function resultCard(p) {
       <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
         <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc(p.name)}</span>
         <span class="mono" style="font-weight:600;font-size:var(--fs-sub);letter-spacing:.4px">${esc(p.part_no)}</span>
-        ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
-        ${partNums(p)}
-        <span>${kindTag(p.kind)}</span>
+        <div class="row" style="gap: var(--s2);flex-wrap:wrap">
+          ${kindTag(p.kind)}
+          ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
+        </div>
       </div>
       <div class="row" style="gap: var(--s3)">
-        <div class="stack" style="align-items:center;gap: var(--s2)">
-          ${thumb(p, 72)}
-          <span class="price">${shekel(p.price)}</span>
-        </div>
+        <span class="price">${shekel(p.price)}</span>
         <span style="color:#b8b0a6;transform:rotate(${open ? '-90' : '0'}deg);transition:.15s">${ICON.chevron({ s: 18 })}</span>
       </div>
     </div>
     ${open ? `<div class="hr stack" style="padding: var(--s4) 17px;gap: var(--s3)">
-      <div class="row between">
-        <span class="label">מוכר</span>
-        <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.seller ? p.seller.name : '—')}</span>
-      </div>
-      <div class="row between">
-        <span class="label">עיר</span>
-        <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.seller ? p.seller.city : '—')}</span>
-      </div>
-      <div class="row between">
-        <span class="label">מלאי</span>
-        <span class="mono" style="font-size:var(--fs-sub)">${p.qty > 0 ? `${p.qty} יח׳` : 'אזל'}</span>
-      </div>
+      <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.seller ? p.seller.name : '—')}${p.seller ? ` · ${esc(p.seller.city)}` : ''}</span>
+      <span class="label">${p.qty > 0 ? `${p.qty} במלאי` : 'אזל מהמלאי'}</span>
       <button class="btn" data-act="open-part" data-id="${p.id}">לכרטיס החלק</button>
     </div>` : ''}
   </div>`;
@@ -918,9 +887,19 @@ function render() {
   if (scroll) scroll.scrollTop = S.screen === 'chat' ? scroll.scrollHeight : (S.keepScroll ? y : 0);
   S.keepScroll = false;
 
-  // הפאנל נמדד מיד אחרי הציור, בלי הנפשה — אחרת הפתיחה הראשונה
-  // הייתה מתחילה מגובה אפס וקופצת
-  if (S.screen === 'home') { sizeSheet(false); refreshCount(); }
+  // הפאנל נמדד ומוצב מיד אחרי הציור, בלי הנפשה — אחרת כל ציור מחדש
+  // היה נראה כאילו הוא נפתח או נסגר מעצמו
+  if (S.screen === 'home') {
+    sizeSheet(false);
+    const sheet = sheetEl();
+    if (sheet) {
+      sheet.classList.add('dragging');
+      sheet.style.transform = S.sheet ? 'translateY(0px)' : 'translateY(100%)';
+      void sheet.offsetHeight;
+      sheet.classList.remove('dragging');
+    }
+    refreshCount();
+  }
 }
 
 function go(screen) {
@@ -934,10 +913,6 @@ async function loadVehicles() {
   // הרשימה מגיעה אחרי הציור הראשון, ולכן מציירים מחדש — אחרת הפאנל
   // נשאר עם "טוען…" עד לניווט הבא.
   try { S.vehicles = (await api('/vehicles')).kinds; render(); } catch (e) { /* המסננים פשוט יהיו ריקים */ }
-}
-
-async function loadStats() {
-  try { S.stats = await api('/stats'); render(); } catch (e) { /* המסך עובד גם בלי */ }
 }
 
 // כל המסננים שנבחרו, בשאילתה אחת — גם לחיפוש עצמו וגם למונה
@@ -1136,15 +1111,97 @@ document.addEventListener('change', (ev) => {
 
 // פותח וסוגר את הפאנל בלי לצייר את המסך מחדש: מחליף מחלקה על
 // האלמנט שכבר קיים, וכך המעבר באמת רץ במקום שהאלמנט יופיע פתוח.
-function setSheet(open) {
+/* ============================ משיכת הפאנל ============================
+   הפאנל לא "קופץ": הוא הולך אחרי האצבע. מושכים את הידית למעלה והוא
+   עולה בדיוק כמה שמשכו, משחררים — והוא משלים לכיוון שאליו נמשך,
+   לפי המהירות ולפי המרחק. אותה תנועה בדיוק סוגרת אותו מהכותרת. */
+
+const sheetEl = () => document.querySelector('.sheet');
+const scrimEl = () => document.querySelector('.scrim');
+
+// y=0 הפאנל פתוח לגמרי, y=גובה הפאנל הוא סגור לגמרי
+function paintSheet(y, height) {
+  const sheet = sheetEl();
+  const scrim = scrimEl();
+  if (!sheet) return;
+  sheet.style.transform = `translateY(${y}px)`;
+  if (scrim) {
+    const shown = 1 - Math.min(Math.max(y / height, 0), 1);
+    scrim.style.visibility = shown > 0 ? 'visible' : '';
+    scrim.style.opacity = shown > 0 ? String(shown) : '';
+  }
+}
+
+function setSheet(open, animate = true) {
+  const sheet = sheetEl();
+  const scrim = scrimEl();
   S.sheet = open;
-  const sheet = document.querySelector('.sheet');
-  const scrim = document.querySelector('.scrim');
   if (!sheet || !scrim) { render(); return; }
   if (open) { sizeSheet(false); refreshCount(); }
+  if (!animate) sheet.classList.add('dragging');
+  sheet.classList.remove('dragging');
+  sheet.style.transform = open ? 'translateY(0px)' : 'translateY(100%)';
+  scrim.style.opacity = '';
+  scrim.style.visibility = '';
   sheet.classList.toggle('open', open);
   scrim.classList.toggle('open', open);
 }
+
+let drag = null;
+let swallowClick = false;
+
+function onDragStart(ev) {
+  const zone = ev.target.closest && ev.target.closest('[data-drag]');
+  if (!zone || S.screen !== 'home') return;
+  // כפתור בתוך אזור המשיכה (כמו החזרה למדפים) הוא כפתור, לא ידית:
+  // תפיסת המצביע הייתה בולעת את הלחיצה שלו
+  const control = ev.target.closest('button, a, input, select, textarea');
+  if (control && control !== zone) return;
+  const sheet = sheetEl();
+  if (!sheet) return;
+  if (!S.sheet) sizeSheet(false);          // מודדים לפני שמתחילים לזוז
+  const height = sheet.offsetHeight;
+  drag = {
+    id: ev.pointerId, from: zone.dataset.drag, height,
+    y0: ev.clientY, y: S.sheet ? 0 : height,
+    base: S.sheet ? 0 : height, lastY: ev.clientY, lastT: performance.now(), v: 0, moved: false,
+  };
+  sheet.classList.add('dragging');
+  if (zone.setPointerCapture) { try { zone.setPointerCapture(ev.pointerId); } catch (e) { /* לא קריטי */ } }
+}
+
+function onDragMove(ev) {
+  if (!drag || ev.pointerId !== drag.id) return;
+  const dy = ev.clientY - drag.y0;
+  let y = drag.base + dy;
+  // התנגדות בקצוות, כדי שהמשיכה תרגיש כמו חומר ולא כמו מתג
+  if (y < 0) y /= 3;
+  if (y > drag.height) y = drag.height + (y - drag.height) / 3;
+  const now = performance.now();
+  if (now > drag.lastT) drag.v = (ev.clientY - drag.lastY) / (now - drag.lastT);
+  drag.lastY = ev.clientY; drag.lastT = now;
+  if (Math.abs(dy) > 3) drag.moved = true;
+  drag.y = y;
+  paintSheet(y, drag.height);
+}
+
+function onDragEnd() {
+  if (!drag) return;
+  const { v, y, height, moved } = drag;
+  drag = null;
+  // בלי תנועה זו לחיצה רגילה: הידית פותחת דרך data-act, וכאן רק
+  // מחזירים את הפאנל למקום שממנו התחילו
+  if (!moved) { setSheet(S.sheet); return; }
+  // מהירות מכריעה קודם: תנועה החלטית מסיימת את הכיוון גם באמצע הדרך
+  const open = v < -0.35 ? true : (v > 0.35 ? false : y < height / 2);
+  swallowClick = true;
+  setSheet(open);
+}
+
+document.addEventListener('pointerdown', onDragStart);
+document.addEventListener('pointermove', onDragMove, { passive: true });
+document.addEventListener('pointerup', onDragEnd);
+document.addEventListener('pointercancel', onDragEnd);
 
 /* הפאנל גבוה כמו התוכן שלו, ולא יותר מ-88% מהמסך: מספיק גבוה כדי
    לעבוד בו בנוחות, ועדיין רואים שהמסך ממשיך מאחוריו. */
@@ -1167,10 +1224,12 @@ function sizeSheet(animate) {
    מי שקורא לפונקציה קורא קודם ל-syncSheetInputs, אחרת טקסט שהוקלד יימחק. */
 function updateSheet(revealSection) {
   const sheet = document.querySelector('.sheet');
+  const head = sheet && sheet.querySelector('[data-sheet-head]');
   const body = sheet && sheet.querySelector('[data-sheet-body]');
   const foot = sheet && sheet.querySelector('[data-sheet-foot]');
-  if (!body || !foot) { render(); return; }
+  if (!head || !body || !foot) { render(); return; }
   const y = body.scrollTop;
+  head.innerHTML = sheetHead();
   body.innerHTML = sheetBody();
   foot.innerHTML = sheetFoot();
   body.scrollTop = y;
@@ -1228,6 +1287,7 @@ function refreshCount() {
 
 /* ============================ אירועים ============================ */
 document.addEventListener('click', async (ev) => {
+  if (swallowClick) { swallowClick = false; return; }   // סוף משיכה, לא לחיצה
   const el = ev.target.closest('[data-act]');
   if (!el || el.tagName === 'FORM') return;
   const act = el.dataset.act;
@@ -1236,7 +1296,7 @@ document.addEventListener('click', async (ev) => {
   if (act === 'home') {
     S.q = ''; S.dept = null; S.category = 'all'; S.sheetCount = null;
     resetVehicleFilters();
-    go('home'); loadStats(); return;
+    go('home'); return;
   }
   if (act === 'search') { go('search'); return; }
   if (act === 'stock') { go('stock'); loadStock(); return; }
@@ -1381,7 +1441,7 @@ document.addEventListener('click', async (ev) => {
   // חשבון
   if (act === 'auth-tab') { S.authTab = el.dataset.tab; render(); return; }
   if (act === 'auth-mode') { S.authMode = S.authMode === 'register' ? 'login' : 'register'; render(); return; }
-  if (act === 'logout') { clearAuth(); S.stock = []; S.conversations = []; toast('התנתקת'); go('home'); loadStats(); return; }
+  if (act === 'logout') { clearAuth(); S.stock = []; S.conversations = []; toast('התנתקת'); go('home'); return; }
 });
 
 document.addEventListener('submit', async (ev) => {
@@ -1471,7 +1531,7 @@ document.addEventListener('submit', async (ev) => {
       setAuth(data.token, seller ? 'seller' : 'buyer');
       S.me = seller ? data.seller : data.user;
       toast(`שלום, ${S.me.name}`);
-      if (seller) { go('stock'); loadStock(); } else { go('home'); loadStats(); }
+      if (seller) { go('stock'); loadStock(); } else { go('home'); }
     } catch (e) { toast(e.message, true); }
     return;
   }
@@ -1479,29 +1539,8 @@ document.addEventListener('submit', async (ev) => {
 
 
 /* ============================ מחוות ============================
-   החלקה אנכית על מסך הבית פותחת וסוגרת את הפאנל. סף של 48 פיקסל
-   כדי שגלילה קלה או רעד יד לא יפעילו אותו בטעות. */
-let touchY = null;
-let touchInList = false;
-document.addEventListener('touchstart', (ev) => {
-  touchY = S.screen === 'home' ? ev.touches[0].clientY : null;
-  // גלילה בתוך הרשימות של הפאנל אינה מחווה לסגירה — סוגרים רק
-  // כשמושכים מטה והרשימה כבר בראש, בדיוק כמו בשיטות של iOS.
-  const list = ev.target.closest ? ev.target.closest('.sheetscroll') : null;
-  touchInList = Boolean(list) && list.scrollTop > 0;
-}, { passive: true });
-
-document.addEventListener('touchend', (ev) => {
-  if (touchY === null || S.screen !== 'home') return;
-  const dy = ev.changedTouches[0].clientY - touchY;
-  const inList = touchInList;
-  touchY = null; touchInList = false;
-  if (inList) return;
-  if (dy < -48 && !S.sheet) setSheet(true);
-  else if (dy > 48 && S.sheet) setSheet(false);
-}, { passive: true });
-
-// במחשב אין החלקה — גלגלת כלפי מטה פותחת, כלפי מעלה סוגרת
+   במחשב אין אצבע — גלגלת כלפי מטה פותחת את הפאנל, כלפי מעלה סוגרת.
+   באפליקציה עצמה המשיכה בידית היא הדרך, ולכן אין כאן יותר מזה. */
 let wheelLock = 0;
 document.addEventListener('wheel', (ev) => {
   if (S.screen !== 'home') return;
@@ -1530,6 +1569,6 @@ render();
 
 // רצף הפתיחה נגמר ב-2.2 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
 const splashFloor = new Promise((resolve) => setTimeout(resolve, 2300));
-Promise.allSettled([loadStats(), loadMe(), loadVehicles(), loadCategories()])
+Promise.allSettled([loadMe(), loadVehicles(), loadCategories()])
   .then(() => splashFloor)
   .then(hideSplash);
