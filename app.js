@@ -5,10 +5,11 @@
    ועובד גם בלי רשת. */
 const I = (d, o) => `<svg width="${(o && o.s) || 19}" height="${(o && o.s) || 19}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICON = {
-  wrench: o => I('<path d="M15 6.5a4 4 0 0 0 5 5l-8.6 8.6a2.9 2.9 0 0 1-4.1-4.1z"/><path d="M15 6.5 18.5 3"/>', o),
+  sliders: o => I('<path d="M4 8.5h16M4 15.5h16"/><circle cx="9" cy="8.5" r="2.4"/><circle cx="15" cy="15.5" r="2.4"/>', o),
+  gear: o => I('<path d="M12 4 13.4 5.9a6.3 6.3 0 0 1 2.1 1.2l2.3-.4.9 1.6-1.5 1.8a6 6 0 0 1 0 2.5l1.5 1.8-.9 1.6-2.3-.4a6.3 6.3 0 0 1-2.1 1.2L12 20l-1.4-1.9a6.3 6.3 0 0 1-2.1-1.2l-2.3.4-.9-1.6L6.8 14a6 6 0 0 1 0-2.5L5.3 9.7l.9-1.6 2.3.4a6.3 6.3 0 0 1 2.1-1.2z"/><circle cx="12" cy="12" r="2.7"/>', o),
   droplet: o => I('<path d="M12 3.5s5.5 6 5.5 9.6a5.5 5.5 0 0 1-11 0C6.5 9.5 12 3.5 12 3.5z"/>', o),
   tyre: o => I('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/>', o),
-  battery: o => I('<rect x="2.5" y="8" width="15" height="8.5" rx="2"/><path d="M20 11v2.5"/><path d="M6.5 12h3M13 12h.01"/>', o),
+  bolt: o => I('<path d="M13.2 2.5 5 13.6h5.6l-.8 7.9 8.2-11.1h-5.6z"/>', o),
   search: o => I('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', o),
   user: o => I('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>', o),
   house: o => I('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>', o),
@@ -232,10 +233,7 @@ function viewHome() {
         </form>
       </div>
 
-      <button class="pulltab glass" data-act="sheet-open">
-        <span class="line"></span>
-        מה מחפשים
-      </button>
+
     </div>
 
     <div class="scrim${open}" data-act="sheet-close"></div>
@@ -264,13 +262,13 @@ function sheetHead() {
     <span class="grab"></span>
     <div class="row" style="gap: var(--s3)">
       ${dep ? `<button class="iconbtn" data-act="dept-back" aria-label="חזרה">${ICON.back({ s: 18 })}</button>` : ''}
-      <span class="sheettitle">${dep ? esc(dep.label) : 'מה מחפשים'}</span>
+      <span class="sheettitle">${dep ? esc(dep.label) : 'פילטר'}</span>
     </div>`;
 }
 
 // עמוד ראשון: ארבעה מדפים. בוחרים אחד ונכנסים למסננים שלו.
 function sheetDepartments() {
-  const icons = { parts: ICON.wrench, chemistry: ICON.droplet, accessories: ICON.tyre, electronics: ICON.battery };
+  const icons = { parts: ICON.gear, chemistry: ICON.droplet, accessories: ICON.tyre, electronics: ICON.bolt };
   return `
     <div class="stack" style="gap: var(--s5);padding:0 var(--s5)">
       <div class="tiles">
@@ -954,12 +952,14 @@ function renderDock() {
   ];
   const current = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
   const active = Math.max(0, tabs.findIndex(([k]) => k === current));
+  // הסדר בשורה: פילטר בצד אחד, האי באמצע, הוספה בצד השני
   dock.innerHTML = `
+    <button class="circ glass" data-act="sheet-open" aria-label="פילטר">${ICON.sliders({ s: 22 })}</button>
     <div class="island glass">
       <span class="tabpill" aria-hidden="true"></span>
       ${tabs.map(([k, ic]) => `<button class="tab" data-act="${k}" aria-current="${current === k ? 'page' : 'false'}" aria-label="${k}">${ic}</button>`).join('')}
     </div>
-    <button class="fab glass" data-act="create" aria-label="פוזיציה חדשה">${ICON.plus({ s: 24 })}</button>`;
+    <button class="fab rim" data-act="create" aria-label="פוזיציה חדשה">${ICON.plus({ s: 24 })}</button>`;
 
   // אחרי שהאי צויר אפשר למדוד את הלשוניות ולהציב את העיגול
   const drawnPill = dock.querySelector('.tabpill');
@@ -1287,7 +1287,11 @@ function onDragStart(ev) {
   const scroller = ev.target.closest('.sheetscroll');
   const height = sheet ? sheet.offsetHeight : 0;
 
+  // הקשה על כפתור היא קודם כל הקשה: רק תנועה ארוכה יותר הופכת אותה
+  // לגרירה, אחרת יד שרועדת קצת "מבטלת" את הלחיצה
+  const onControl = Boolean(ev.target.closest('button, a, [data-act]'));
   drag = {
+    slop: onControl ? 16 : 8,
     id: ev.pointerId, canSheet: canSheet && Boolean(sheet), canPage, mode: null,
     height, x0: ev.clientX, y0: ev.clientY,
     y: S.sheet ? 0 : height, base: S.sheet ? 0 : height,
@@ -1306,7 +1310,7 @@ function onDragMove(ev) {
   // ההכרעה נופלת בתנועה הראשונה: אנכית זה הפאנל, אופקית זה דפדוף,
   // וברשימה שכבר נגללה זו פשוט גלילה
   if (drag.pending) {
-    if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+    if (Math.abs(dy) < drag.slop && Math.abs(dx) < drag.slop) return;
     const horizontal = Math.abs(dx) > Math.abs(dy);
     if (horizontal && drag.canPage) {
       drag.mode = 'page';
@@ -1354,8 +1358,9 @@ function onDragEnd() {
   if (!drag) return;
   const { v, vx, y, height, moved, mode, dx } = drag;
   drag = null;
-  // בלי תנועה זו לחיצה רגילה, והכפתור שמתחת לאצבע עושה את שלו
-  if (!moved) return;
+  // בלי תנועה זו לחיצה רגילה — אבל עדיין מנקים את מה שהמשיכה הספיקה
+  // להשאיר: מחלקת dragging, ושכבת ההצללה שחוסמת הקשות כשהיא נשארת
+  if (!moved) { setSheet(S.sheet); return; }
   swallowClick = true;
 
   if (mode === 'page') {
@@ -1402,6 +1407,10 @@ function swipePage(step) {
   }, 150);
 }
 
+// כל נגיעה חדשה מתחילה מדף נקי: אחרת דגל שנשאר מגרירה קודמת
+// היה בולע את ההקשה הבאה, וזה נראה כאילו הכפתור לא מגיב
+document.addEventListener('pointerdown', () => { swallowClick = false; }, true);
+
 document.addEventListener('pointerdown', onDragStart);
 document.addEventListener('pointermove', onDragMove, { passive: true });
 document.addEventListener('pointerup', onDragEnd);
@@ -1441,24 +1450,39 @@ function sizeSheet(animate) {
 /* מחליף רק את תוכן הפאנל ומזיז את גובהו. המסך שמאחור לא מצויר מחדש —
    הלוגו, הכותרת והכפתורים נשארים בדיוק במקומם, וזז רק הפאנל.
    מי שקורא לפונקציה קורא קודם ל-syncSheetInputs, אחרת טקסט שהוקלד יימחק. */
-function updateSheet(revealSection) {
+function updateSheet(opts) {
+  const o = typeof opts === 'string' ? { reveal: opts } : (opts || {});
   const sheet = document.querySelector('.sheetwrap');
   const head = sheet && sheet.querySelector('[data-sheet-head]');
   const body = sheet && sheet.querySelector('[data-sheet-body]');
   const foot = sheet && sheet.querySelector('[data-sheet-foot]');
   if (!head || !body || !foot) { render(); return; }
-  const y = body.scrollTop;
-  head.innerHTML = sheetHead();
-  body.innerHTML = sheetBody();
-  foot.innerHTML = sheetFoot();
-  body.scrollTop = y;
-  sizeSheet(true);
-  refreshCount();
-  // מה שנפתח עכשיו יכול להיות מתחת לקצה — מגלגלים אליו בעדינות
-  if (revealSection) {
-    const box = body.querySelector(`[data-sec="${revealSection}"]`);
-    if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
+
+  const swap = () => {
+    const y = body.scrollTop;
+    head.innerHTML = sheetHead();
+    body.innerHTML = sheetBody();
+    foot.innerHTML = sheetFoot();
+    body.scrollTop = o.fade ? 0 : y;
+    sizeSheet(true);
+    refreshCount();
+    // מה שנפתח עכשיו יכול להיות מתחת לקצה — מגלגלים אליו בעדינות
+    if (o.reveal) {
+      const box = body.querySelector(`[data-sec="${o.reveal}"]`);
+      if (box) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
+  // מעבר בין עמודים שלמים: התוכן מתחלף בהמסה קצרה בזמן שהגובה זז,
+  // אחרת רואים החלפה חדה ואז תנועה — שתי פעולות במקום אחת
+  if (!o.fade) { swap(); return; }
+  body.style.transition = 'opacity .13s ease-out';
+  body.style.opacity = '0';
+  setTimeout(() => {
+    swap();
+    body.style.transition = 'opacity .26s var(--ease)';
+    body.style.opacity = '1';
+  }, 130);
 }
 
 function resetVehicleFilters() {
@@ -1507,6 +1531,13 @@ function refreshCount() {
 /* ============================ אירועים ============================ */
 document.addEventListener('click', async (ev) => {
   if (swallowClick) { swallowClick = false; return; }   // סוף משיכה, לא לחיצה
+
+  // הקשה על שורת החיפוש — בכל מקום בה — פותחת את השדה
+  const bar = ev.target.closest && ev.target.closest('.searchbar');
+  if (bar && !ev.target.closest('button')) {
+    const field = bar.querySelector('input');
+    if (field && document.activeElement !== field) field.focus();
+  }
   const el = ev.target.closest('[data-act]');
   if (!el || el.tagName === 'FORM') return;
   const act = el.dataset.act;
@@ -1521,7 +1552,11 @@ document.addEventListener('click', async (ev) => {
     go('create'); return;
   }
 
-  if (act === 'sheet-open') { setSheet(true); return; }
+  if (act === 'sheet-open') {
+    if (S.screen !== 'home') { go('home'); }
+    setSheet(true);
+    return;
+  }
   if (act === 'sheet-close') { setSheet(false); return; }
 
   // בחירה בפאנל לא מעיפה למסך אחר: הבחירה נשמרת, הפאנל מתעדכן במקום
@@ -1533,13 +1568,13 @@ document.addEventListener('click', async (ev) => {
     S.dept = el.dataset.dept;
     S.category = 'all';
     resetVehicleFilters();
-    updateSheet();
+    updateSheet({ fade: true });
     return;
   }
   if (act === 'dept-back') {
     S.dept = null; S.category = 'all';
     resetVehicleFilters();
-    updateSheet();
+    updateSheet({ fade: true });
     return;
   }
   if (act === 'cat') {
@@ -1555,7 +1590,7 @@ document.addEventListener('click', async (ev) => {
     S.vkind = S.vkind === next ? 'all' : next;
     // יצרן, דגם ושנה תלויים בסוג — החלפת סוג מאפסת אותם
     S.vmake = 'all'; S.vmakeq = ''; S.vmodel = ''; S.models = [];
-    updateSheet(S.vkind === 'all' ? null : 'make');
+    updateSheet({ reveal: S.vkind === 'all' ? null : 'make' });
     return;
   }
   if (act === 'vmake') {
@@ -1564,7 +1599,7 @@ document.addEventListener('click', async (ev) => {
     S.vmake = (next === 'all' || S.vmake === next) ? 'all' : next;
     S.vmodel = '';
     if (S.vmake === 'all') { S.vmakeq = ''; S.vyear = ''; }
-    updateSheet(S.vmake === 'all' ? null : (S.vmake === 'other' ? 'make' : 'model'));
+    updateSheet({ reveal: S.vmake === 'all' ? null : (S.vmake === 'other' ? 'make' : 'model') });
     // רשימת הדגמים מגיעה מהשרת ונכנסת לבורר כשהיא כאן
     loadModels().then(() => {
       const sel = document.querySelector('.sheetwrap [data-field="model-select"]');

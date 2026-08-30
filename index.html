@@ -44,9 +44,15 @@
 
   /* שטח נגיעה מינימלי — אצבע בשמן מנוע לא פוגעת ב-34 פיקסל */
   --tap:44px;
-  --isle-gap:10px;   /* מרווח אחיד: מהשוליים, ובין האיים */
-  --dock-h:68px;     /* גובה האי התחתון */
-  --dock-bottom:calc(8px + env(safe-area-inset-bottom));   /* כמה הוא מעל הקצה */
+  /* המרווחים נגזרים מהמסך, המידות של הפקדים לא: אצבע לא גדלה עם
+     המכשיר, ולכן שטח מגע נשאר 44 פיקסל בכל מסך. clamp שומר שהיחס
+     לא יתפרק במסך קטן או ארוך במיוחד. */
+  --gap-h:clamp(8px, 2.4vw, 14px);             /* אופקי — לפי רוחב המסך */
+  --gap-v:clamp(7px, 1.15vh, 14px);            /* אנכי — לפי גובה המסך */
+  --isle-gap:var(--gap-h);
+  --dock-h:calc(var(--tap) + var(--s3) * 2);   /* גובה האי, נגזר משטח המגע */
+  --isle-h:56px;                                /* גובה כפתור החיפוש */
+  --dock-bottom:calc(var(--gap-v) + env(safe-area-inset-bottom));
 
   /* עקומה אחת לכל התנועה בממשק — קרובה לזו של iOS: יוצאת מהר,
      נעצרת רך, בלי קפיצה בסוף */
@@ -143,13 +149,15 @@ input,select,textarea{font:inherit;color:inherit}
    אור נתפס בשפה העליונה, מתעמעם באמצע וחוזר בתחתונה. הטבעת נצבעת
    בגרדיאנט וממוסכת לרוחב המסגרת בלבד, כך שהיא באמת קו ולא שכבה. */
 .glass{
-  -webkit-backdrop-filter:blur(24px) saturate(190%);
-  backdrop-filter:blur(24px) saturate(190%);
+  /* טשטוש הוא הדבר היקר ביותר בפריים; רק מי שבאמת מראה מה שמאחוריו
+     מקבל אותו, והשאר מקבלים את הטבעת בלבד (.rim) */
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  backdrop-filter:blur(20px) saturate(180%);
 }
 /* בלי מסכה הגרדיאנט היה מכסה את כל הכפתור בלבן במקום להיות קו,
    ולכן הטבעת נצבעת רק כשהדפדפן יודע לחתוך אותה */
 @supports (mask-composite: exclude) or (-webkit-mask-composite: xor){
-  .glass::after{
+  .glass::after,.rim::after{
     content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
     padding:1px;
     background:linear-gradient(150deg,
@@ -221,6 +229,22 @@ input,select,textarea{font:inherit;color:inherit}
 }
 .fab:active{transform:scale(.9)}
 
+/* הפילטר יושב בשורה אחת עם האי ועם כפתור ההוספה, בצד השני שלו:
+   שלושה איים מאוזנים במקום שבב מרחף באמצע */
+.circ{
+  position:relative;width:var(--isle-h);height:var(--isle-h);border-radius:999px;
+  color:var(--ink);pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(247,245,242,.58);
+  box-shadow:
+    0 10px 26px rgba(22,20,15,.14),
+    inset 0 1px 0 rgba(255,255,255,.62),
+    inset 0 0 0 1px rgba(255,255,255,.28);
+  transition:transform .2s var(--ease);
+}
+.circ:active{transform:scale(.9)}
+@supports not (backdrop-filter:blur(1px)){ .circ{background:rgba(247,245,242,.94)} }
+
 /* ---------- формы ---------- */
 .field{display:flex;flex-direction:column;gap: var(--s2)}
 .field input,.field select,.field textarea{
@@ -268,24 +292,6 @@ svg{flex:none}
 .hero .searchbar{width:100%}
 .home input{touch-action:auto}   /* השדה נשאר שדה: סימון וסמן כרגיל */
 
-/* ידית משיכה: מה שרואים כשהפאנל סגור. אפשר למשוך אותה באצבע
-   ואפשר פשוט ללחוץ — שתי הדרכים פותחות. */
-.pulltab{
-  position:absolute;bottom:calc(var(--dock-bottom) + var(--dock-h) + var(--isle-gap));inset-inline:0;
-  margin:0 auto;width:max-content;
-  display:flex;flex-direction:column;align-items:center;gap: var(--s2);
-  padding: var(--s3) 18px var(--s3);border-radius:18px 18px 14px 14px;
-  background:rgba(247,245,242,.66);
-  box-shadow:
-    0 8px 24px rgba(22,20,15,.12),
-    inset 0 1px 0 rgba(255,255,255,.62);
-  font:500 var(--fs-label) var(--sans);color:var(--muted);
-  touch-action:none;cursor:grab;
-  transition:transform .2s var(--ease), opacity .3s var(--ease);
-}
-.pulltab:active{transform:scale(.97);cursor:grabbing}
-.pulltab .line{width:30px;height:4px;border-radius:999px;background:var(--hair)}
-
 /* ---------- הפאנל הנפתח ---------- */
 .scrim{
   position:absolute;inset:0;z-index:42;background:rgba(22,20,15,.10);
@@ -298,19 +304,19 @@ svg{flex:none}
    ושומרים ביניהם את אותו מרווח כמו מהשוליים. */
 .sheetwrap{
   position:absolute;inset-inline:0;bottom:0;z-index:45;
-  display:flex;flex-direction:column;justify-content:flex-end;gap: var(--isle-gap);
-  padding:0 var(--isle-gap) calc(var(--dock-bottom) + 6px);   /* על קו האי התחתון */
+  display:flex;flex-direction:column;justify-content:flex-end;gap: var(--gap-v);
+  padding:0 var(--gap-h) calc(var(--dock-bottom) + (var(--dock-h) - var(--isle-h)) / 2);
   max-height:88%;
   /* סגור = מתחת לקצה ועוד קצת, כדי ששגיאת עיגול לא תשאיר פס מציץ */
   transform:translateY(calc(100% + 24px));will-change:transform, height;
-  transition:transform .58s var(--ease), height .44s var(--ease);
+  transition:transform .58s var(--ease), height .52s var(--ease);
   pointer-events:none;touch-action:none;
 }
 .sheetwrap > *{pointer-events:auto}
 .sheetwrap.dragging{transition:none}      /* בזמן משיכה הפאנל הולך אחרי האצבע */
 
 .sheet{
-  min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  min-height:clamp(260px, 46vh, 430px);display:flex;flex-direction:column;overflow:hidden;
   background:var(--card);border-radius:28px;
   /* הצל שייך לאי שנמצא על המסך; כשהוא למטה הוא לא מותיר סימן */
   box-shadow:none;transition:box-shadow .5s var(--ease);
@@ -318,7 +324,9 @@ svg{flex:none}
 .sheetwrap.open .sheet,.sheetwrap.dragging .sheet{box-shadow:0 14px 40px rgba(22,20,15,.20)}
 
 .sheetscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+             display:flex;flex-direction:column;
              padding-bottom: var(--s5)}
+.sheetscroll > .stack{flex:1;min-height:0}
 /* הכותרת היא גם אזור המשיכה: משם מורידים את הפאנל חזרה */
 .sheethead{
   flex:none;display:flex;flex-direction:column;align-items:center;gap: var(--s3);
@@ -344,14 +352,14 @@ svg{flex:none}
 /* כפתור החיפוש נשאר בהישג יד גם כשהרשימות ארוכות והפאנל נגלל */
 /* האי התחתון של הפאנל: כפתור החיפוש עומד בפני עצמו, ולידו — רק
    כשיש מה לנקות — עיגול קטן. אותו מרווח כמו בין הפאנל לשוליים. */
-.sheetbar{display:flex;align-items:center;gap: var(--isle-gap)}
+.sheetbar{display:flex;align-items:center;gap: var(--gap-h)}
 .sheetbar .btn.isle{
-  flex:1;height:56px;display:flex;align-items:center;justify-content:center;
+  flex:1;height:var(--isle-h);display:flex;align-items:center;justify-content:center;
   padding:0 var(--s5);border-radius:999px;
   box-shadow:0 10px 26px rgba(22,20,15,.24);
 }
 .isle-x{
-  flex:none;width:56px;height:56px;border-radius:999px;
+  flex:none;width:var(--isle-h);height:var(--isle-h);border-radius:999px;
   background:var(--card);color:var(--ink);
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 10px 26px rgba(22,20,15,.14);
@@ -360,7 +368,7 @@ svg{flex:none}
 .isle-x:active{transform:scale(.92)}
 
 /* ארבעת המדפים בעמוד הראשון של הפאנל */
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap: var(--s3)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap: var(--s3);flex:1}
 .tile{
   display:flex;flex-direction:column;align-items:flex-start;gap: var(--s2);
   padding: var(--s4) 15px;border-radius:20px;background:var(--chip);
