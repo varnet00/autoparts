@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { isKind } = require('../vehicles');
-const { isCategory } = require('../categories');
+const { isCategory, isDepartment, categoryIdsOf } = require('../categories');
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ function attachSellerAndInterchange(parts) {
 // סינון רכב: vehicle_kind, vehicle_make (מהרשימה) או make_q (יצרן חופשי,
 // למי שרכבו לא ברשימה), vehicle_model ו-year.
 router.get('/', (req, res) => {
-  const { category, kind, q, vehicle_kind: vk, vehicle_make: vm,
+  const { department, category, kind, q, vehicle_kind: vk, vehicle_make: vm,
           make_q: mq, vehicle_model: vmodel, year } = req.query;
   const page = Math.max(parseInt(req.query.page) || 1, 1);
   const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
@@ -38,6 +38,13 @@ router.get('/', (req, res) => {
   const where = [];
   const params = {};
 
+  // מחלקה שלמה = כל הקטגוריות שלה, וזה מה שכפתור "הכל" שולח
+  if (department && department !== 'all') {
+    if (!isDepartment(department)) return res.status(400).json({ error: 'מחלקה לא תקינה' });
+    const ids = categoryIdsOf(department);
+    where.push(`category IN (${ids.map((_, i) => `@dep${i}`).join(', ')})`);
+    ids.forEach((id, i) => { params[`dep${i}`] = id; });
+  }
   if (category && category !== 'all') {
     if (!isCategory(category)) return res.status(400).json({ error: 'קטגוריה לא תקינה' });
     where.push('category = @category');

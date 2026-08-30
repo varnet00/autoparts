@@ -5,6 +5,10 @@
    ועובד גם בלי רשת. */
 const I = (d, o) => `<svg width="${(o && o.s) || 19}" height="${(o && o.s) || 19}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICON = {
+  wrench: o => I('<path d="M15 6.5a4 4 0 0 0 5 5l-8.6 8.6a2.9 2.9 0 0 1-4.1-4.1z"/><path d="M15 6.5 18.5 3"/>', o),
+  droplet: o => I('<path d="M12 3.5s5.5 6 5.5 9.6a5.5 5.5 0 0 1-11 0C6.5 9.5 12 3.5 12 3.5z"/>', o),
+  tyre: o => I('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/>', o),
+  battery: o => I('<rect x="2.5" y="8" width="15" height="8.5" rx="2"/><path d="M20 11v2.5"/><path d="M6.5 12h3M13 12h.01"/>', o),
   search: o => I('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', o),
   scan: o => I('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M3 12h18"/>', o),
   bell: o => I('<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>', o),
@@ -38,23 +42,28 @@ const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&':
 const shekel = (n) => `₪ ${Number(n).toLocaleString('he-IL')}`;
 
 const KIND_LABEL = { orig: 'מקורי', copy: 'חלופי', used: 'משומש' };
-// קטגוריות לפי המערכות ברכב. הרשימה זהה ל-backend/src/categories.js —
-// השרת מאמת מולה, וכאן היא קבועה כדי שהמסננים לא ימתינו לרשת.
-const CATEGORY_LABEL = {
-  engine: 'מנוע',
-  cooling: 'מערכת קירור',
-  fuel: 'מערכת דלק',
-  exhaust: 'מערכת פליטה',
-  brakes: 'מערכת בלמים',
-  transmission: 'תמסורת',
-  suspension: 'מתלים',
-  steering: 'היגוי',
-  electrical: 'חשמל',
-  climate: 'מיזוג ואוורור',
-  body: 'מרכב',
-  service: 'חלקי טיפול',
-  other: 'אחר',
-};
+// מבנה המדפים (מחלקות וקטגוריות) מגיע מהשרת — אותו מקור שמאמת
+// כל פוזיציה, כדי שהרשימות לא ייפרדו זו מזו.
+function catLabel(id) {
+  for (const d of S.depts) {
+    const hit = d.categories.find((c) => c.id === id);
+    if (hit) return hit.label;
+  }
+  return id;
+}
+
+function deptOf(categoryId) {
+  return S.depts.find((d) => d.categories.some((c) => c.id === categoryId)) || null;
+}
+
+function deptLabel(id) {
+  const d = S.depts.find((x) => x.id === id);
+  return d ? d.label : id;
+}
+
+function currentDept() {
+  return S.depts.find((d) => d.id === S.dept) || null;
+}
 
 // שנות הדגם שאפשר לבחור בסינון — מהשנה הקרובה אחורה, כמה שאנשים באמת מחפשים
 const YEARS = (() => {
@@ -93,6 +102,8 @@ const S = {
   loading: false,
   draft: null,
   sheet: false,   // הפאנל התחתון של מסך הבית
+  depts: [],      // מחלקות החנות והקטגוריות שלהן, מהשרת
+  dept: null,     // המחלקה הפתוחה בפאנל; null = עמוד ארבע המחלקות
   vehicles: [],   // מיון סוגי רכב ויצרנים, מהשרת
   vkind: 'all',   // סוג רכב שנבחר במסנן
   vmake: 'all',   // יצרן מהרשימה, או 'other' ליצרן שהוקלד ביד
@@ -252,11 +263,38 @@ function viewHome() {
    התוכן מוחלף בתוך הפאנל הקיים ולא דרך ציור המסך מחדש, כך שהמעבר
    בין המצבים נשאר רציף והגובה רץ בהנפשה. */
 function sheetBody() {
-  const st = S.stats;
+  return S.dept ? sheetDepartment() : sheetDepartments();
+}
+
+// עמוד ראשון: ארבעה מדפים. בוחרים אחד ונכנסים למסננים שלו.
+function sheetDepartments() {
+  const icons = { parts: ICON.wrench, chemistry: ICON.droplet, accessories: ICON.tyre, electronics: ICON.battery };
+  return `
+    <div class="stack" style="gap: var(--s5);padding: var(--s2) var(--s5) 0">
+      <span class="label">מה מחפשים</span>
+      <div class="tiles">
+        ${S.depts.map((d) => `<button class="tile" data-act="dept" data-dept="${esc(d.id)}">
+          <span class="tile-i">${(icons[d.id] || ICON.package)({ s: 20 })}</span>
+          <span class="tile-t">${esc(d.label)}</span>
+          <span class="tile-s">${esc(d.hint || '')}</span>
+        </button>`).join('') || '<span class="label">טוען…</span>'}
+      </div>
+      ${statsRow()}
+    </div>`;
+}
+
+// מסננים של מדף אחד. בחלקי חילוף זה מסלול הרכב — סוג, יצרן, דגם, שנה
+// ואז המערכת; בשאר המדפים די ברשימת הקטגוריות.
+function sheetDepartment() {
+  const dep = currentDept();
+  if (!dep) return sheetDepartments();
+  const isParts = dep.id === 'parts';
   const chosen = S.vehicles.find((v) => v.id === S.vkind);
   const makes = chosen ? chosen.makes : [];
   const other = S.vmake === 'other';
   const makeChosen = S.vmake !== 'all';
+  const modelKnown = S.models.includes(S.vmodel);
+  const modelCustom = Boolean(S.vmodel) && !modelKnown;
   const section = (id, label, inner, extra = '') => `
     <div class="stack" data-sec="${id}" style="gap: var(--s3)">
       <div class="row between"><span class="label">${label}</span>${extra}</div>
@@ -265,40 +303,62 @@ function sheetBody() {
 
   return `
     <div class="stack" style="gap: var(--s6);padding: var(--s2) var(--s5) 0">
-      ${section('kind', 'סוג הרכב', `<div class="chips">
-        ${S.vehicles.map((v) => `<button class="chip" data-act="vkind" data-vkind="${esc(v.id)}" aria-pressed="${S.vkind === v.id}">${esc(v.label)}</button>`).join('')
-          || '<span class="label">טוען…</span>'}
+      <div class="row" style="gap: var(--s3)">
+        <button class="iconbtn" data-act="dept-back" aria-label="חזרה למדפים">${ICON.back({ s: 17 })}</button>
+        <span style="font:600 var(--fs-sub) var(--disp)">${esc(dep.label)}</span>
+      </div>
+
+      ${isParts ? `
+        ${section('kind', 'סוג הרכב', `<div class="chips">
+          ${S.vehicles.map((v) => `<button class="chip" data-act="vkind" data-vkind="${esc(v.id)}" aria-pressed="${S.vkind === v.id}">${esc(v.label)}</button>`).join('')
+            || '<span class="label">טוען…</span>'}
+        </div>`)}
+
+        ${makes.length ? section('make', 'יצרן', `<div class="chips">
+          ${makes.map((m) => `<button class="chip" data-act="vmake" data-vmake="${esc(m)}" aria-pressed="${S.vmake === m}">${esc(m)}</button>`).join('')}
+          <button class="chip" data-act="vmake" data-vmake="other" aria-pressed="${other}">אחר</button>
+        </div>
+        ${other ? `<input class="fieldline" data-field="makeq" value="${esc(S.vmakeq)}"
+                          placeholder="שם היצרן — למשל Chery" autocomplete="off">` : ''}`,
+          S.vmake !== 'all' ? '<button class="label" data-act="vmake" data-vmake="all" style="text-decoration:underline">נקה</button>' : '') : ''}
+
+        ${makeChosen ? section('model', 'דגם', `
+          <select data-field="model-select">${modelOptions()}</select>
+          <input class="fieldline" data-field="model" value="${modelCustom ? esc(S.vmodel) : ''}"
+                 placeholder="שם הדגם" autocomplete="off" ${modelCustom ? '' : 'hidden'}>`) : ''}
+
+        ${makeChosen ? section('year', 'שנת ייצור', `
+          <select data-field="year">
+            <option value="">כל השנים</option>
+            ${YEARS.map((y) => `<option value="${y}" ${String(S.vyear) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}
+          </select>`) : ''}
+      ` : ''}
+
+      ${section('cat', isParts ? 'איזה חלק דרוש' : 'מה בדיוק', `<div class="chips">
+        <button class="chip" data-act="cat" data-cat="all" aria-pressed="${S.category === 'all'}">הכל</button>
+        ${dep.categories.map((c) => `<button class="chip" data-act="cat" data-cat="${esc(c.id)}" aria-pressed="${S.category === c.id}">${esc(c.label)}</button>`).join('')}
       </div>`)}
 
-      ${makes.length ? section('make', 'יצרן', `<div class="chips">
-        ${makes.map((m) => `<button class="chip" data-act="vmake" data-vmake="${esc(m)}" aria-pressed="${S.vmake === m}">${esc(m)}</button>`).join('')}
-        <button class="chip" data-act="vmake" data-vmake="other" aria-pressed="${other}">אחר</button>
-      </div>
-      ${other ? `<input class="fieldline" data-field="makeq" value="${esc(S.vmakeq)}"
-                        placeholder="שם היצרן — למשל Chery" autocomplete="off">` : ''}`,
-        S.vmake !== 'all' ? '<button class="label" data-act="vmake" data-vmake="all" style="text-decoration:underline">נקה</button>' : '') : ''}
-
-      ${makeChosen ? section('model', 'דגם', `
-        <input class="fieldline" data-field="model" value="${esc(S.vmodel)}" list="modelSuggest"
-               placeholder="למשל Corolla E210" autocomplete="off">
-        <datalist id="modelSuggest">${S.models.map((m) => `<option value="${esc(m)}"></option>`).join('')}</datalist>`) : ''}
-
-      ${makeChosen ? section('year', 'שנת ייצור', `
-        <select data-field="year">
-          <option value="">כל השנים</option>
-          ${YEARS.map((y) => `<option value="${y}" ${String(S.vyear) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}
-        </select>`) : ''}
-
-      ${section('cat', 'איזה חלק דרוש', `<div class="chips">
-        ${Object.keys(CATEGORY_LABEL).map((c) => `<button class="chip" data-act="cat" data-cat="${c}" aria-pressed="${S.category === c}">${CATEGORY_LABEL[c]}</button>`).join('')}
-      </div>`, S.category !== 'all' ? '<button class="label" data-act="cat" data-cat="all" style="text-decoration:underline">נקה</button>' : '')}
-
-      <div class="row" style="gap: var(--s4);font:400 var(--fs-label) var(--sans);color:var(--muted)">
-        ${st ? `<span>${st.numbers} מק״טים</span>
-                <span style="width:4px;height:4px;border-radius:999px;background:#c8c1b7"></span>
-                <span>${st.verified_sellers} מוכרים מאומתים</span>` : '<span>טוען…</span>'}
-      </div>
+      ${statsRow()}
     </div>`;
+}
+
+// אפשרויות הדגם: הרשימה של היצרן, ובסופה אפשרות להקליד דגם שאינו בה
+function modelOptions() {
+  const known = S.models.includes(S.vmodel);
+  const custom = Boolean(S.vmodel) && !known;
+  return `<option value="">כל הדגמים</option>` +
+    S.models.map((m) => `<option value="${esc(m)}" ${S.vmodel === m ? 'selected' : ''}>${esc(m)}</option>`).join('') +
+    `<option value="other" ${custom ? 'selected' : ''}>אחר…</option>`;
+}
+
+function statsRow() {
+  const st = S.stats;
+  return `<div class="row" style="gap: var(--s4);font:400 var(--fs-label) var(--sans);color:var(--muted)">
+    ${st ? `<span>${st.numbers} מק״טים</span>
+            <span style="width:4px;height:4px;border-radius:999px;background:#c8c1b7"></span>
+            <span>${st.verified_sellers} מוכרים מאומתים</span>` : '<span>טוען…</span>'}
+  </div>`;
 }
 
 // הכפתור יושב מחוץ לאזור הנגלל, ולכן נשאר במקומו גם ברשימות ארוכות
@@ -310,7 +370,7 @@ function sheetFoot() {
 
 // האם נבחר משהו — לפי זה מופיע "נקה הכל" ומשתנה תווית כפתור החיפוש
 function anyFilter() {
-  return S.category !== 'all' || S.vkind !== 'all' || S.vmake !== 'all'
+  return Boolean(S.dept) || S.category !== 'all' || S.vkind !== 'all' || S.vmake !== 'all'
     || Boolean(S.vmodel.trim()) || Boolean(S.vyear);
 }
 
@@ -318,6 +378,7 @@ function countLabel() {
   if (!anyFilter()) return 'חיפוש בכל הקטלוג';
   if (S.sheetCount === null) return 'חיפוש';
   if (S.sheetCount === 0) return 'אין תוצאות מתאימות';
+  if (S.sheetCount === 1) return 'הצג תוצאה אחת';
   return `הצג ${S.sheetCount} תוצאות`;
 }
 
@@ -326,11 +387,12 @@ function viewSearch() {
   const kinds = [['all', 'הכל'], ['orig', 'מקורי'], ['copy', 'חלופי'], ['used', 'משומש']];
   const vk = S.vehicles.find((v) => v.id === S.vkind);
   const activeFilters = [
+    S.dept ? deptLabel(S.dept) : null,
     vk ? vk.label : null,
     S.vmake === 'other' ? (S.vmakeq.trim() || 'יצרן אחר') : (S.vmake !== 'all' ? S.vmake : null),
     S.vmodel.trim() || null,
     S.vyear || null,
-    S.category !== 'all' ? CATEGORY_LABEL[S.category] || S.category : null,
+    S.category !== 'all' ? catLabel(S.category) : null,
   ].filter(Boolean);
   return `
     ${topBar({})}
@@ -551,6 +613,12 @@ function fitsText(make, model, from, to) {
 }
 
 /* רשימת היצרנים תלויה בסוג הרכב, ומתחלפת גם בלי ציור מחדש של הטופס */
+function categoryOptions(dep, selected) {
+  return dep.categories
+    .map((c) => `<option value="${esc(c.id)}" ${selected === c.id ? 'selected' : ''}>${esc(c.label)}</option>`)
+    .join('');
+}
+
 function makeOptions(makes, selected) {
   const known = makes.includes(selected);
   return `<option value="">יצרן</option>` +
@@ -568,6 +636,9 @@ function viewCreate() {
   const vMakes = (S.vehicles.find((v) => v.id === vKind) || {}).makes || [];
   // יצרן שאינו ברשימה נשמר כמו שהוקלד, והטופס חוזר אליו במצב "אחר"
   const vCustom = Boolean(d.vehicle_make) && !vMakes.includes(d.vehicle_make);
+  // המחלקה נגזרת מהקטגוריה השמורה — אין שדה נפרד בטבלה, ולכן אי אפשר
+  // שהשניים ייצאו מסונכרנים
+  const formDept = deptOf(d.category) || S.depts[0] || { id: '', categories: [] };
   return `
     <div class="top">
       <button class="iconbtn" data-act="stock">${ICON.close({ s: 17 })}</button>
@@ -606,11 +677,17 @@ function viewCreate() {
             </div>
           </div>
         </div>
-        <div class="field">
-          <span class="label">קטגוריה</span>
-          <select name="category">
-            ${Object.keys(CATEGORY_LABEL).map((c) => `<option value="${c}" ${d.category === c ? 'selected' : ''}>${CATEGORY_LABEL[c]}</option>`).join('')}
-          </select>
+        <div class="row" style="gap: var(--s3)">
+          <div class="field" style="flex:1">
+            <span class="label">מחלקה</span>
+            <select name="department">
+              ${S.depts.map((dep) => `<option value="${esc(dep.id)}" ${formDept.id === dep.id ? 'selected' : ''}>${esc(dep.label)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="flex:1">
+            <span class="label">קטגוריה</span>
+            <select name="category">${categoryOptions(formDept, d.category)}</select>
+          </div>
         </div>
         <div class="field">
           <span class="label">התאמה לרכב · לא חובה</span>
@@ -627,7 +704,7 @@ function viewCreate() {
                  placeholder="שם היצרן" ${vCustom ? '' : 'hidden'}>
         </div>
         <div class="row" style="gap: var(--s3)">
-          <div class="field" style="flex:2"><span class="label">דגם</span><input class="mono" name="vehicle_model" value="${esc(d.vehicle_model || '')}" placeholder="COROLLA E210"></div>
+          <div class="field" style="flex:2"><span class="label">דגם</span><input class="mono" name="vehicle_model" list="formModels" value="${esc(d.vehicle_model || '')}" placeholder="COROLLA E210" autocomplete="off"><datalist id="formModels"></datalist></div>
           <div class="field" style="flex:1"><span class="label">משנת</span><input class="mono" name="year_from" type="number" min="1950" max="2100" value="${esc(d.year_from != null ? d.year_from : '')}" placeholder="2016"></div>
           <div class="field" style="flex:1"><span class="label">עד שנת</span><input class="mono" name="year_to" type="number" min="1950" max="2100" value="${esc(d.year_to != null ? d.year_to : '')}" placeholder="2023"></div>
         </div>
@@ -869,6 +946,7 @@ function filterParams(extra = {}) {
   const params = new URLSearchParams();
   if (S.q) params.set('q', S.q);
   if (S.kind !== 'all') params.set('kind', S.kind);
+  if (S.dept) params.set('department', S.dept);
   if (S.category !== 'all') params.set('category', S.category);
   if (S.vkind !== 'all') params.set('vehicle_kind', S.vkind);
   if (S.vmake !== 'all' && S.vmake !== 'other') params.set('vehicle_make', S.vmake);
@@ -879,13 +957,32 @@ function filterParams(extra = {}) {
   return params;
 }
 
-async function loadModels() {
-  if (S.vmake === 'all' || S.vmake === 'other') { S.models = []; return; }
+async function loadCategories() {
   try {
-    const p = new URLSearchParams({ make: S.vmake });
-    if (S.vkind !== 'all') p.set('kind', S.vkind);
-    S.models = (await api(`/vehicles/models?${p}`)).models;
-  } catch (e) { S.models = []; }
+    S.depts = (await api('/categories')).departments;
+    render();
+  } catch (e) { /* המדפים פשוט יהיו ריקים עד הרענון הבא */ }
+}
+
+async function fetchModels(kind, make) {
+  if (!make || make === 'all' || make === 'other') return [];
+  try {
+    const p = new URLSearchParams({ make });
+    if (kind && kind !== 'all') p.set('kind', kind);
+    return (await api(`/vehicles/models?${p}`)).models;
+  } catch (e) { return []; }
+}
+
+async function loadModels() {
+  S.models = await fetchModels(S.vkind, S.vmake);
+}
+
+// הצעות הדגמים בטופס הפוזיציה. הטופס לא נוגע במסנני מסך הבית,
+// ולכן הן נכתבות ישירות לרשימה ולא דרך המצב.
+async function fillFormModels(kind, make) {
+  const models = await fetchModels(kind, make);
+  const list = document.getElementById('formModels');
+  if (list) list.innerHTML = models.map((m) => `<option value="${esc(m)}"></option>`).join('');
 }
 
 async function loadSearch() {
@@ -991,6 +1088,25 @@ document.addEventListener('change', (ev) => {
     refreshCount();
     return;
   }
+  // "אחר…" ברשימת הדגמים פותח שדה הקלדה, בלי לצייר את הפאנל מחדש
+  if (el.matches && el.matches('.sheet [data-field="model-select"]')) {
+    const free = document.querySelector('.sheet [data-field="model"]');
+    if (free) {
+      free.hidden = el.value !== 'other';
+      if (!free.hidden) free.focus(); else free.value = '';
+    }
+    syncSheetInputs();
+    refreshCount();
+    return;
+  }
+  // מחלקה בטופס הפוזיציה קובעת אילו קטגוריות מוצעות
+  if (el.matches && el.matches('select[name="department"]')) {
+    const form = el.closest('form');
+    const cat = form && form.querySelector('select[name="category"]');
+    const dep = S.depts.find((x) => x.id === el.value);
+    if (cat && dep) cat.innerHTML = categoryOptions(dep, '');
+    return;
+  }
   // "אחר…" בטופס הפוזיציה פותח שדה להקלדת יצרן שאינו ברשימה
   if (el.matches && el.matches('select[name="vehicle_make"]')) {
     const form = el.closest('form');
@@ -999,6 +1115,9 @@ document.addEventListener('change', (ev) => {
       custom.hidden = el.value !== 'other';
       if (!custom.hidden) custom.focus(); else custom.value = '';
     }
+    // הצעות דגמים ליצרן שנבחר, כדי שהמוכר לא ימציא כתיב משלו
+    const kindSel = form && form.querySelector('select[name="vehicle_kind"]');
+    fillFormModels(kindSel ? kindSel.value : '', el.value);
     return;
   }
   if (!el.matches || !el.matches('select[name="vehicle_kind"]')) return;
@@ -1010,6 +1129,8 @@ document.addEventListener('change', (ev) => {
   make.disabled = !chosen;
   const custom = form.querySelector('input[name="vehicle_make_other"]');
   if (custom) { custom.hidden = true; custom.value = ''; }
+  const list = document.getElementById('formModels');
+  if (list) list.innerHTML = '';
 });
 
 
@@ -1062,15 +1183,22 @@ function updateSheet(revealSection) {
   }
 }
 
-// מה שהוקלד בפאנל חי ב-DOM בלבד עד שנשמר כאן
+function resetVehicleFilters() {
+  S.vkind = 'all'; S.vmake = 'all'; S.vmakeq = ''; S.vmodel = ''; S.vyear = ''; S.models = [];
+}
+
+// מה שהוקלד או נבחר בפאנל חי ב-DOM בלבד עד שנשמר כאן
 function syncSheetInputs() {
   const sheet = document.querySelector('.sheet');
   if (!sheet) return;
   const makeq = sheet.querySelector('[data-field="makeq"]');
-  const model = sheet.querySelector('[data-field="model"]');
+  const modelSel = sheet.querySelector('[data-field="model-select"]');
+  const modelFree = sheet.querySelector('[data-field="model"]');
   const year = sheet.querySelector('[data-field="year"]');
   if (makeq) S.vmakeq = makeq.value;
-  if (model) S.vmodel = model.value;
+  if (modelSel) {
+    S.vmodel = modelSel.value === 'other' ? (modelFree ? modelFree.value : '') : modelSel.value;
+  }
   if (year) S.vyear = year.value;
 }
 
@@ -1106,8 +1234,8 @@ document.addEventListener('click', async (ev) => {
 
   // ניווט
   if (act === 'home') {
-    S.q = ''; S.category = 'all'; S.vkind = 'all'; S.vmake = 'all';
-    S.vmakeq = ''; S.vmodel = ''; S.vyear = ''; S.models = []; S.sheetCount = null;
+    S.q = ''; S.dept = null; S.category = 'all'; S.sheetCount = null;
+    resetVehicleFilters();
     go('home'); loadStats(); return;
   }
   if (act === 'search') { go('search'); return; }
@@ -1126,6 +1254,22 @@ document.addEventListener('click', async (ev) => {
 
   // בחירה בפאנל לא מעיפה למסך אחר: הבחירה נשמרת, הפאנל מתעדכן במקום
   // ומשנה גובה, והמעבר לתוצאות קורה רק בלחיצה על כפתור החיפוש.
+  // בחירת מדף מחליפה את תוכן הפאנל; החזרה מנקה את מה שנבחר בו,
+  // כדי שלא יישאר מסנן פעיל שכבר לא רואים
+  if (act === 'dept') {
+    syncSheetInputs();
+    S.dept = el.dataset.dept;
+    S.category = 'all';
+    resetVehicleFilters();
+    updateSheet();
+    return;
+  }
+  if (act === 'dept-back') {
+    S.dept = null; S.category = 'all';
+    resetVehicleFilters();
+    updateSheet();
+    return;
+  }
   if (act === 'cat') {
     syncSheetInputs();
     const next = el.dataset.cat;
@@ -1149,10 +1293,10 @@ document.addEventListener('click', async (ev) => {
     S.vmodel = '';
     if (S.vmake === 'all') { S.vmakeq = ''; S.vyear = ''; }
     updateSheet(S.vmake === 'all' ? null : (S.vmake === 'other' ? 'make' : 'model'));
-    // הדגמים מגיעים מהשרת ומתעדכנים בפאנל כשהם כאן
+    // רשימת הדגמים מגיעה מהשרת ונכנסת לבורר כשהיא כאן
     loadModels().then(() => {
-      const list = document.getElementById('modelSuggest');
-      if (list) list.innerHTML = S.models.map((m) => `<option value="${esc(m)}"></option>`).join('');
+      const sel = document.querySelector('.sheet [data-field="model-select"]');
+      if (sel) sel.innerHTML = modelOptions();
     });
     // בחירת "אחר" פותחת שדה הקלדה — הפוקוס עובר אליו מיד
     if (S.vmake === 'other') {
@@ -1169,8 +1313,8 @@ document.addEventListener('click', async (ev) => {
   }
 
   if (act === 'clear-filters') {
-    S.category = 'all'; S.vkind = 'all'; S.vmake = 'all';
-    S.vmakeq = ''; S.vmodel = ''; S.vyear = ''; S.models = []; S.sheetCount = null;
+    S.dept = null; S.category = 'all'; S.sheetCount = null;
+    resetVehicleFilters();
     if (S.screen === 'home') { updateSheet(); } else { loadSearch(); }
     return;
   }
@@ -1215,7 +1359,9 @@ document.addEventListener('click', async (ev) => {
     const p = S.stock.find((x) => x.id === Number(el.dataset.id));
     if (!p) return;
     S.draft = { ...p, nums: (p.interchange_numbers || []).map((n) => n.number) };
-    go('create'); return;
+    go('create');
+    fillFormModels(p.vehicle_kind, p.vehicle_make);
+    return;
   }
   if (act === 'delete') {
     if (!confirm('למחוק את הפוזיציה?')) return;
@@ -1384,6 +1530,6 @@ render();
 
 // רצף הפתיחה נגמר ב-2.2 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
 const splashFloor = new Promise((resolve) => setTimeout(resolve, 2300));
-Promise.allSettled([loadStats(), loadMe(), loadVehicles()])
+Promise.allSettled([loadStats(), loadMe(), loadVehicles(), loadCategories()])
   .then(() => splashFloor)
   .then(hideSplash);

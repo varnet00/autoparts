@@ -32,19 +32,19 @@ const parts = [
   { seller: 2, name: 'דיסק בלם אחורי TRW', category: 'brakes', part_no: 'DF6543', vehicle_kind: 'car', vehicle_make: 'Hyundai', vehicle_model: 'i20 / i30', yf: 2014, yt: 2021, price: 198, kind: 'copy', maker: 'TRW', fits: 'HYUNDAI i20 / i30 · 2014—2021', qty: 3,
     nums: [['DF6543', 'TRW'], ['58411-2K000', 'OEM Hyundai']] },
 
-  { seller: 1, name: 'מצבר 60 אמפר', category: 'electrical', part_no: 'BAT-6012', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 410, kind: 'copy', maker: 'VARTA', fits: 'רוב הרכבים המשפחתיים', qty: 14,
+  { seller: 1, name: 'מצבר 60 אמפר', category: 'batteries', part_no: 'BAT-6012', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 410, kind: 'copy', maker: 'VARTA', fits: 'רוב הרכבים המשפחתיים', qty: 14,
     nums: [['DIN60', 'Universal'], ['L2-60', 'Varta']] },
-  { seller: 4, name: 'מצבר 45 אמפר קומפקטי', category: 'electrical', part_no: 'BAT-4509', vehicle_kind: 'car', vehicle_make: 'Kia', vehicle_model: 'Picanto / Rio', yf: 2015, yt: 2023, price: 355, kind: 'copy', maker: 'VARTA', fits: 'רכבי סופר-מיני', qty: 2,
+  { seller: 4, name: 'מצבר 45 אמפר קומפקטי', category: 'batteries', part_no: 'BAT-4509', vehicle_kind: 'car', vehicle_make: 'Kia', vehicle_model: 'Picanto / Rio', yf: 2015, yt: 2023, price: 355, kind: 'copy', maker: 'VARTA', fits: 'רכבי סופר-מיני', qty: 2,
     nums: [['DIN45', 'Universal'], ['L1-45', 'Varta']] },
 
   { seller: 3, name: 'פנס ראשי ימני LED', category: 'electrical', part_no: 'LGT-2201', vehicle_kind: 'car', vehicle_make: 'Skoda', vehicle_model: 'Octavia', yf: 2020, yt: 2024, price: 520, kind: 'copy', maker: 'HELLA', fits: 'SKODA OCTAVIA · 2020+', qty: 5,
     nums: [['5E1-941-006', 'OEM Skoda'], ['LPL584', 'Hella']] },
-  { seller: 1, name: 'נורת איתות אחורית', category: 'electrical', part_no: 'LGT-0087', vehicle_kind: 'car', vehicle_make: 'Volkswagen', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 34, kind: 'copy', maker: 'OSRAM', fits: 'אוניברסלי, בית זוגי', qty: 40,
+  { seller: 1, name: 'נורת איתות אחורית', category: 'bulbs', part_no: 'LGT-0087', vehicle_kind: 'car', vehicle_make: 'Volkswagen', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 34, kind: 'copy', maker: 'OSRAM', fits: 'אוניברסלי, בית זוגי', qty: 40,
     nums: [['7440', 'Universal'], ['WY21W', 'Osram']] },
 
-  { seller: 2, name: 'שמן מנוע סינתטי 5W-30', category: 'service', part_no: 'OIL-5304', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 159, kind: 'copy', maker: 'CASTROL', fits: 'מיכל 4 ליטר', qty: 30,
+  { seller: 2, name: 'שמן מנוע סינתטי 5W-30', category: 'oil_engine', part_no: 'OIL-5304', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 159, kind: 'copy', maker: 'CASTROL', fits: 'מיכל 4 ליטר', qty: 30,
     nums: [['5W30-C3', 'Castrol'], ['5W30-LL', 'Mobil 1']] },
-  { seller: 4, name: 'שמן גיר אוטומטי ATF', category: 'transmission', part_no: 'OIL-1102', vehicle_kind: 'car', vehicle_make: 'Honda', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 79, kind: 'copy', maker: 'MOTUL', fits: 'מיכל 1 ליטר', qty: 0,
+  { seller: 4, name: 'שמן גיר אוטומטי ATF', category: 'oil_gear', part_no: 'OIL-1102', vehicle_kind: 'car', vehicle_make: 'Honda', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 79, kind: 'copy', maker: 'MOTUL', fits: 'מיכל 1 ליטר', qty: 0,
     nums: [['ATF-DW1', 'OEM Honda'], ['ATF-3309', 'Motul']] },
 
   { seller: 3, name: 'בולם זעזועים קדמי', category: 'suspension', part_no: 'SUS-7734', vehicle_kind: 'car', vehicle_make: 'Honda', vehicle_model: 'Civic', yf: 2016, yt: 2021, price: 310, kind: 'copy', maker: 'MONROE', fits: 'HONDA CIVIC · 2016—2021', qty: 6,
@@ -57,6 +57,32 @@ const parts = [
   // אזל מהמלאי — מופיע בקבינט כאזהרה
   { seller: 1, name: 'גומיות מייצב', category: 'suspension', part_no: '48815-02200', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla E210', yf: 2016, yt: 2023, price: 45, kind: 'copy', maker: 'FEBEST', fits: 'TOYOTA COROLLA E210 · 2016—2023', qty: 0,
     nums: [['48815-02200', 'OEM Toyota'], ['TSB-ZRE151', 'Febest']] },
+
+  // --- כימיה, אביזרים ואלקטרוניקה: מדפים שאינם תלויים בדגם הרכב ---
+  { seller: 2, name: 'נוזל בלמים DOT4', category: 'brake_fluid', part_no: 'DOT4-1L', price: 39, kind: 'copy', maker: 'BOSCH', fits: 'מיכל 1 ליטר', qty: 40,
+    nums: [['DOT4-1L', 'Bosch']] },
+  { seller: 3, name: 'נוזל קירור אדום מרוכז', category: 'coolant', part_no: 'CLT-RED-4', price: 68, kind: 'copy', maker: 'TOTAL', fits: 'מיכל 4 ליטר', qty: 22,
+    nums: [['CLT-RED-4', 'Total']] },
+  { seller: 1, name: 'נוזל שמשות קיץ', category: 'washer_fluid', part_no: 'WSH-SUM-4', price: 19, kind: 'copy', maker: 'SONAX', fits: 'מיכל 4 ליטר', qty: 55,
+    nums: [['WSH-SUM-4', 'Sonax']] },
+  { seller: 4, name: 'ספריי ניקוי פנים הרכב', category: 'car_care', part_no: 'CAR-INT-500', price: 34, kind: 'copy', maker: 'SONAX', fits: 'בקבוק 500 מ״ל', qty: 30,
+    nums: [['CAR-INT-500', 'Sonax']] },
+  { seller: 2, name: 'צמיג 205/55R16', category: 'tyres', part_no: 'TYR-2055516', price: 320, kind: 'copy', maker: 'MICHELIN', fits: '205/55R16 91V', qty: 16,
+    nums: [['TYR-2055516', 'Michelin']] },
+  { seller: 3, name: 'חישוק פלדה 16 אינץ׳', category: 'rims', part_no: 'RIM-16-5X114', price: 240, kind: 'copy', maker: 'ALCAR', fits: '16" · 5x114.3', qty: 8,
+    nums: [['RIM-16-5X114', 'Alcar']] },
+  { seller: 1, name: 'ערכת כלים 108 חלקים', category: 'tools', part_no: 'TLS-108', price: 289, kind: 'copy', maker: 'STANLEY', fits: 'מזוודה קשיחה', qty: 6,
+    nums: [['TLS-108', 'Stanley']] },
+  { seller: 4, name: 'ג׳ק הידראולי 2 טון', category: 'repair', part_no: 'JCK-2T', price: 199, kind: 'copy', maker: 'UNICRAFT', fits: 'עד 2 טון', qty: 4,
+    nums: [['JCK-2T', 'Unicraft']] },
+  { seller: 2, name: 'מצלמת דרך Full HD', category: 'dashcam', part_no: 'DVR-FHD-70', price: 349, kind: 'copy', maker: '70MAI', fits: 'הקלטה 1080p', qty: 11,
+    nums: [['DVR-FHD-70', '70mai']] },
+  { seller: 3, name: 'ערכת נתיכים 120 יחידות', category: 'fuses', part_no: 'FUS-120', price: 45, kind: 'copy', maker: 'BOSCH', fits: 'מיני ורגיל', qty: 25,
+    nums: [['FUS-120', 'Bosch']] },
+  { seller: 1, name: 'מערכת שמע 2DIN אנדרואיד', category: 'stereo', part_no: 'STR-2DIN-9', price: 890, kind: 'copy', maker: 'PIONEER', fits: 'מסך 9 אינץ׳', qty: 3,
+    nums: [['STR-2DIN-9', 'Pioneer']] },
+  { seller: 4, name: 'מחזיק טלפון מגנטי', category: 'accessories', part_no: 'ACC-MAG-01', price: 49, kind: 'copy', maker: 'BASEUS', fits: 'צמוד לפתח מיזוג', qty: 60,
+    nums: [['ACC-MAG-01', 'Baseus']] },
 ];
 
 const seed = db.transaction(() => {

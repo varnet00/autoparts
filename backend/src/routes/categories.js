@@ -1,12 +1,12 @@
 const express = require('express');
-const { PART_CATEGORIES } = require('../categories');
+const { DEPARTMENTS } = require('../categories');
 
 const router = express.Router();
 
-// GET /api/categories — קטגוריות החלקים והתוויות שלהן.
-// הרשימה קבועה ולא נגזרת מהמלאי: קטגוריה ריקה עדיין צריכה להופיע בסינון.
+// GET /api/categories — המחלקות והקטגוריות שלהן.
+// המבנה קבוע ולא נגזר מהמלאי: מדף ריק עדיין צריך להופיע בסינון.
 router.get('/', (req, res) => {
-  res.json({ categories: PART_CATEGORIES });
+  res.json({ departments: DEPARTMENTS });
 });
 
 module.exports = router;
