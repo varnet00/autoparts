@@ -73,6 +73,8 @@ body{
   .top{padding-top: var(--s5)}
 }
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+/* בלי הבזק אפור של הדפדפן על הקשה — באפליקציה התגובה היא התנועה עצמה */
+*{-webkit-tap-highlight-color:transparent}
 input,select,textarea{font:inherit;color:inherit}
 .mono{font-family:var(--mono);direction:ltr;unicode-bidi:isolate}
 
@@ -190,7 +192,6 @@ input,select,textarea{font:inherit;color:inherit}
   transition:color .28s var(--ease), transform .2s var(--ease);
 }
 .tab[aria-current="page"]{color:var(--ink)}
-.tab:active{transform:scale(.9)}
 /* אותה זכוכית בגוון כהה: הכפתור נשאר הפעולה הראשית וגם הוא חי
    מעל מה שמתחתיו במקום לשבת עליו כעיגול אטום */
 .fab{

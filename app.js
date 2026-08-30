@@ -882,7 +882,7 @@ document.addEventListener('pointerdown', (ev) => {
   const offsets = pillOffsets(tabs);
   pillDrag = {
     id: ev.pointerId, pill, tabs, offsets,
-    x0: ev.clientX, startTx: pillTx,
+    x0: ev.clientX, y0: ev.clientY, startTx: pillTx,
     min: Math.min(...offsets), max: Math.max(...offsets),
     index: Math.max(0, TABS.indexOf(S.screen)),
     pending: true, moved: false,
@@ -892,7 +892,10 @@ document.addEventListener('pointerdown', (ev) => {
 document.addEventListener('pointermove', (ev) => {
   if (!pillDrag || ev.pointerId !== pillDrag.id) return;
   if (pillDrag.pending) {
-    if (Math.abs(ev.clientX - pillDrag.x0) < 6) return;
+    const dx = ev.clientX - pillDrag.x0;
+    const dy = ev.clientY - pillDrag.y0;
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    if (Math.abs(dy) >= Math.abs(dx)) { pillDrag = null; return; }   // אנכית — זה הפאנל
     pillDrag.pending = false;
     pillDrag.moved = true;
     pillDrag.pill.classList.add('dragging');
@@ -980,6 +983,8 @@ function render() {
   const y = keepScroll ? keepScroll.scrollTop : 0;
 
   el.innerHTML = view();
+  // ניקוי שאריות של דפדוף שנקטע באמצע
+  if (!drag) { el.style.transform = ''; el.style.opacity = ''; el.style.transition = ''; }
   renderDock();
 
   // בשיחה גוללים לסוף; בשאר המסכים שומרים על מיקום הגלילה
@@ -1252,50 +1257,81 @@ let swallowClick = false;
 
 // איפה התחילה הנגיעה: כל מסך הבית מושך את הפאנל למעלה, וכל שטח
 // הפאנל מוריד אותו חזרה. לא צריך לכוון לידית.
-function dragZone(target) {
-  if (!target || !target.closest) return null;
-  if (target.closest('.sheet')) return 'sheet';
-  if (target.closest('.home')) return 'home';
-  return null;
+// המסך שהאי מסמן כרגע: חיפוש וכרטיס חלק הם עדיין "בית"
+function dockScreen() {
+  return S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
 }
 
 function onDragStart(ev) {
-  if (S.screen !== 'home' || ev.button > 0) return;
-  const zone = dragZone(ev.target);
-  if (!zone) return;
+  if (ev.button > 0) return;
   // בשדות טקסט הנגיעה שייכת לשדה — סימון, סמן, מקלדת
   if (ev.target.closest('input, select, textarea')) return;
-  const sheet = sheetEl();
-  if (!sheet) return;
-  if (!S.sheet) sizeSheet(false);          // מודדים לפני שמתחילים לזוז
 
+  const inSheet = Boolean(ev.target.closest('.sheet'));
+  const onDock = Boolean(ev.target.closest('.dock'));
+  // משיכה אנכית פותחת וסוגרת את הפאנל — גם מהאי התחתון
+  const canSheet = S.screen === 'home' && (inSheet || onDock || Boolean(ev.target.closest('.home')));
+  // החלקה אופקית מדפדפת בין המסכים של האי, כמו לחיצה עליו
+  const canPage = !S.sheet && !inSheet && !onDock && TABS.includes(dockScreen());
+  if (!canSheet && !canPage) return;
+
+  const sheet = sheetEl();
+  if (canSheet && sheet && !S.sheet) sizeSheet(false);   // מודדים לפני שמתחילים לזוז
   const scroller = ev.target.closest('.sheetscroll');
+  const height = sheet ? sheet.offsetHeight : 0;
+
   drag = {
-    id: ev.pointerId, zone, height: sheet.offsetHeight,
-    x0: ev.clientX, y0: ev.clientY, y: S.sheet ? 0 : sheet.offsetHeight,
-    base: S.sheet ? 0 : sheet.offsetHeight,
-    lastY: ev.clientY, lastT: performance.now(), v: 0,
+    id: ev.pointerId, canSheet: canSheet && Boolean(sheet), canPage, mode: null,
+    height, x0: ev.clientX, y0: ev.clientY,
+    y: S.sheet ? 0 : height, base: S.sheet ? 0 : height,
+    lastY: ev.clientY, lastX: ev.clientX, lastT: performance.now(), v: 0, vx: 0,
     // רשימה שכבר נגללה שייכת לעצמה; מהראש שלה אפשר למשוך את הפאנל
     inScroller: Boolean(scroller) && scroller.scrollTop > 0,
-    pending: true, active: false, moved: false,
+    pending: true, active: false, moved: false, dx: 0,
   };
 }
 
 function onDragMove(ev) {
   if (!drag || ev.pointerId !== drag.id) return;
   const dy = ev.clientY - drag.y0;
+  const dx = ev.clientX - drag.x0;
 
-  // ההכרעה נופלת בתנועה הראשונה: זו משיכה של הפאנל או גלילה ברשימה
+  // ההכרעה נופלת בתנועה הראשונה: אנכית זה הפאנל, אופקית זה דפדוף,
+  // וברשימה שכבר נגללה זו פשוט גלילה
   if (drag.pending) {
-    const dx = ev.clientX - drag.x0;
-    if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
-    if (Math.abs(dx) > Math.abs(dy) || drag.inScroller) { drag = null; return; }
-    if (drag.zone === 'sheet' && ev.target.closest('.sheetscroll') && dy < 0) { drag = null; return; }
+    if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+    const horizontal = Math.abs(dx) > Math.abs(dy);
+    if (horizontal && drag.canPage) {
+      drag.mode = 'page';
+    } else if (!horizontal && drag.canSheet && !drag.inScroller
+               && !(ev.target.closest('.sheetscroll') && dy < 0)) {
+      drag.mode = 'sheet';
+      const sheet = sheetEl();
+      if (sheet) sheet.classList.add('dragging');
+    } else {
+      drag = null;
+      return;
+    }
     drag.pending = false;
     drag.active = true;
-    drag.y0 = ev.clientY;                  // מתחילים מהנקודה שבה הוכרע, בלי קפיצה
-    const sheet = sheetEl();
-    if (sheet) sheet.classList.add('dragging');
+    drag.x0 = ev.clientX; drag.y0 = ev.clientY;   // מתחילים מנקודת ההכרעה, בלי קפיצה
+    return;
+  }
+
+  const now = performance.now();
+  if (now > drag.lastT) {
+    drag.v = (ev.clientY - drag.lastY) / (now - drag.lastT);
+    drag.vx = (ev.clientX - drag.lastX) / (now - drag.lastT);
+  }
+  drag.lastY = ev.clientY; drag.lastX = ev.clientX; drag.lastT = now;
+  drag.moved = true;
+
+  if (drag.mode === 'page') {
+    // המסך זז מעט אחרי האצבע — מספיק כדי להרגיש שהוא מתחלף, בלי לעוף
+    drag.dx = ev.clientX - drag.x0;
+    const el = $('#screen');
+    el.style.transition = 'none';
+    el.style.transform = `translateX(${drag.dx * 0.45}px)`;
     return;
   }
 
@@ -1303,24 +1339,60 @@ function onDragMove(ev) {
   // התנגדות בקצוות, כדי שהמשיכה תרגיש כמו חומר ולא כמו מתג
   if (y < 0) y /= 3;
   if (y > drag.height) y = drag.height + (y - drag.height) / 3;
-  const now = performance.now();
-  if (now > drag.lastT) drag.v = (ev.clientY - drag.lastY) / (now - drag.lastT);
-  drag.lastY = ev.clientY; drag.lastT = now;
-  drag.moved = true;
   drag.y = y;
   paintSheet(y, drag.height);
 }
 
 function onDragEnd() {
   if (!drag) return;
-  const { v, y, height, moved } = drag;
+  const { v, vx, y, height, moved, mode, dx } = drag;
   drag = null;
   // בלי תנועה זו לחיצה רגילה, והכפתור שמתחת לאצבע עושה את שלו
   if (!moved) return;
+  swallowClick = true;
+
+  if (mode === 'page') {
+    // בממשק מימין לשמאל הלשונית הבאה נמצאת שמאלה, ולכן החלקה שמאלה
+    // מקדמת קדימה — בדיוק כמו הסדר באי
+    const decisive = Math.abs(dx) > 70 || Math.abs(vx) > 0.4;
+    swipePage(decisive ? (dx < 0 ? 1 : -1) : 0);
+    return;
+  }
+
   // מהירות מכריעה קודם: תנועה החלטית מסיימת את הכיוון גם באמצע הדרך
   const open = v < -0.35 ? true : (v > 0.35 ? false : y < height / 2);
-  swallowClick = true;
   setSheet(open);
+}
+
+/* דפדוף בין המסכים: המסך הנוכחי יוצא לכיוון ההחלקה, המסך הבא נכנס
+   מהצד הנגדי. תזוזה קצרה בלבד — לא זום ולא טשטוש. */
+function swipePage(step) {
+  const el = $('#screen');
+  const settle = (transition, transform) => {
+    el.style.transition = transition;
+    el.style.transform = transform;
+  };
+  const at = Math.max(0, TABS.indexOf(dockScreen()));
+  const next = at + step;
+
+  if (!step || next < 0 || next >= TABS.length) {
+    settle('transform .3s var(--ease)', 'translateX(0px)');
+    return;
+  }
+
+  const out = step > 0 ? -54 : 54;
+  el.style.transition = 'transform .15s ease-out, opacity .15s ease-out';
+  el.style.transform = `translateX(${out}px)`;
+  el.style.opacity = '0';
+  setTimeout(() => {
+    goTab(TABS[next]);
+    el.style.transition = 'none';
+    el.style.transform = `translateX(${-out}px)`;
+    void el.offsetWidth;
+    el.style.transition = 'transform .26s var(--ease), opacity .26s var(--ease)';
+    el.style.transform = 'translateX(0px)';
+    el.style.opacity = '1';
+  }, 150);
 }
 
 document.addEventListener('pointerdown', onDragStart);
