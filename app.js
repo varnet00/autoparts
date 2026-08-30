@@ -240,11 +240,13 @@ function viewHome() {
 
     <div class="scrim${open}" data-act="sheet-close"></div>
 
-    <section class="sheet${open}" data-sheet>
-      <div class="sheethead" data-sheet-head>${sheetHead()}</div>
-      <div class="sheetscroll" data-sheet-body>${sheetBody()}</div>
-      <div class="sheetfoot" data-sheet-foot>${sheetFoot()}</div>
-    </section>`;
+    <div class="sheetwrap${open}" data-sheet>
+      <section class="sheet">
+        <div class="sheethead" data-sheet-head>${sheetHead()}</div>
+        <div class="sheetscroll" data-sheet-body>${sheetBody()}</div>
+      </section>
+      <div class="sheetbar" data-sheet-foot>${sheetFoot()}</div>
+    </div>`;
 }
 
 /* תוכן הפאנל התחתון. הסדר הוא סדר החשיבה של מי שמחפש חלק:
@@ -345,8 +347,8 @@ function modelOptions() {
 // הכפתור יושב מחוץ לאזור הנגלל, ולכן נשאר במקומו גם ברשימות ארוכות
 function sheetFoot() {
   return `
-    ${anyFilter() ? '<button class="label" data-act="clear-filters" style="text-decoration:underline;padding: var(--s3)">נקה הכל</button>' : ''}
-    <button class="btn" data-act="sheet-search" style="flex:1" data-count>${countLabel()}</button>`;
+    ${anyFilter() ? `<button class="isle-x" data-act="clear-filters" aria-label="נקה הכל">${ICON.close({ s: 18 })}</button>` : ''}
+    <button class="btn isle" data-act="sheet-search" data-count>${countLabel()}</button>`;
 }
 
 // האם נבחר משהו — לפי זה מופיע "נקה הכל" ומשתנה תווית כפתור החיפוש
@@ -999,7 +1001,7 @@ function render() {
     const sheet = sheetEl();
     if (sheet) {
       sheet.classList.add('dragging');
-      sheet.style.transform = S.sheet ? 'translateY(0px)' : 'translateY(100%)';
+      sheet.style.transform = S.sheet ? 'translateY(0px)' : 'translateY(calc(100% + 24px))';
       void sheet.offsetHeight;
       sheet.classList.remove('dragging');
     }
@@ -1156,21 +1158,21 @@ function syncDraft() {
 // אחרת הפוקוס היה קופץ מהשדה בכל תו.
 document.addEventListener('input', (ev) => {
   const el = ev.target;
-  if (!el.matches || !el.matches('.sheet [data-field]')) return;
+  if (!el.matches || !el.matches('.sheetwrap [data-field]')) return;
   syncSheetInputs();
   refreshCount();
 });
 
 document.addEventListener('change', (ev) => {
   const el = ev.target;
-  if (el.matches && el.matches('.sheet [data-field="year"]')) {
+  if (el.matches && el.matches('.sheetwrap [data-field="year"]')) {
     syncSheetInputs();
     refreshCount();
     return;
   }
   // "אחר…" ברשימת הדגמים פותח שדה הקלדה, בלי לצייר את הפאנל מחדש
-  if (el.matches && el.matches('.sheet [data-field="model-select"]')) {
-    const free = document.querySelector('.sheet [data-field="model"]');
+  if (el.matches && el.matches('.sheetwrap [data-field="model-select"]')) {
+    const free = document.querySelector('.sheetwrap [data-field="model"]');
     if (free) {
       free.hidden = el.value !== 'other';
       if (!free.hidden) free.focus(); else free.value = '';
@@ -1221,20 +1223,23 @@ document.addEventListener('change', (ev) => {
    עולה בדיוק כמה שמשכו, משחררים — והוא משלים לכיוון שאליו נמשך,
    לפי המהירות ולפי המרחק. אותה תנועה בדיוק סוגרת אותו מהכותרת. */
 
-const sheetEl = () => document.querySelector('.sheet');
+const sheetEl = () => document.querySelector('.sheetwrap');
 const scrimEl = () => document.querySelector('.scrim');
 
 // y=0 הפאנל פתוח לגמרי, y=גובה הפאנל הוא סגור לגמרי
 function paintSheet(y, height) {
   const sheet = sheetEl();
   const scrim = scrimEl();
+  const dock = $('#dock');
   if (!sheet) return;
   sheet.style.transform = `translateY(${y}px)`;
+  const shown = 1 - Math.min(Math.max(y / height, 0), 1);
   if (scrim) {
-    const shown = 1 - Math.min(Math.max(y / height, 0), 1);
     scrim.style.visibility = shown > 0 ? 'visible' : '';
     scrim.style.opacity = shown > 0 ? String(shown) : '';
   }
+  // האי התחתון מתחלף בכפתור החיפוש: ככל שהפאנל עולה הוא נמוג
+  if (dock) dock.style.opacity = String(1 - shown);
 }
 
 function setSheet(open, animate = true) {
@@ -1245,7 +1250,9 @@ function setSheet(open, animate = true) {
   if (open) { sizeSheet(false); refreshCount(); }
   if (!animate) sheet.classList.add('dragging');
   sheet.classList.remove('dragging');
-  sheet.style.transform = open ? 'translateY(0px)' : 'translateY(100%)';
+  const dock = $('#dock');
+  if (dock) { dock.style.opacity = ''; dock.classList.toggle('under', open); }
+  sheet.style.transform = open ? 'translateY(0px)' : 'translateY(calc(100% + 24px))';
   scrim.style.opacity = '';
   scrim.style.visibility = '';
   sheet.classList.toggle('open', open);
@@ -1267,7 +1274,7 @@ function onDragStart(ev) {
   // בשדות טקסט הנגיעה שייכת לשדה — סימון, סמן, מקלדת
   if (ev.target.closest('input, select, textarea')) return;
 
-  const inSheet = Boolean(ev.target.closest('.sheet'));
+  const inSheet = Boolean(ev.target.closest('.sheetwrap'));
   const onDock = Boolean(ev.target.closest('.dock'));
   // משיכה אנכית פותחת וסוגרת את הפאנל — גם מהאי התחתון
   const canSheet = S.screen === 'home' && (inSheet || onDock || Boolean(ev.target.closest('.home')));
@@ -1418,7 +1425,7 @@ for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
 /* הפאנל גבוה כמו התוכן שלו, ולא יותר מ-88% מהמסך: מספיק גבוה כדי
    לעבוד בו בנוחות, ועדיין רואים שהמסך ממשיך מאחוריו. */
 function sizeSheet(animate) {
-  const sheet = document.querySelector('.sheet');
+  const sheet = document.querySelector('.sheetwrap');
   if (!sheet) return;
   const frame = sheet.parentElement;
   const max = Math.round((frame ? frame.clientHeight : window.innerHeight) * 0.88);
@@ -1435,7 +1442,7 @@ function sizeSheet(animate) {
    הלוגו, הכותרת והכפתורים נשארים בדיוק במקומם, וזז רק הפאנל.
    מי שקורא לפונקציה קורא קודם ל-syncSheetInputs, אחרת טקסט שהוקלד יימחק. */
 function updateSheet(revealSection) {
-  const sheet = document.querySelector('.sheet');
+  const sheet = document.querySelector('.sheetwrap');
   const head = sheet && sheet.querySelector('[data-sheet-head]');
   const body = sheet && sheet.querySelector('[data-sheet-body]');
   const foot = sheet && sheet.querySelector('[data-sheet-foot]');
@@ -1460,7 +1467,7 @@ function resetVehicleFilters() {
 
 // מה שהוקלד או נבחר בפאנל חי ב-DOM בלבד עד שנשמר כאן
 function syncSheetInputs() {
-  const sheet = document.querySelector('.sheet');
+  const sheet = document.querySelector('.sheetwrap');
   if (!sheet) return;
   const makeq = sheet.querySelector('[data-field="makeq"]');
   const modelSel = sheet.querySelector('[data-field="model-select"]');
@@ -1560,7 +1567,7 @@ document.addEventListener('click', async (ev) => {
     updateSheet(S.vmake === 'all' ? null : (S.vmake === 'other' ? 'make' : 'model'));
     // רשימת הדגמים מגיעה מהשרת ונכנסת לבורר כשהיא כאן
     loadModels().then(() => {
-      const sel = document.querySelector('.sheet [data-field="model-select"]');
+      const sel = document.querySelector('.sheetwrap [data-field="model-select"]');
       if (sel) sel.innerHTML = modelOptions();
     });
     // בחירת "אחר" פותחת שדה הקלדה — הפוקוס עובר אליו מיד
