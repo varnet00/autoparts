@@ -130,7 +130,7 @@ input,select,textarea{font:inherit;color:inherit}
 
 /* ---------- карточки ---------- */
 .card{background:var(--card);border-radius:20px;overflow:hidden}
-.thumb{border-radius:14px;flex:none;background:repeating-linear-gradient(135deg,#e7e2db 0 7px,#f1eee9 7px 14px);display:flex;align-items:center;justify-content:center;font:400 var(--fs-micro) var(--mono);color:#a9a29a;background-size:cover;background-position:center}
+.thumb{border-radius:14px;flex:none;background-size:contain;background-repeat:no-repeat;background-position:center}
 .price{font:600 var(--fs-body) var(--mono);direction:ltr}
 .muted{color:var(--muted)}
 .label{font:500 var(--fs-label) var(--sans);color:var(--muted)}
@@ -252,6 +252,21 @@ input,select,textarea{font:inherit;color:inherit}
 }
 .field input:focus,.field select:focus,.field textarea:focus{box-shadow:0 0 0 2px var(--hair)}
 .field .mono{font:500 var(--fs-sub) var(--mono);text-align:right}
+
+/* תמונת המוצר בטופס: ריבוע שמראה את התמונה עצמה על רקע שקוף */
+.photo{
+  position:relative;width:96px;height:96px;flex:none;border-radius:16px;
+  border:1px dashed #c9c2b8;background:var(--card);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap: var(--s2);color:var(--muted);text-align:center;
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+}
+.photo.has{border-style:solid;border-color:var(--hair)}
+.photo-x{
+  position:absolute;top:-8px;inset-inline-start:-8px;width:24px;height:24px;
+  border-radius:999px;background:var(--ink);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
 .btn{background:var(--ink);color:#fff;border-radius:999px;padding: var(--s4);text-align:center;font:500 var(--fs-body) var(--sans);width:100%}
 .btn{transition:opacity .2s var(--ease), transform .2s var(--ease)}
 .btn:active{opacity:.9;transform:scale(.975)}

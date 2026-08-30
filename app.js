@@ -110,6 +110,7 @@ const S = {
   vyear: '',      // שנת ייצור
   models: [],     // הצעות דגמים ליצרן שנבחר
   sheetCount: null, // כמה תוצאות מחכות מאחורי המסננים שנבחרו
+  cutout: true,   // להסיר רקע מתמונת מוצר חדשה
 };
 
 const isSeller = () => S.role === 'seller';
@@ -194,8 +195,8 @@ function kindTag(kind) {
 
 function thumb(part, size) {
   const s = size || 72;
-  const bg = part.image_url ? `background-image:url('${esc(part.image_url)}')` : '';
-  return `<div class="thumb" style="width:${s}px;height:${s}px;${bg}">${part.image_url ? '' : 'תמונה'}</div>`;
+  if (!part.image_url) return '';
+  return `<div class="thumb" style="width:${s}px;height:${s}px;background-image:url('${esc(part.image_url)}')"></div>`;
 }
 
 function partNums(part, max) {
@@ -418,6 +419,7 @@ function resultCard(p) {
         </div>
       </div>
       <div class="row" style="gap: var(--s3)">
+        ${p.image_url ? `<span class="thumb" style="width:60px;height:60px;background-image:url('${esc(p.image_url)}')"></span>` : ''}
         <span class="price">${shekel(p.price)}</span>
         <span style="color:#b8b0a6;transform:rotate(${open ? '-90' : '0'}deg);transition:.15s">${ICON.chevron({ s: 18 })}</span>
       </div>
@@ -617,13 +619,18 @@ function viewCreate() {
     <div class="scroll">
       <form class="pad stack" style="gap: var(--s4);padding-top: var(--s5)" data-act="save-part">
         <div class="row" style="gap: var(--s3);align-items:flex-start">
-          <div class="stack" style="width:96px;height:96px;border-radius:16px;border:1px dashed #c9c2b8;background:var(--card);align-items:center;justify-content:center;gap: var(--s2);color:var(--muted)">
-            ${ICON.camera({ s: 20 })}<span style="font:400 var(--fs-label) var(--sans)">הוסף תמונה</span>
-          </div>
+          <label class="photo${d.image_url ? ' has' : ''}" style="${d.image_url ? `background-image:url('${esc(d.image_url)}')` : ''}">
+            <input type="file" accept="image/*" data-act="pick-photo" hidden>
+            ${d.image_url ? `<button type="button" class="photo-x" data-act="drop-photo" aria-label="הסר תמונה">${ICON.close({ s: 12 })}</button>`
+              : `${ICON.camera({ s: 20 })}<span style="font:400 var(--fs-label) var(--sans)">הוסף תמונה</span>`}
+          </label>
           <div class="field" style="flex:1">
             <span class="label">שם החלק</span>
             <input name="name" required value="${esc(d.name || '')}" placeholder="רפידות בלימה קדמיות">
-            <span class="label" style="font-size:var(--fs-label)">הצילום מגדיל סיכוי למכירה</span>
+            <label class="row" style="gap: var(--s2);font:400 var(--fs-label) var(--sans);color:var(--muted)">
+              <input type="checkbox" name="cutout" ${S.cutout ? 'checked' : ''} data-act="toggle-cutout">
+              הסרת רקע אוטומטית
+            </label>
           </div>
         </div>
         <div class="field">
@@ -1342,11 +1349,9 @@ function onDragMove(ev) {
   drag.moved = true;
 
   if (drag.mode === 'page') {
-    // המסך זז מעט אחרי האצבע — מספיק כדי להרגיש שהוא מתחלף, בלי לעוף
+    // התוכן זז מעט אחרי האצבע — מספיק כדי להרגיש שהוא מתחלף, בלי לעוף
     drag.dx = ev.clientX - drag.x0;
-    const el = $('#screen');
-    el.style.transition = 'none';
-    el.style.transform = `translateX(${drag.dx * 0.45}px)`;
+    paintPage({ transition: 'none', transform: `translateX(${drag.dx * 0.45}px)` });
     return;
   }
 
@@ -1367,8 +1372,7 @@ function clearDragTraces() {
   if (scrim && !S.sheet) { scrim.style.opacity = ''; scrim.style.visibility = ''; }
   const dock = $('#dock');
   if (dock) dock.style.opacity = '';
-  const el = $('#screen');
-  if (el && el.style.transform) { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; }
+  paintPage({ transition: '', transform: '', opacity: '' });
 }
 
 function onDragEnd() {
@@ -1382,10 +1386,9 @@ function onDragEnd() {
   swallowClick = true;
 
   if (mode === 'page') {
-    // בממשק מימין לשמאל הלשונית הבאה נמצאת שמאלה, ולכן החלקה שמאלה
-    // מקדמת קדימה — בדיוק כמו הסדר באי
     const decisive = Math.abs(dx) > 70 || Math.abs(vx) > 0.4;
-    swipePage(decisive ? (dx < 0 ? 1 : -1) : 0);
+    // הדף הולך לאן שהאצבע הולכת, והלשונית שנחשפת היא זו שמאותו צד
+    swipePage(decisive ? (dx > 0 ? 1 : -1) : 0, dx);
     return;
   }
 
@@ -1396,32 +1399,35 @@ function onDragEnd() {
 
 /* דפדוף בין המסכים: המסך הנוכחי יוצא לכיוון ההחלקה, המסך הבא נכנס
    מהצד הנגדי. תזוזה קצרה בלבד — לא זום ולא טשטוש. */
-function swipePage(step) {
+/* מה שחוזר בין המסכים — הלוגו וכפתורי הכותרת — לא זז. מחליק רק
+   התוכן שמתחתיו, ולכן המסך מתחלף מתחת לכותרת קבועה. */
+function pageParts() {
   const el = $('#screen');
-  const settle = (transition, transform) => {
-    el.style.transition = transition;
-    el.style.transform = transform;
-  };
+  if (!el) return [];
+  return [...el.children].filter((c) => !c.classList.contains('top')
+    && !c.classList.contains('sheetwrap') && !c.classList.contains('scrim'));
+}
+
+function paintPage(style) {
+  for (const part of pageParts()) Object.assign(part.style, style);
+}
+
+function swipePage(step, dx) {
   const at = Math.max(0, TABS.indexOf(dockScreen()));
   const next = at + step;
 
   if (!step || next < 0 || next >= TABS.length) {
-    settle('transform .3s var(--ease)', 'translateX(0px)');
+    paintPage({ transition: 'transform .3s var(--ease)', transform: 'translateX(0px)', opacity: '1' });
     return;
   }
 
-  const out = step > 0 ? -54 : 54;
-  el.style.transition = 'transform .15s ease-out, opacity .15s ease-out';
-  el.style.transform = `translateX(${out}px)`;
-  el.style.opacity = '0';
+  const out = dx > 0 ? 54 : -54;    // יוצא לכיוון שאליו נמשך
+  paintPage({ transition: 'transform .15s ease-out, opacity .15s ease-out', transform: `translateX(${out}px)`, opacity: '0' });
   setTimeout(() => {
     goTab(TABS[next]);
-    el.style.transition = 'none';
-    el.style.transform = `translateX(${-out}px)`;
-    void el.offsetWidth;
-    el.style.transition = 'transform .26s var(--ease), opacity .26s var(--ease)';
-    el.style.transform = 'translateX(0px)';
-    el.style.opacity = '1';
+    paintPage({ transition: 'none', transform: `translateX(${-out}px)`, opacity: '0' });
+    void $('#screen').offsetWidth;
+    paintPage({ transition: 'transform .26s var(--ease), opacity .26s var(--ease)', transform: 'translateX(0px)', opacity: '1' });
   }, 150);
 }
 
@@ -1545,6 +1551,102 @@ function refreshCount() {
     if (now) now.textContent = countLabel();
   }, 220);
 }
+
+/* ============================ תמונת מוצר ============================
+   רקע אחיד — שולחן, נייר, קיר — נמחק כאן בדפדפן, בלי שרת ובלי מודל:
+   מתחילים מהשוליים, שם הרקע בוודאות, וזוחלים פנימה כל עוד הצבע דומה
+   לו. חלק מצולם על משטח נקי יוצא חתוך; רקע עמוס יישאר כמו שהוא. */
+const CUT_TOLERANCE = 46;
+
+function cutoutBackground(canvas) {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const { width: w, height: h } = canvas;
+  const img = ctx.getImageData(0, 0, w, h);
+  const px = img.data;
+
+  // צבע הרקע = החציון של פיקסלי המסגרת
+  const edge = [];
+  for (let x = 0; x < w; x += 2) { edge.push((x + 0 * w) * 4, (x + (h - 1) * w) * 4); }
+  for (let y = 0; y < h; y += 2) { edge.push((0 + y * w) * 4, (w - 1 + y * w) * 4); }
+  const mid = (ch) => {
+    const vals = edge.map((i) => px[i + ch]).sort((a, b) => a - b);
+    return vals[Math.floor(vals.length / 2)];
+  };
+  const bg = [mid(0), mid(1), mid(2)];
+
+  const near = (i, tol) => {
+    const d = Math.abs(px[i] - bg[0]) + Math.abs(px[i + 1] - bg[1]) + Math.abs(px[i + 2] - bg[2]);
+    return d < tol;
+  };
+
+  // מציפים מהשוליים פנימה
+  const seen = new Uint8Array(w * h);
+  const queue = [];
+  for (let x = 0; x < w; x++) { queue.push(x, x + (h - 1) * w); }
+  for (let y = 0; y < h; y++) { queue.push(y * w, w - 1 + y * w); }
+  while (queue.length) {
+    const p = queue.pop();
+    if (seen[p]) continue;
+    seen[p] = 1;
+    const i = p * 4;
+    if (!near(i, CUT_TOLERANCE * 3)) continue;
+    px[i + 3] = 0;
+    const x = p % w;
+    const y = (p / w) | 0;
+    if (x > 0) queue.push(p - 1);
+    if (x < w - 1) queue.push(p + 1);
+    if (y > 0) queue.push(p - w);
+    if (y < h - 1) queue.push(p + w);
+  }
+
+  // ריכוך הקצה: פיקסל אטום שנוגע בשקוף מקבל שקיפות חלקית
+  const out = new Uint8ClampedArray(px);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const p = x + y * w;
+      const i = p * 4;
+      if (px[i + 3] === 0) continue;
+      let open = 0;
+      if (px[(p - 1) * 4 + 3] === 0) open++;
+      if (px[(p + 1) * 4 + 3] === 0) open++;
+      if (px[(p - w) * 4 + 3] === 0) open++;
+      if (px[(p + w) * 4 + 3] === 0) open++;
+      if (open) out[i + 3] = Math.round(255 * (1 - open / 5));
+    }
+  }
+  ctx.putImageData(new ImageData(out, w, h), 0, 0);
+}
+
+// קובץ → קנבס מוקטן → data URL. webp כשאפשר: אותה שקיפות, רבע משקל
+async function processPhoto(file, cutout) {
+  const bitmap = await createImageBitmap(file);
+  const max = 800;
+  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  if (cutout) cutoutBackground(canvas);
+  const webp = canvas.toDataURL('image/webp', 0.86);
+  return webp.startsWith('data:image/webp') ? webp : canvas.toDataURL('image/png');
+}
+
+document.addEventListener('change', async (ev) => {
+  const el = ev.target;
+  if (!el.matches || !el.matches('input[data-act="pick-photo"]')) return;
+  const file = el.files && el.files[0];
+  if (!file) return;
+  if (!S.draft) return;
+  syncDraft();
+  toast('מעבד תמונה…');
+  try {
+    S.draft.image_url = await processPhoto(file, S.cutout);
+    S.keepScroll = true;
+    render();
+  } catch (e) {
+    toast('לא הצלחתי לקרוא את התמונה', true);
+  }
+});
 
 /* ============================ אירועים ============================ */
 document.addEventListener('click', async (ev) => {
@@ -1694,6 +1796,8 @@ document.addEventListener('click', async (ev) => {
     catch (e) { toast(e.message, true); }
     return;
   }
+  if (act === 'drop-photo') { syncDraft(); S.draft.image_url = null; S.keepScroll = true; render(); return; }
+  if (act === 'toggle-cutout') { S.cutout = el.checked; return; }
   if (act === 'set-kind') { syncDraft(); S.draft.kind = el.dataset.kind; S.keepScroll = true; render(); return; }
   if (act === 'add-num') {
     syncDraft();
@@ -1755,6 +1859,7 @@ document.addEventListener('submit', async (ev) => {
       vehicle_kind: vehicleKind,
       vehicle_make: vehicleKind ? vehicleMake : null,
       vehicle_make_custom: makeCustom,
+      image_url: d.image_url || null,
       vehicle_model: vehicleModel,
       year_from: yearFrom,
       year_to: yearTo,

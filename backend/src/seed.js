@@ -22,19 +22,19 @@ const parts = [
   { seller: 4, name: 'רפידות בלימה · פירוק', category: 'brakes', part_no: '04465-02220', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla E210', yf: 2016, yt: 2023, price: 120, kind: 'used', maker: 'USED · 60%', fits: 'TOYOTA COROLLA E210 · 2016—2023', qty: 1,
     nums: [['04465-02220', 'OEM Toyota'], ['GDB3426', 'TRW']] },
 
-  { seller: 1, name: 'מסנן שמן', category: 'service', part_no: '90915-YZZD2', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 38, kind: 'orig', maker: 'TOYOTA GENUINE', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 60,
+  { seller: 1, name: 'מסנן שמן', img: '/parts/oil-filter.png', category: 'service', part_no: '90915-YZZD2', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 38, kind: 'orig', maker: 'TOYOTA GENUINE', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 60,
     nums: [['90915-YZZD2', 'OEM Toyota'], ['90915-10003', 'OEM Toyota'], ['C-111', 'Mann-Filter'], ['OC90', 'Mahle']] },
-  { seller: 2, name: 'מסנן שמן Mann', category: 'service', part_no: 'W712/75', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 29, kind: 'copy', maker: 'MANN-FILTER', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 25,
+  { seller: 2, name: 'מסנן שמן Mann', img: '/parts/oil-filter.png', category: 'service', part_no: 'W712/75', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'Corolla / Lexus', yf: 2010, yt: 2024, price: 29, kind: 'copy', maker: 'MANN-FILTER', fits: 'TOYOTA / LEXUS · 1.6—2.5', qty: 25,
     nums: [['W712/75', 'Mann-Filter'], ['90915-YZZD2', 'OEM Toyota'], ['OC90', 'Mahle']] },
 
-  { seller: 3, name: 'דיסק בלם אחורי', category: 'brakes', part_no: '58411-2K000', vehicle_kind: 'car', vehicle_make: 'Hyundai', vehicle_model: 'i20 / i30', yf: 2014, yt: 2021, price: 245, kind: 'orig', maker: 'HYUNDAI GENUINE', fits: 'HYUNDAI i20 / i30 · 2014—2021', qty: 8,
+  { seller: 3, name: 'דיסק בלם אחורי', img: '/parts/brake-disc.png', category: 'brakes', part_no: '58411-2K000', vehicle_kind: 'car', vehicle_make: 'Hyundai', vehicle_model: 'i20 / i30', yf: 2014, yt: 2021, price: 245, kind: 'orig', maker: 'HYUNDAI GENUINE', fits: 'HYUNDAI i20 / i30 · 2014—2021', qty: 8,
     nums: [['58411-2K000', 'OEM Hyundai'], ['DF6543', 'TRW']] },
-  { seller: 2, name: 'דיסק בלם אחורי TRW', category: 'brakes', part_no: 'DF6543', vehicle_kind: 'car', vehicle_make: 'Hyundai', vehicle_model: 'i20 / i30', yf: 2014, yt: 2021, price: 198, kind: 'copy', maker: 'TRW', fits: 'HYUNDAI i20 / i30 · 2014—2021', qty: 3,
+  { seller: 2, name: 'דיסק בלם אחורי TRW', img: '/parts/brake-disc.png', category: 'brakes', part_no: 'DF6543', vehicle_kind: 'car', vehicle_make: 'Hyundai', vehicle_model: 'i20 / i30', yf: 2014, yt: 2021, price: 198, kind: 'copy', maker: 'TRW', fits: 'HYUNDAI i20 / i30 · 2014—2021', qty: 3,
     nums: [['DF6543', 'TRW'], ['58411-2K000', 'OEM Hyundai']] },
 
-  { seller: 1, name: 'מצבר 60 אמפר', category: 'batteries', part_no: 'BAT-6012', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 410, kind: 'copy', maker: 'VARTA', fits: 'רוב הרכבים המשפחתיים', qty: 14,
+  { seller: 1, name: 'מצבר 60 אמפר', img: '/parts/battery.png', category: 'batteries', part_no: 'BAT-6012', vehicle_kind: 'car', vehicle_make: 'Toyota', vehicle_model: 'אוניברסלי', yf: null, yt: null, price: 410, kind: 'copy', maker: 'VARTA', fits: 'רוב הרכבים המשפחתיים', qty: 14,
     nums: [['DIN60', 'Universal'], ['L2-60', 'Varta']] },
-  { seller: 4, name: 'מצבר 45 אמפר קומפקטי', category: 'batteries', part_no: 'BAT-4509', vehicle_kind: 'car', vehicle_make: 'Kia', vehicle_model: 'Picanto / Rio', yf: 2015, yt: 2023, price: 355, kind: 'copy', maker: 'VARTA', fits: 'רכבי סופר-מיני', qty: 2,
+  { seller: 4, name: 'מצבר 45 אמפר קומפקטי', img: '/parts/battery.png', category: 'batteries', part_no: 'BAT-4509', vehicle_kind: 'car', vehicle_make: 'Kia', vehicle_model: 'Picanto / Rio', yf: 2015, yt: 2023, price: 355, kind: 'copy', maker: 'VARTA', fits: 'רכבי סופר-מיני', qty: 2,
     nums: [['DIN45', 'Universal'], ['L1-45', 'Varta']] },
 
   { seller: 3, name: 'פנס ראשי ימני LED', category: 'electrical', part_no: 'LGT-2201', vehicle_kind: 'car', vehicle_make: 'Skoda', vehicle_model: 'Octavia', yf: 2020, yt: 2024, price: 520, kind: 'copy', maker: 'HELLA', fits: 'SKODA OCTAVIA · 2020+', qty: 5,
@@ -102,9 +102,9 @@ const seed = db.transaction(() => {
   const sellerIds = sellers.map((s) => insSeller.run({ ...s, password_hash: hash }).lastInsertRowid);
 
   const insPart = db.prepare(
-    `INSERT INTO parts (name, category, part_no, price, kind, maker, fits, qty, seller_id,
+    `INSERT INTO parts (name, category, part_no, price, kind, maker, fits, qty, seller_id, image_url,
                         vehicle_kind, vehicle_make, vehicle_model, year_from, year_to)
-     VALUES (@name, @category, @part_no, @price, @kind, @maker, @fits, @qty, @seller_id,
+     VALUES (@name, @category, @part_no, @price, @kind, @maker, @fits, @qty, @seller_id, @image_url,
              @vehicle_kind, @vehicle_make, @vehicle_model, @year_from, @year_to)`
   );
   const insNum = db.prepare('INSERT INTO interchange_numbers (part_id, number, brand) VALUES (?, ?, ?)');
@@ -115,6 +115,7 @@ const seed = db.transaction(() => {
       name: p.name, category: p.category, part_no: p.part_no, price: p.price,
       kind: p.kind, maker: p.maker, fits: p.fits, qty: p.qty,
       seller_id: sellerIds[p.seller - 1],
+      image_url: p.img || null,
       vehicle_kind: p.vehicle_kind || null,
       vehicle_make: p.vehicle_make || null,
       vehicle_model: p.vehicle_model || null,
