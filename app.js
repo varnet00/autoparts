@@ -232,7 +232,7 @@ function viewHome() {
         </form>
       </div>
 
-      <button class="pulltab" data-drag="tab" data-act="sheet-open">
+      <button class="pulltab glass" data-drag="tab" data-act="sheet-open">
         <span class="line"></span>
         מה מחפשים
       </button>
@@ -860,11 +860,11 @@ function renderDock() {
 
   const active = Math.max(0, tabs.findIndex(([k]) => k === current));
   dock.innerHTML = `
-    <div class="island">
+    <div class="island glass">
       <span class="tabpill" style="--i:${active}" aria-hidden="true"></span>
       ${tabs.map(([k, ic]) => `<button class="tab" data-act="${k}" aria-current="${current === k ? 'page' : 'false'}" aria-label="${k}">${ic}</button>`).join('')}
     </div>
-    <button class="fab" data-act="create" aria-label="פוזיציה חדשה">${ICON.plus({ s: 24 })}</button>`;
+    <button class="fab glass" data-act="create" aria-label="פוזיציה חדשה">${ICON.plus({ s: 24 })}</button>`;
 }
 
 /* ============================ ציור ============================ */

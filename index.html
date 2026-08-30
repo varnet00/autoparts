@@ -121,26 +121,54 @@ input,select,textarea{font:inherit;color:inherit}
 .dock{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));inset-inline:0;
       display:flex;align-items:center;justify-content:center;gap: var(--s3);
       pointer-events:none;z-index:40}   /* מעל המסך, מתחת לפאנל שנפתח מעליו */
+/* ---------- זכוכית ----------
+   מה שנותן לחומר להיראות כמו זכוכית זה לא הטשטוש לבדו אלא הקצה:
+   אור נתפס בשפה העליונה, מתעמעם באמצע וחוזר בתחתונה. הטבעת נצבעת
+   בגרדיאנט וממוסכת לרוחב המסגרת בלבד, כך שהיא באמת קו ולא שכבה. */
+.glass{
+  -webkit-backdrop-filter:blur(24px) saturate(190%);
+  backdrop-filter:blur(24px) saturate(190%);
+}
+/* בלי מסכה הגרדיאנט היה מכסה את כל הכפתור בלבן במקום להיות קו,
+   ולכן הטבעת נצבעת רק כשהדפדפן יודע לחתוך אותה */
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor){
+  .glass::after{
+    content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    padding:1px;
+    background:linear-gradient(150deg,
+      rgba(255,255,255,.92) 0%, rgba(255,255,255,.30) 26%,
+      rgba(255,255,255,0) 50%, rgba(255,255,255,.28) 74%, rgba(255,255,255,.80) 100%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;
+    mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite:exclude;
+  }
+}
+
 .island{
   position:relative;display:flex;align-items:center;gap: var(--s1);
   border-radius:999px;padding: var(--s3) 12px;pointer-events:auto;
-  /* זכוכית: מטשטש את מה שמאחור ומעלה את הרוויה, כמו במערכת */
-  background:rgba(247,245,242,.62);
-  -webkit-backdrop-filter:blur(22px) saturate(180%);
-  backdrop-filter:blur(22px) saturate(180%);
-  border:1px solid rgba(255,255,255,.5);
-  box-shadow:0 8px 30px rgba(22,20,15,.15), inset 0 1px 0 rgba(255,255,255,.55);
+  background:rgba(247,245,242,.58);
+  box-shadow:
+    0 12px 34px rgba(22,20,15,.16),
+    0 2px 8px rgba(22,20,15,.07),
+    inset 0 1px 0 rgba(255,255,255,.62),
+    inset 0 -1px 0 rgba(255,255,255,.22),
+    inset 0 0 0 1px rgba(255,255,255,.28);
 }
 /* דפדפן בלי טשטוש מקבל רקע אטום, אחרת האי היה שקוף ובלתי קריא */
 @supports not (backdrop-filter:blur(1px)){
   .island{background:rgba(247,245,242,.94)}
+  .fab{background:var(--ink)}
+  .pulltab{background:var(--card)}
 }
 
-/* הגלולה מחליקה בין הלשוניות במקום לקפוץ */
+/* הגלולה מחליקה בין הלשוניות במקום לקפוץ — עדשה בהירה על הזכוכית */
 .tabpill{
   position:absolute;top: var(--s3);inset-inline-start:12px;
   width:var(--tap);height:var(--tap);border-radius:999px;
-  background:rgba(22,20,15,.09);
+  background:rgba(255,255,255,.58);
+  box-shadow:0 2px 8px rgba(22,20,15,.10), inset 0 1px 0 rgba(255,255,255,.75);
   margin-inline-start:calc(var(--i, 0) * var(--tab-step));
   transition:margin-inline-start .42s var(--ease);
 }
@@ -151,8 +179,26 @@ input,select,textarea{font:inherit;color:inherit}
 }
 .tab[aria-current="page"]{color:var(--ink)}
 .tab:active{transform:scale(.9)}
-.fab{width:56px;height:56px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 24px rgba(22,20,15,.32);pointer-events:auto}
-.fab{transition:transform .2s var(--ease), box-shadow .2s var(--ease)}
+/* אותה זכוכית בגוון כהה: הכפתור נשאר הפעולה הראשית וגם הוא חי
+   מעל מה שמתחתיו במקום לשבת עליו כעיגול אטום */
+.fab{
+  position:relative;width:56px;height:56px;border-radius:999px;color:#fff;pointer-events:auto;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(22,20,15,.82);
+  box-shadow:
+    0 12px 28px rgba(22,20,15,.34),
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -1px 0 rgba(255,255,255,.10),
+    inset 0 0 0 1px rgba(255,255,255,.16);
+  transition:transform .2s var(--ease), box-shadow .2s var(--ease);
+}
+@supports (mask-composite: exclude) or (-webkit-mask-composite: xor){
+  .fab::after{
+    background:linear-gradient(150deg,
+      rgba(255,255,255,.70) 0%, rgba(255,255,255,.18) 30%,
+      rgba(255,255,255,0) 54%, rgba(255,255,255,.16) 76%, rgba(255,255,255,.50) 100%);
+  }
+}
 .fab:active{transform:scale(.9)}
 
 /* ---------- формы ---------- */
@@ -208,7 +254,10 @@ svg{flex:none}
   margin:0 auto;width:max-content;
   display:flex;flex-direction:column;align-items:center;gap: var(--s2);
   padding: var(--s3) 18px var(--s3);border-radius:18px 18px 14px 14px;
-  background:var(--card);box-shadow:0 6px 20px rgba(22,20,15,.10);
+  background:rgba(247,245,242,.66);
+  box-shadow:
+    0 8px 24px rgba(22,20,15,.12),
+    inset 0 1px 0 rgba(255,255,255,.62);
   font:500 var(--fs-label) var(--sans);color:var(--muted);
   touch-action:none;cursor:grab;
   transition:transform .2s var(--ease), opacity .3s var(--ease);
