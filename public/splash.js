@@ -14,7 +14,6 @@
   var wheel = document.getElementById('spWheel');   // המסגרת: מיקום וחיתוך
   var spin = document.getElementById('spSpin');      // התמונה שבתוכה: סיבוב בלבד
   var shade = document.getElementById('spShade');
-  var gnd = document.getElementById('spGnd');       // חסימת אור מהרצפה
   if (!stage || !mark || !word || !wheel) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -86,15 +85,12 @@
     // כמה הגלגל קרוב למשטח: 0 באוויר, 1 בנגיעה
     var under = surface || ground;
     var near = Math.max(0, 1 - Math.max(0, under - (y + R)) / 130);
-    // צל מגע: ככל שקרוב יותר — קטן, כהה וחד יותר. האור בא משמאל־מעלה,
-    // ולכן הצל נופל מעט ימינה
+    // צל מגע: ככל שקרוב יותר — קטן, כהה וחד יותר
     if (shade) {
       shade.style.opacity = (0.12 + 0.5 * near).toFixed(3);
-      shade.style.transform = 'translate(' + (x - R + 2) + 'px,' + (under - 7) + 'px)'
+      shade.style.transform = 'translate(' + (x - R) + 'px,' + (under - 7) + 'px)'
         + ' scale(' + (1.25 - 0.35 * near) + ',' + (0.55 + 0.45 * near) + ')';
     }
-    // הרצפה חוסמת אור מלמטה רק כשהיא קרובה — באוויר אין מה שיחסום
-    if (gnd) gnd.style.opacity = (near * near).toFixed(3);
     // גומי: נלחץ לגובה ומתרחב לרוחב, ושומר על נפח בערך
     var k = squash;
     mark.style.transform = 'scaleY(' + (1 - k) + ') scaleX(' + (1 + k * 0.55) + ')';

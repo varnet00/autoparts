@@ -236,31 +236,6 @@ tr:hover td{background:rgba(236,232,226,.45)}
   pointer-events:none;will-change:transform,opacity;opacity:0;
   background:radial-gradient(ellipse at center, rgba(22,20,15,.42), rgba(22,20,15,0) 70%);
 }
-/* אור קבוע במרחב המסך: הגלגל מסתובב מתחתיו, ההבהק והצללית לא זזים
-   איתו. בלי זה העין רואה תמונה שמסתובבת, לא גלגל שמתגלגל.
-   המסכה היא הגלגל עצמו, ולכן האור לא נשפך אל מחוץ לצמיג. */
-#splash .wheel .lit,#splash .wheel .dim,#splash .wheel .gnd{
-  position:absolute;inset:0;pointer-events:none;
-  -webkit-mask-image:url(/wheel.webp?v=4);mask-image:url(/wheel.webp?v=4);
-  -webkit-mask-size:100% 100%;mask-size:100% 100%;
-}
-/* אור המפתח משמאל־מעלה */
-#splash .wheel .lit{
-  mix-blend-mode:screen;
-  background:
-    radial-gradient(circle at 30% 25%, rgba(255,249,238,.40), rgba(255,249,238,.10) 36%, rgba(255,249,238,0) 62%),
-    radial-gradient(circle at 24% 20%, rgba(255,253,248,.34), rgba(255,253,248,0) 17%);
-}
-/* הצד שמנוגד לאור נופל לצל */
-#splash .wheel .dim{
-  mix-blend-mode:multiply;
-  background:radial-gradient(circle at 78% 82%, rgba(14,12,9,.62), rgba(14,12,9,0) 58%);
-}
-/* חסימת האור מהרצפה — רק כשהגלגל קרוב אליה, ולכן העוצמה מגיעה מ-JS */
-#splash .wheel .gnd{
-  mix-blend-mode:multiply;opacity:0;will-change:opacity;
-  background:radial-gradient(66% 34% at 50% 100%, rgba(8,7,5,.72), rgba(8,7,5,0) 74%);
-}
 @media (prefers-reduced-motion: reduce){
   #splash .word{clip-path:none}
   #splash .wheel,#splash .shade{display:none}
@@ -282,7 +257,7 @@ tr:hover td{background:rgba(236,232,226,.45)}
     </svg>
     <span class="word" id="spWord">AUTOPARTS</span>
     <span class="shade" id="spShade"></span>
-    <span class="wheel" id="spWheel" aria-hidden="true"><img id="spSpin" src="/wheel.webp?v=4" alt="" draggable="false"><span class="lit"></span><span class="dim"></span><span class="gnd" id="spGnd"></span></span>
+    <span class="wheel" id="spWheel" aria-hidden="true"><img id="spSpin" src="/wheel.webp?v=5" alt="" draggable="false"></span>
   </div>
 </div>
 
