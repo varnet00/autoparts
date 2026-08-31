@@ -9,6 +9,7 @@
   var word = document.getElementById('spWord');
   var wheel = document.getElementById('spWheel');
   var gloss = document.getElementById('spGloss');
+  var shade = document.getElementById('spShade');
   if (!stage || !mark || !word || !wheel) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -37,13 +38,22 @@
   var vx = 0, vy = 0, rot = 0;
   var squash = 0, squashT = 0, hitLogo = false;
   var tyre = 1;                            // הצמיג עצמו נלחץ רגע בפגיעה
-  var last = 0, done = false;
+  var last = 0, done = false, surface = 0;
 
   function paint() {
     var place = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
     wheel.style.transform = place + ' rotate(' + rot + 'rad) scaleY(' + tyre + ')';
     // מקור האור עומד במקומו בזמן שהגלגל מסתובב, ולכן הברק לא מסתובב איתו
     if (gloss) gloss.style.transform = place + ' scaleY(' + tyre + ')';
+    // צל מגע: ככל שהגלגל קרוב למשטח הצל קטן, כהה וחד יותר
+    if (shade) {
+      var under = surface || ground;
+      var gap = Math.max(0, under - (y + R));
+      var k = Math.max(0, 1 - gap / 130);
+      shade.style.opacity = (0.12 + 0.5 * k).toFixed(3);
+      shade.style.transform = 'translate(' + (x - R) + 'px,' + (under - 7) + 'px)'
+        + ' scale(' + (1.25 - 0.35 * k) + ',' + (0.55 + 0.45 * k) + ')';
+    }
     // גומי: נלחץ לגובה ומתרחב לרוחב, ושומר על נפח בערך
     var k = squash;
     mark.style.transform = 'scaleY(' + (1 - k) + ') scaleX(' + (1 + k * 0.55) + ')';
@@ -64,6 +74,7 @@
     // הפגיעה הראשונה: על הסימן
     var overLogo = x > markLeft - R * 0.4 && x < markRight + R * 0.4;
     var floor = overLogo && !hitLogo ? markTop : ground;
+    surface = floor;
     if (y + R > floor) {
       y = floor - R;
       var e = (floor === markTop) ? E_LOGO : E_GROUND;
