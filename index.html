@@ -443,8 +443,7 @@ svg{flex:none}
   padding-inline-start:var(--s4);white-space:nowrap;
   font:600 var(--fs-lead)/1 var(--mono);letter-spacing:2.5px;color:var(--ink);
   clip-path:inset(0 100% 0 0);   /* נחשף בדיוק במקום שהגלגל כבר עבר */
-  transform-origin:left bottom;  /* מתקרב מרחוק: גדל מהפינה שליד הסימן */
-  will-change:clip-path,transform;
+  will-change:clip-path;
 }
 /* המסגרת נושאת מיקום וחיתוך במערכת הצירים של המסך; התמונה שבתוכה
    מסתובבת. ככה משטח המגע נשאר אופקי גם כשהגלגל מסובב. */
