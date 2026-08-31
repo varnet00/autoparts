@@ -225,7 +225,7 @@ tr:hover td{background:rgba(236,232,226,.45)}
   font:600 30px/1 var(--mono);letter-spacing:4px;color:var(--ink);
   clip-path:inset(0 100% 0 0);will-change:clip-path;
 }
-#splash .wheel{position:absolute;left:0;top:0;width:62px;height:62px;will-change:transform;transform:translate(-200px,-300px)}
+#splash .wheel{position:absolute;left:0;top:0;width:72px;height:72px;will-change:transform;transform:translate(-200px,-300px)}
 @media (prefers-reduced-motion: reduce){
   #splash .word{clip-path:none}
   #splash .wheel{display:none}
@@ -247,18 +247,28 @@ tr:hover td{background:rgba(236,232,226,.45)}
     </svg>
     <span class="word" id="spWord">AUTOPARTS</span>
     <svg class="wheel" id="spWheel" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="47" fill="#23221f"/>
-      <circle cx="50" cy="50" r="47" fill="none" stroke="#171614" stroke-width="3"/>
-      <g stroke="#3c3a35" stroke-width="3">
-        <path d="M50 4v10M50 86v10M4 50h10M86 50h10M17 17l7 7M76 76l7 7M83 17l-7 7M24 76l-7 7"/>
-      </g>
-      <circle cx="50" cy="50" r="30" fill="#cfc9c0"/>
-      <circle cx="50" cy="50" r="30" fill="none" stroke="#a8a29a" stroke-width="2"/>
-      <g stroke="#8f8a82" stroke-width="6" stroke-linecap="round">
-        <path d="M50 26v14M50 60v14M26 50h14M60 50h14M33 33l10 10M57 57l10 10"/>
-      </g>
-      <circle cx="50" cy="50" r="9" fill="#6f6a62"/>
-      <circle cx="50" cy="50" r="9" fill="none" stroke="#4f4941" stroke-width="2"/>
+      <defs>
+        <radialGradient id="spAlloy" cx="36%" cy="30%">
+          <stop offset="0" stop-color="#efece7"/><stop offset=".5" stop-color="#c3beb6"/><stop offset="1" stop-color="#8a857d"/>
+        </radialGradient>
+        <linearGradient id="spRub" x1=".2" y1="0" x2=".8" y2="1">
+          <stop offset="0" stop-color="#3a3833"/><stop offset=".55" stop-color="#232119"/><stop offset="1" stop-color="#131209"/>
+        </linearGradient>
+      </defs>
+      <g fill="#1b1a15"><path d="M92.6 44.1L98.2 45.2L98.2 54.8L92.6 55.9Z"/><path d="M92.5 56.5L98.3 59.6L94.7 70.6L88.2 69.8Z"/><path d="M87.9 70.2L91.8 74.4L86.1 82.2L81.0 79.8Z"/><path d="M80.6 80.2L83.4 86.1L74.0 92.9L69.3 88.4Z"/><path d="M68.8 88.7L69.5 94.3L60.3 97.3L57.5 92.3Z"/><path d="M57.0 92.4L55.8 98.9L44.2 98.9L43.0 92.4Z"/><path d="M42.5 92.3L39.7 97.3L30.5 94.3L31.2 88.7Z"/><path d="M30.7 88.4L26.0 92.9L16.6 86.1L19.4 80.2Z"/><path d="M19.0 79.8L13.9 82.2L8.2 74.4L12.1 70.2Z"/><path d="M11.8 69.8L5.3 70.6L1.7 59.6L7.5 56.5Z"/><path d="M7.4 55.9L1.8 54.8L1.8 45.2L7.4 44.1Z"/><path d="M7.5 43.5L1.7 40.4L5.3 29.4L11.8 30.2Z"/><path d="M12.1 29.8L8.2 25.6L13.9 17.8L19.0 20.2Z"/><path d="M19.4 19.8L16.6 13.9L26.0 7.1L30.7 11.6Z"/><path d="M31.2 11.3L30.5 5.7L39.7 2.7L42.5 7.7Z"/><path d="M43.0 7.6L44.2 1.1L55.8 1.1L57.0 7.6Z"/><path d="M57.5 7.7L60.3 2.7L69.5 5.7L68.8 11.3Z"/><path d="M69.3 11.6L74.0 7.1L83.4 13.9L80.6 19.8Z"/><path d="M81.0 20.2L86.1 17.8L91.8 25.6L87.9 29.8Z"/><path d="M88.2 30.2L94.7 29.4L98.3 40.4L92.5 43.5Z"/></g>
+      <circle cx="50" cy="50" r="44.5" fill="url(#spRub)"/>
+      <circle cx="50" cy="50" r="44.5" fill="none" stroke="#0f0e0a" stroke-width="1.2"/>
+      <circle cx="50" cy="50" r="38.5" fill="none" stroke="#46433c" stroke-width="1.1" opacity=".75"/>
+      <circle cx="50" cy="50" r="34.6" fill="#201e19"/>
+      <circle cx="50" cy="50" r="33.3" fill="url(#spAlloy)"/>
+      <circle cx="50" cy="50" r="33.3" fill="none" stroke="#6b665e" stroke-width=".9"/>
+      <g fill="#726c63"><circle cx="81.6" cy="50.0" r="1.5"/><circle cx="80.7" cy="57.6" r="1.5"/><circle cx="78.0" cy="64.7" r="1.5"/><circle cx="73.7" cy="71.0" r="1.5"/><circle cx="68.0" cy="76.0" r="1.5"/><circle cx="61.2" cy="79.5" r="1.5"/><circle cx="53.8" cy="81.4" r="1.5"/><circle cx="46.2" cy="81.4" r="1.5"/><circle cx="38.8" cy="79.5" r="1.5"/><circle cx="32.0" cy="76.0" r="1.5"/><circle cx="26.3" cy="71.0" r="1.5"/><circle cx="22.0" cy="64.7" r="1.5"/><circle cx="19.3" cy="57.6" r="1.5"/><circle cx="18.4" cy="50.0" r="1.5"/><circle cx="19.3" cy="42.4" r="1.5"/><circle cx="22.0" cy="35.3" r="1.5"/><circle cx="26.3" cy="29.0" r="1.5"/><circle cx="32.0" cy="24.0" r="1.5"/><circle cx="38.8" cy="20.5" r="1.5"/><circle cx="46.2" cy="18.6" r="1.5"/><circle cx="53.8" cy="18.6" r="1.5"/><circle cx="61.2" cy="20.5" r="1.5"/><circle cx="68.0" cy="24.0" r="1.5"/><circle cx="73.7" cy="29.0" r="1.5"/><circle cx="78.0" cy="35.3" r="1.5"/><circle cx="80.7" cy="42.4" r="1.5"/></g>
+      <circle cx="50" cy="50" r="29.6" fill="#2a2823"/>
+      <g fill="url(#spAlloy)"><path d="M61.9 48.8L78.6 48.4L78.6 51.6L61.9 51.2Z"/><path d="M61.5 53.5L77.0 59.5L75.8 62.4L60.6 55.7Z"/><path d="M59.3 57.6L71.3 69.1L69.1 71.3L57.6 59.3Z"/><path d="M55.7 60.6L62.4 75.8L59.5 77.0L53.5 61.5Z"/><path d="M51.2 61.9L51.6 78.6L48.4 78.6L48.8 61.9Z"/><path d="M46.5 61.5L40.5 77.0L37.6 75.8L44.3 60.6Z"/><path d="M42.4 59.3L30.9 71.3L28.7 69.1L40.7 57.6Z"/><path d="M39.4 55.7L24.2 62.4L23.0 59.5L38.5 53.5Z"/><path d="M38.1 51.2L21.4 51.6L21.4 48.4L38.1 48.8Z"/><path d="M38.5 46.5L23.0 40.5L24.2 37.6L39.4 44.3Z"/><path d="M40.7 42.4L28.7 30.9L30.9 28.7L42.4 40.7Z"/><path d="M44.3 39.4L37.6 24.2L40.5 23.0L46.5 38.5Z"/><path d="M48.8 38.1L48.4 21.4L51.6 21.4L51.2 38.1Z"/><path d="M53.5 38.5L59.5 23.0L62.4 24.2L55.7 39.4Z"/><path d="M57.6 40.7L69.1 28.7L71.3 30.9L59.3 42.4Z"/><path d="M60.6 44.3L75.8 37.6L77.0 40.5L61.5 46.5Z"/></g>
+      <circle cx="50" cy="50" r="12.8" fill="url(#spAlloy)"/>
+      <circle cx="50" cy="50" r="12.8" fill="none" stroke="#6b665e" stroke-width=".9"/>
+      <g fill="#4a453e"><circle cx="50.0" cy="41.8" r="2"/><circle cx="57.1" cy="45.9" r="2"/><circle cx="57.1" cy="54.1" r="2"/><circle cx="50.0" cy="58.2" r="2"/><circle cx="42.9" cy="54.1" r="2"/><circle cx="42.9" cy="45.9" r="2"/></g>
+      <circle cx="50" cy="50" r="4.8" fill="#17160f"/>
     </svg>
   </div>
 </div>
