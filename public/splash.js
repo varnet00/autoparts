@@ -63,16 +63,29 @@
   var RT = R * 0.98;                      // רדיוס הגומי, מעט פנימה מהמסגרת
   var seen = 0;                           // החזית רק גדלה, ולכן אות לא נעלמת
 
+  /* השם מגיע מרחוק: הוא מתחיל קטן וגדל לגודלו תוך כדי שהגלגל מפנה
+     אותו. נקודת העוגן היא הפינה שליד הסימן, ולכן הוא נפתח לכיוון
+     שאליו הגלגל נוסע ושורת הבסיס לא זזה.
+     seen נמדד במסך ולא בתוך האלמנט: האלמנט מוקטן, ולכן החיתוך
+     מחולק בקנה המידה — אחרת גבול החשיפה לא היה יושב על הגלגל. */
+  var WORD_FAR = 0.78;
+  var slideE = 0;                         // התקדמות ההחלקה, 0..1
+
   function revealWord() {
-    var f = Math.max(0, Math.min(wordW, x - wordLeft));
+    // מעט קדימה ממרכז הגלגל: עדיין עמוק מתחתיו, אבל משאיר מרווח
+    // ביטחון כדי שגופן או מסך אחר לא יחשפו פס לפני הגומי
+    var f = Math.max(0, (x + R * 0.08) - wordLeft);
     if (f > seen) seen = f;
-    word.style.clipPath = 'inset(0 ' + (wordW - seen).toFixed(1) + 'px 0 0)';
+    var sc = WORD_FAR + (1 - WORD_FAR) * slideE;
+    var local = Math.min(wordW, seen / sc);
+    word.style.transform = 'scale(' + sc.toFixed(4) + ')';
+    word.style.clipPath = 'inset(0 ' + (wordW - local).toFixed(1) + 'px 0 0)';
   }
 
   var x = startX;                         // נופל על כתר הסימן
   var y = R - box.top - 24;               // מתחיל מעל קצה המסך, לא בתוך הבמה
   var vx = 0, vy = 0, rot = 0;
-  var squash = 0, squashT = 0, hitLogo = false;
+  var squash = 0, squash0 = 0, squashT = 0, hitLogo = false;
   var FLAT_MAX = 0.13 * R;                 // כמה הגומי נדחס לכל היותר
   var flat = 0;                            // עומק משטח המגע כרגע
   var last = 0, done = false, surface = 0;
@@ -119,7 +132,8 @@
       if (Math.abs(vy) > 70) {
         if (floor === markTop) {
           hitLogo = true;
-          squash = Math.min(0.2, Math.abs(vy) / 5200);   // הסימן נלחץ לפי עוצמת הפגיעה
+          squash0 = Math.min(0.34, Math.abs(vy) / 4200);  // הסימן נלחץ לפי עוצמת הפגיעה
+          squash = squash0;
           squashT = 0;
           vx = DEFLECT;                                   // ומדיח את הגלגל הצידה
           /* מכאן הסימן מחליק שמאלה. ההנעה היא בזמן ובעקומה רכה ולא
@@ -142,14 +156,17 @@
     if (slideT >= 0 && slideT < slideDur) {               // הסימן מחליק שמאלה
       slideT = Math.min(slideDur, slideT + dt);
       var u = slideT / slideDur;
-      var e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-      stage.style.transform = 'translateX(' + (-SHIFT * e).toFixed(2) + 'px)';
+      slideE = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      stage.style.transform = 'translateX(' + (-SHIFT * slideE).toFixed(2) + 'px)';
     }
 
-    // התאוששות הגומי: תנודה דועכת סביב הצורה המקורית
+    /* התאוששות הגומי: תנודה דועכת סביב הצורה המקורית. המשרעת היא
+       עוצמת המעיכה עצמה — קודם ישב כאן מספר קבוע, ולכן הסימן קפץ
+       אותו הדבר גם במכה חלשה. הדעיכה איטית יותר, כדי שייראו שתי
+       תנודות ולא אחת. */
     if (squash !== 0) {
       squashT += dt;
-      var amp = 0.2 * Math.exp(-7 * squashT) * Math.cos(26 * squashT);
+      var amp = squash0 * Math.exp(-5.5 * squashT) * Math.cos(24 * squashT);
       squash = Math.abs(amp) < 0.002 ? 0 : amp;
     }
 
