@@ -50,18 +50,26 @@
   var ROWS = 8;
   var wordTop = wb.top - box.top;
   var wordH = wb.height;
-  var rollY = ground - R;                 // גובה מרכז הגלגל בזמן גלגול
+  var RT = R * 0.98;                      // רדיוס הגומי בפועל, מעט פנימה מהמסגרת
   var seen = [];                          // חזית לכל שורה — אות שנחשפה לא נעלמת
   for (var i = 0; i <= ROWS; i++) seen.push(0);
 
+  /* השם נחשף לפי הקשת של הגלגל במקום שבו הוא באמת נמצא עכשיו, ולא
+     לפי גובה הגלגול: כשהוא מקפץ מעל השם, קשת של גלגל שיושב על
+     הרצפה כבר לא מכסה את האות, ונפער רווח לפניה. שורה שהגלגל לא
+     חוצה כרגע פשוט לא מתקדמת — ככה אין קפיצה קדימה, והחזית לכל
+     שורה רק גדלה, ולכן אות שנחשפה לא נעלמת. */
   function revealWord() {
+    var cy = y + flat;                    // מרכז הגלגל כפי שהוא מצויר
     var pts = '0 0';
     for (var i = 0; i <= ROWS; i++) {
       var yl = wordH * i / ROWS;
-      var dy = (wordTop + yl) - rollY;
-      var half = Math.abs(dy) < R ? Math.sqrt(R * R - dy * dy) : 0;
-      var f = Math.max(0, Math.min(wordW, (x - half) - wordLeft));
-      if (f > seen[i]) seen[i] = f;
+      var dy = (wordTop + yl) - cy;
+      if (Math.abs(dy) <= R) {          // שורה שהגלגל חוצה כרגע
+        var half = Math.sqrt(Math.max(0, RT * RT - dy * dy));
+        var f = Math.max(0, Math.min(wordW, (x - half) - wordLeft));
+        if (f > seen[i]) seen[i] = f;
+      }
       pts += ',' + seen[i].toFixed(1) + 'px ' + yl.toFixed(1) + 'px';
     }
     word.style.clipPath = 'polygon(' + pts + ',0 ' + wordH.toFixed(1) + 'px)';
