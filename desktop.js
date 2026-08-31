@@ -1045,11 +1045,23 @@ document.addEventListener('keydown', (ev) => {
 });
 
 /* ---------------------------- אתחול ---------------------------- */
+// מסך הפתיחה יורד רק אחרי שהנתונים כאן, ולא לפני שהסצנה סיימה לרוץ:
+// שרת שנרדם הופך את ההמתנה לטעינה שרואים, לא למסך ריק
+function hideSplash() {
+  const el = document.getElementById('splash');
+  if (!el) return;
+  el.classList.add('gone');
+  setTimeout(() => el.remove(), 600);
+}
+
 (async function boot() {
+  const scene = new Promise((done) => setTimeout(done, 1900));
   const [cats, veh] = await Promise.allSettled([api('/categories'), api('/vehicles')]);
   if (cats.status === 'fulfilled') S.depts = cats.value.departments;
   if (veh.status === 'fulfilled') S.vehicles = veh.value.kinds;
   await loadMe();
   render();
-  loadCatalog();
+  await loadCatalog();
+  await scene;
+  hideSplash();
 })();
