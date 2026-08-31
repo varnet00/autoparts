@@ -2,14 +2,17 @@
    הגלגל הוא צילום אמיתי, מלפנים, ולכן הוא באמת מסתובב — הזווית
    נגזרת מהדרך שעבר, גלגול בלי החלקה: θ = x / r.
    הוא נכנס מעל קצה המסך, לא מתוך הבמה, נופל בתאוצת כובד, מאבד
-   חלק מהמהירות בכל פגיעה (מקדם החזרה), והסימן נלחץ כמו גומי
+   חלק מהמהירות בכל פגיעה (מקדם החזרה). בפגיעה נמעך רק הגומי:
+   משטח המגע משתטח, הציר יורד, והחישוק נשאר עגול — לא מותחים
+   את התמונה כולה. הסימן נלחץ כמו גומי
    ומתאושש בתנודה דועכת. השם נחשף לאורך הקשת של הגלגל עצמו, ולכן
    האותיות יוצאות ממש מתחתיו ולא מאחורי קו ישר שמשאיר רווח. */
 (function () {
   var stage = document.getElementById('stage');
   var mark = document.getElementById('spMark');
   var word = document.getElementById('spWord');
-  var wheel = document.getElementById('spWheel');
+  var wheel = document.getElementById('spWheel');   // המסגרת: מיקום וחיתוך
+  var spin = document.getElementById('spSpin');      // התמונה שבתוכה: סיבוב בלבד
   var shade = document.getElementById('spShade');
   if (!stage || !mark || !word || !wheel) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -68,12 +71,16 @@
   var y = R - box.top - 24;               // מתחיל מעל קצה המסך, לא בתוך הבמה
   var vx = 0, vy = 0, rot = 0;
   var squash = 0, squashT = 0, hitLogo = false;
-  var tyre = 1;                            // הצמיג עצמו נלחץ רגע בפגיעה
+  var FLAT_MAX = 0.13 * R;                 // כמה הגומי נדחס לכל היותר
+  var flat = 0;                            // עומק משטח המגע כרגע
   var last = 0, done = false, surface = 0;
 
   function paint() {
-    var place = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
-    wheel.style.transform = place + ' rotate(' + rot + 'rad) scaleY(' + tyre + ')';
+    // הציר שוקע בדיוק כעומק המעיכה, והתחתית נחתכת באותו שיעור: הגומי
+    // משתטח על הקרקע, והחישוק נשאר עגול ולא נמתח לאליפסה
+    wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y + flat - R) + 'px)';
+    wheel.style.clipPath = flat > 0.15 ? 'inset(0 0 ' + flat.toFixed(2) + 'px 0)' : 'none';
+    if (spin) spin.style.transform = 'rotate(' + rot + 'rad)';
     // צל מגע: ככל שהגלגל קרוב למשטח הצל קטן, כהה וחד יותר
     if (shade) {
       var under = surface || ground;
@@ -114,13 +121,14 @@
           vx = DEFLECT;                                   // ומדיח את הגלגל הצידה
         }
         vy = -vy * e;
-        tyre = 0.9;                                       // הצמיג משתטח לרגע
-        setTimeout(function () { tyre = 1; }, 70);
+        flat = Math.min(FLAT_MAX, Math.abs(vy) / 260);    // רק הגומי, לפי עוצמת הפגיעה
       } else {
         vy = 0;
         if (vx < ROLL_MAX) vx += ROLL_ACC * dt;           // מתייצב ומתגלגל הלאה
       }
     }
+
+    if (flat > 0) flat *= Math.exp(-dt / 0.045);          // הגומי חוזר לצורתו
 
     // התאוששות הגומי: תנודה דועכת סביב הצורה המקורית
     if (squash !== 0) {
