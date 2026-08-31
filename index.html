@@ -429,49 +429,62 @@ svg{flex:none}
 }
 #splash.gone{opacity:0;visibility:hidden}
 
-#splash .brandline{display:flex;align-items:center;direction:ltr}
-
+/* הבמה: הסימן והשם עומדים על אותו קו רצפה, והגלגל נופל מעליהם.
+   הכול נמדד בזמן אמת ומונע בסימולציה, ולא בקיפצוצים מוכנים מראש. */
+#splash .stage{position:relative;display:flex;align-items:flex-end;direction:ltr}
 #splash .mark{
-  width:84px;flex:none;opacity:0;transform:scale(.94);
-  animation:sp-mark .8s cubic-bezier(.4,0,.2,1) forwards;
+  width:84px;flex:none;display:block;
+  transform-origin:50% 100%;   /* הצמיג לוחץ אותו כלפי מטה, לא כלפי המרכז */
+  will-change:transform;
 }
 #splash .word{
-  overflow:hidden;max-width:0;
-  animation:sp-open .85s cubic-bezier(.4,0,.2,1) 1.35s forwards;
-}
-#splash .word b{
-  display:block;padding-inline-start:var(--s4);white-space:nowrap;
+  padding-inline-start:var(--s4);white-space:nowrap;
   font:600 var(--fs-lead)/1 var(--mono);letter-spacing:2.5px;color:var(--ink);
-  transform:translateX(-14px);
-  animation:sp-slide .85s cubic-bezier(.4,0,.2,1) 1.35s forwards;
+  clip-path:inset(0 100% 0 0);   /* נחשף בדיוק במקום שהגלגל כבר עבר */
+  will-change:clip-path;
+}
+#splash .wheel{
+  position:absolute;left:0;top:0;width:46px;height:46px;
+  will-change:transform;transform:translate(-100px,-200px);
 }
 #splash .hint{
   position:absolute;bottom:calc(var(--s8) + env(safe-area-inset-bottom));
   font:400 var(--fs-label) var(--sans);color:var(--muted);
   opacity:0;animation:sp-fade .45s ease 3.4s forwards;  /* רק אם ההמתנה נמשכת */
 }
-@keyframes sp-mark{to{opacity:1;transform:none}}
-@keyframes sp-open{to{max-width:180px}}
-@keyframes sp-slide{to{transform:none}}
 @keyframes sp-fade{to{opacity:1}}
 
 /* מי שביקש פחות תנועה מקבל את אותו מסך, מיד ובלי תנועה */
 @media (prefers-reduced-motion: reduce){
-  #splash .mark,#splash .word b,#splash .hint{animation:none;opacity:1;transform:none}
-  #splash .word{animation:none;max-width:180px}
+  #splash .word{clip-path:none}
+  #splash .wheel{display:none}
+  #splash .hint{animation:none;opacity:1}
   #splash{transition:opacity .01s}
-}
 }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="splash">
-    <div class="brandline">
-    <svg class="mark" viewBox="71 180 496 333" aria-hidden="true">
-      <path fill="#dd6612" fill-rule="evenodd" d="M72 180 L72 190 L108 365 L129 477 L134 489 L147 504 L160 511 L168 513 L468 513 L476 511 L490 503 L502 489 L507 476 L535 332 L567 182 L566 180 Z M97 202 L138 416 L166 351 L225 202 Z M412 202 L474 357 L484 378 L485 384 L497 410 L498 416 L500 415 L541 202 Z M318 245 L273 356 L270 360 L269 366 L256 394 L250 412 L247 416 L243 429 L240 433 L232 456 L224 472 L218 487 L219 489 L418 488 L399 440 L315 440 L315 436 L322 422 L339 377 L372 376 L319 245 Z"/>
-    </svg>
-      <span class="word"><b>AUTOPARTS</b></span>
+    <div class="stage" id="stage">
+      <svg class="mark" id="spMark" viewBox="71 180 496 333" aria-hidden="true">
+        <path fill="#dd6612" fill-rule="evenodd" d="M72 180 L72 190 L108 365 L129 477 L134 489 L147 504 L160 511 L168 513 L468 513 L476 511 L490 503 L502 489 L507 476 L535 332 L567 182 L566 180 Z M97 202 L138 416 L166 351 L225 202 Z M412 202 L474 357 L484 378 L485 384 L497 410 L498 416 L500 415 L541 202 Z M318 245 L273 356 L270 360 L269 366 L256 394 L250 412 L247 416 L243 429 L240 433 L232 456 L224 472 L218 487 L219 489 L418 488 L399 440 L315 440 L315 436 L322 422 L339 377 L372 376 L319 245 Z"/>
+      </svg>
+      <span class="word" id="spWord">AUTOPARTS</span>
+      <svg class="wheel" id="spWheel" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="47" fill="#23221f"/>
+        <circle cx="50" cy="50" r="47" fill="none" stroke="#171614" stroke-width="3"/>
+        <g stroke="#3c3a35" stroke-width="3">
+          <path d="M50 4v10M50 86v10M4 50h10M86 50h10M17 17l7 7M76 76l7 7M83 17l-7 7M24 76l-7 7"/>
+        </g>
+        <circle cx="50" cy="50" r="30" fill="#cfc9c0"/>
+        <circle cx="50" cy="50" r="30" fill="none" stroke="#a8a29a" stroke-width="2"/>
+        <g stroke="#8f8a82" stroke-width="6" stroke-linecap="round">
+          <path d="M50 26v14M50 60v14M26 50h14M60 50h14M33 33l10 10M57 57l10 10"/>
+        </g>
+        <circle cx="50" cy="50" r="9" fill="#6f6a62"/>
+        <circle cx="50" cy="50" r="9" fill="none" stroke="#4f4941" stroke-width="2"/>
+      </svg>
     </div>
     <span class="hint">מתחבר לשרת…</span>
   </div>
@@ -481,6 +494,104 @@ svg{flex:none}
 <script>
   // אם משהו ישבור את הטעינה, המסך לא ייתקע — נעלם גם בלי app.js
   setTimeout(function(){ var s=document.getElementById('splash'); if(s) s.classList.add('gone'); }, 8000);
+
+  /* ============ מסך הפתיחה: גלגל שנופל, מקפיץ, ומתגלגל ============
+     אין כאן קיפצוצים מצוירים ביד: הגלגל נופל בתאוצת כובד, מאבד
+     חלק מהמהירות בכל פגיעה (מקדם החזרה), והסיבוב שלו נגזר מהדרך
+     שעבר — גלגול בלי החלקה, θ = x / r. הסימן נלחץ כמו גומי בפגיעה
+     ומתאושש בתנודה דועכת, והשם נחשף בדיוק במקום שהגלגל כבר פינה. */
+  (function () {
+    var stage = document.getElementById('stage');
+    var mark = document.getElementById('spMark');
+    var word = document.getElementById('spWord');
+    var wheel = document.getElementById('spWheel');
+    if (!stage || !mark || !word || !wheel) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var G = 2600;            // תאוצת כובד, פיקסלים לשנייה בריבוע
+    var E_LOGO = 0.52;       // מקדם החזרה מהסימן — גומי על מתכת
+    var E_GROUND = 0.42;     // מהרצפה
+    var DEFLECT = 255;       // הגלגל פוגע במדרון של הסימן ונדחף ימינה
+    var R;                   // רדיוס הגלגל
+
+    var box = stage.getBoundingClientRect();
+    var mb = mark.getBoundingClientRect();
+    var wb = word.getBoundingClientRect();
+    R = wheel.getBoundingClientRect().width / 2;
+
+    var markTop = mb.top - box.top;         // המשטח שעליו נוחתים
+    var markLeft = mb.left - box.left;
+    var markRight = markLeft + mb.width;
+    var ground = mb.bottom - box.top;       // קו הרצפה של הלוגו
+    var wordLeft = wb.left - box.left;
+    var wordW = wb.width;
+    // יוצא מהמסך ממש, לא רק מהבמה
+    var exitX = box.width + (window.innerWidth - box.right) + 60;
+
+    var x = markLeft + mb.width * 0.44;     // נופל על כתר הסימן
+    var y = -190;
+    var vx = 0, vy = 0, rot = 0;
+    var squash = 0, squashT = 0, hitLogo = false;
+    var tyre = 1;                            // הצמיג עצמו נלחץ רגע בפגיעה
+    var last = 0, done = false;
+
+    function paint() {
+      wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R) + 'px) rotate(' + rot + 'rad) scaleY(' + tyre + ')';
+      // גומי: נלחץ לגובה ומתרחב לרוחב, ושומר על נפח בערך
+      var k = squash;
+      mark.style.transform = 'scaleY(' + (1 - k) + ') scaleX(' + (1 + k * 0.55) + ')';
+      var shown = Math.max(0, Math.min(wordW, (x - R) - wordLeft));
+      word.style.clipPath = 'inset(0 ' + Math.max(0, wordW - shown) + 'px 0 0)';
+    }
+
+    function step(now) {
+      if (!last) last = now;
+      var dt = Math.min((now - last) / 1000, 1 / 30);
+      last = now;
+
+      vy += G * dt;
+      x += vx * dt;
+      y += vy * dt;
+      rot += (vx * dt) / R;                 // גלגול בלי החלקה
+
+      // הפגיעה הראשונה: על הסימן
+      var overLogo = x > markLeft - R * 0.4 && x < markRight + R * 0.4;
+      var floor = overLogo && !hitLogo ? markTop : ground;
+      if (y + R > floor) {
+        y = floor - R;
+        var e = (floor === markTop) ? E_LOGO : E_GROUND;
+        if (Math.abs(vy) > 70) {
+          if (floor === markTop) {
+            hitLogo = true;
+            squash = Math.min(0.2, Math.abs(vy) / 4200);   // הסימן נלחץ לפי עוצמת הפגיעה
+            squashT = 0;
+            vx = DEFLECT;                                   // ומדיח את הגלגל הצידה
+          }
+          vy = -vy * e;
+          tyre = 0.86;                                      // הצמיג משתטח לרגע
+          setTimeout(function () { tyre = 1; }, 70);
+        } else {
+          vy = 0;
+          if (vx < 265) vx += 460 * dt;                     // מתייצב ומתגלגל הלאה
+        }
+      }
+
+      // התאוששות הגומי: תנודה דועכת סביב הצורה המקורית
+      if (squash !== 0) {
+        squashT += dt;
+        var amp = 0.2 * Math.exp(-7 * squashT) * Math.cos(26 * squashT);
+        squash = Math.abs(amp) < 0.002 ? 0 : amp;
+      }
+
+      paint();
+
+      if (x - R > exitX) { done = true; return; }
+      if (!done) requestAnimationFrame(step);
+    }
+
+    paint();
+    requestAnimationFrame(step);
+  })();
 </script>
 <script src="/app.js"></script>
 </body>
