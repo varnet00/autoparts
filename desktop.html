@@ -221,6 +221,8 @@ tr:hover td{background:rgba(236,232,226,.45)}
 #splash .stage{position:relative;display:flex;align-items:flex-end;direction:ltr;will-change:transform}
 #splash .mark{width:116px;flex:none;display:block;transform-origin:50% 100%;will-change:transform}
 #splash .word{
+  position:absolute;left:100%;bottom:0;   /* מחוץ לזרימה: רוחב הבמה הוא הסימן בלבד,
+     ולכן הוא ממורכז כבר בציור הראשון, בלי להמתין ל-JS */
   padding-inline-start:22px;white-space:nowrap;
   font:600 30px/1 var(--mono);letter-spacing:4px;color:var(--ink);
   clip-path:inset(0 100% 0 0);will-change:clip-path;
@@ -231,18 +233,6 @@ tr:hover td{background:rgba(236,232,226,.45)}
   user-select:none;-webkit-user-drag:none;
 }
 #splash .wheel img{display:block;width:100%;height:100%;will-change:transform}
-/* נפח בלי שום הבהרה: רק החשכה. הכתם הפתוח משמאל־מעלה נותן כיוון
-   לאור ולכן הסיבוב נקרא, והנפילה ההיקפית עושה את הצמיג עגול ומנופח
-   במקום דיסק שטוח. השכבה לא מסתובבת עם התמונה, וממוסכת בגלגל
-   עצמו כדי שההחשכה לא תיגע ברקע. */
-#splash .wheel .vol{
-  position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;
-  -webkit-mask-image:url(/wheel.webp?v=5);mask-image:url(/wheel.webp?v=5);
-  -webkit-mask-size:100% 100%;mask-size:100% 100%;
-  background:
-    radial-gradient(circle at 34% 30%, rgba(0,0,0,0) 24%, rgba(0,0,0,.34) 74%, rgba(0,0,0,.50) 100%),
-    radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 72%, rgba(0,0,0,.35) 100%);
-}
 #splash .shade{
   position:absolute;left:0;top:0;width:84px;height:16px;border-radius:50%;
   pointer-events:none;will-change:transform,opacity;opacity:0;
@@ -269,7 +259,7 @@ tr:hover td{background:rgba(236,232,226,.45)}
     </svg>
     <span class="word" id="spWord">AUTOPARTS</span>
     <span class="shade" id="spShade"></span>
-    <span class="wheel" id="spWheel" aria-hidden="true"><img id="spSpin" src="/wheel.webp?v=5" alt="" draggable="false"><span class="vol"></span></span>
+    <span class="wheel" id="spWheel" aria-hidden="true"><img id="spSpin" src="/wheel.webp?v=6" alt="" draggable="false"></span>
   </div>
 </div>
 
