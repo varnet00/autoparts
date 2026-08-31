@@ -1,44 +1,28 @@
   /* ============ מסך הפתיחה: גלגל שנופל, מקפיץ, ומתגלגל ============
-   הגלגל הוא הצילום עצמו, בזווית שבה צולם. לכן אי אפשר פשוט לסובב
-   את כל התמונה — היא הייתה מתהפכת. מה שמסתובב זה החישוק בלבד,
-   סביב ציר הגלגל ולפי האליפסה שבה טבעת הבורגים נראית בצילום:
-   אליפסה שמסתובבת ככה נשארת בדיוק במקומה, ולכן אין רעידה.
-   שאר הפיזיקה אמיתית: נפילה בתאוצת כובד, איבוד מהירות בכל פגיעה
-   (מקדם החזרה), וגלגול בלי החלקה — θ = x / r. */
+   הגלגל הוא צילום אמיתי, מלפנים, ולכן הוא באמת מסתובב — הזווית
+   נגזרת מהדרך שעבר, גלגול בלי החלקה: θ = x / r.
+   הוא נכנס מעל קצה המסך, לא מתוך הבמה, נופל בתאוצת כובד, מאבד
+   חלק מהמהירות בכל פגיעה (מקדם החזרה), והסימן נלחץ כמו גומי
+   ומתאושש בתנודה דועכת. השם נחשף בדיוק במקום שהגלגל כבר פינה. */
 (function () {
   var stage = document.getElementById('stage');
   var mark = document.getElementById('spMark');
   var word = document.getElementById('spWord');
   var wheel = document.getElementById('spWheel');
-  var rim = document.getElementById('spRim');
   var shade = document.getElementById('spShade');
   if (!stage || !mark || !word || !wheel) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  var G = 2600;            // תאוצת כובד, פיקסלים לשנייה בריבוע
+  var G = 3200;            // תאוצת כובד — גלגל שטח כבד נופל בחדות
   var E_LOGO = 0.52;       // מקדם החזרה מהסימן — גומי על מתכת
   var E_GROUND = 0.42;     // מהרצפה
-  var DEFLECT = 255;       // הגלגל פוגע במדרון של הסימן ונדחף ימינה
-
-  /* נמדד מהצילום: מיקום הציר בתוך הריבוע, קו המגע, והמטריצה
-     שממירה סיבוב עגול לסיבוב בתוך האליפסה של טבעת הבורגים. */
-  var HUB_X = 0.6333, HUB_Y = 0.4949, BOTTOM = 0.9964;
-  var W00 = 0.707270, W01 = -0.029683, W10 = -0.029683, W11 = 0.996990;
-  var I00 = 1.415655, I01 = 0.042147, I10 = 0.042147, I11 = 1.004274;
-
-  function spin(th) {                       // W · R(θ) · W⁻¹
-    var c = Math.cos(th), s = Math.sin(th);
-    var a00 = W00 * c + W01 * s, a01 = -W00 * s + W01 * c;
-    var a10 = W10 * c + W11 * s, a11 = -W10 * s + W11 * c;
-    return 'matrix(' + (a00 * I00 + a01 * I10) + ',' + (a10 * I00 + a11 * I10) + ','
-      + (a00 * I01 + a01 * I11) + ',' + (a10 * I01 + a11 * I11) + ',0,0)';
-  }
+  var DEFLECT, ROLL_MAX, ROLL_ACC;   // נגזרים מאורך המסלול, ראו למטה
+  var R;                   // רדיוס הגלגל
 
   var box = stage.getBoundingClientRect();
   var mb = mark.getBoundingClientRect();
   var wb = word.getBoundingClientRect();
-  var SZ = wheel.getBoundingClientRect().width || 52;   // הספרייט ריבועי
-  var R = (BOTTOM - HUB_Y) * SZ;                        // רדיוס גלגול
+  R = (wheel.offsetWidth || 60) / 2;   // offsetWidth ולא getBoundingClientRect: לא מושפע מהסיבוב
 
   var markTop = mb.top - box.top;         // המשטח שעליו נוחתים
   var markLeft = mb.left - box.left;
@@ -49,31 +33,36 @@
   // יוצא מהמסך ממש, לא רק מהבמה
   var exitX = box.width + (window.innerWidth - box.right) + 60;
 
-  var x = markLeft + mb.width * 0.44;     // נופל על כתר הסימן
-  var y = -190;
+  /* מהירות הגלגול נגזרת מהדרך שנותרה, לא קבועה: על טלפון צר יוצא
+     גלגול נינוח, ועל מסך רחב הוא לא נמרח לנצח. */
+  var startX = markLeft + mb.width * 0.44;
+  ROLL_MAX = Math.max(170, Math.min(340, (exitX + R - startX) / 2));
+  DEFLECT = ROLL_MAX * 0.92;
+  ROLL_ACC = ROLL_MAX * 1.7;
+
+  var x = startX;                         // נופל על כתר הסימן
+  var y = R - box.top - 24;               // מתחיל מעל קצה המסך, לא בתוך הבמה
   var vx = 0, vy = 0, rot = 0;
   var squash = 0, squashT = 0, hitLogo = false;
   var tyre = 1;                            // הצמיג עצמו נלחץ רגע בפגיעה
   var last = 0, done = false, surface = 0;
 
   function paint() {
-    var place = 'translate(' + (x - HUB_X * SZ) + 'px,' + (y - HUB_Y * SZ) + 'px)'
-      + ' scaleY(' + tyre + ')';
-    wheel.style.transform = place;
-    if (rim) rim.style.transform = place + ' ' + spin(rot);
+    var place = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
+    wheel.style.transform = place + ' rotate(' + rot + 'rad) scaleY(' + tyre + ')';
     // צל מגע: ככל שהגלגל קרוב למשטח הצל קטן, כהה וחד יותר
     if (shade) {
       var under = surface || ground;
       var gap = Math.max(0, under - (y + R));
       var k = Math.max(0, 1 - gap / 130);
       shade.style.opacity = (0.12 + 0.5 * k).toFixed(3);
-      shade.style.transform = 'translate(' + (x - SZ / 2) + 'px,' + (under - 7) + 'px)'
+      shade.style.transform = 'translate(' + (x - R) + 'px,' + (under - 7) + 'px)'
         + ' scale(' + (1.25 - 0.35 * k) + ',' + (0.55 + 0.45 * k) + ')';
     }
     // גומי: נלחץ לגובה ומתרחב לרוחב, ושומר על נפח בערך
     var k = squash;
     mark.style.transform = 'scaleY(' + (1 - k) + ') scaleX(' + (1 + k * 0.55) + ')';
-    var shown = Math.max(0, Math.min(wordW, (x - HUB_X * SZ) - wordLeft));
+    var shown = Math.max(0, Math.min(wordW, (x - R) - wordLeft));
     word.style.clipPath = 'inset(0 ' + Math.max(0, wordW - shown) + 'px 0 0)';
   }
 
@@ -97,16 +86,16 @@
       if (Math.abs(vy) > 70) {
         if (floor === markTop) {
           hitLogo = true;
-          squash = Math.min(0.2, Math.abs(vy) / 4200);   // הסימן נלחץ לפי עוצמת הפגיעה
+          squash = Math.min(0.2, Math.abs(vy) / 5200);   // הסימן נלחץ לפי עוצמת הפגיעה
           squashT = 0;
           vx = DEFLECT;                                   // ומדיח את הגלגל הצידה
         }
         vy = -vy * e;
-        tyre = 0.86;                                      // הצמיג משתטח לרגע
+        tyre = 0.9;                                       // הצמיג משתטח לרגע
         setTimeout(function () { tyre = 1; }, 70);
       } else {
         vy = 0;
-        if (vx < 265) vx += 460 * dt;                     // מתייצב ומתגלגל הלאה
+        if (vx < ROLL_MAX) vx += ROLL_ACC * dt;           // מתייצב ומתגלגל הלאה
       }
     }
 
@@ -119,7 +108,7 @@
 
     paint();
 
-    if (x - HUB_X * SZ > exitX) { done = true; return; }
+    if (x - R > exitX) { done = true; return; }
     if (!done) requestAnimationFrame(step);
   }
 

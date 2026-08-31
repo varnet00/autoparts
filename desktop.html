@@ -225,20 +225,19 @@ tr:hover td{background:rgba(236,232,226,.45)}
   font:600 30px/1 var(--mono);letter-spacing:4px;color:var(--ink);
   clip-path:inset(0 100% 0 0);will-change:clip-path;
 }
-#splash .wheel,#splash .rim{
-  position:absolute;left:0;top:0;width:72px;height:72px;
-  transform-origin:63.33% 49.49%;
-  will-change:transform;transform:translate(-200px,-300px);
+#splash .wheel{
+  position:absolute;left:0;top:0;width:84px;height:84px;
+  will-change:transform;transform:translate(-200px,-600px);
   user-select:none;-webkit-user-drag:none;
 }
 #splash .shade{
-  position:absolute;left:0;top:0;width:72px;height:14px;border-radius:50%;
+  position:absolute;left:0;top:0;width:84px;height:16px;border-radius:50%;
   pointer-events:none;will-change:transform,opacity;opacity:0;
   background:radial-gradient(ellipse at center, rgba(22,20,15,.42), rgba(22,20,15,0) 70%);
 }
 @media (prefers-reduced-motion: reduce){
   #splash .word{clip-path:none}
-  #splash .wheel,#splash .rim,#splash .shade{display:none}
+  #splash .wheel,#splash .shade{display:none}
   #splash{transition:opacity .01s}
 }
 
@@ -258,7 +257,6 @@ tr:hover td{background:rgba(236,232,226,.45)}
     <span class="word" id="spWord">AUTOPARTS</span>
     <span class="shade" id="spShade"></span>
     <img class="wheel" id="spWheel" src="/wheel.webp" alt="" aria-hidden="true" draggable="false">
-    <img class="rim" id="spRim" src="/wheel-rim.webp" alt="" aria-hidden="true" draggable="false">
   </div>
 </div>
 
