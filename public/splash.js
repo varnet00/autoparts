@@ -6,7 +6,9 @@
    משטח המגע משתטח, הציר יורד, והחישוק נשאר עגול — לא מותחים
    את התמונה כולה. הסימן נלחץ כמו גומי
    ומתאושש בתנודה דועכת. השם נחשף לאורך הקשת של הגלגל עצמו, ולכן
-   האותיות יוצאות ממש מתחתיו ולא מאחורי קו ישר שמשאיר רווח. */
+   האותיות יוצאות ממש מתחתיו ולא מאחורי קו ישר שמשאיר רווח.
+   בהתחלה הסימן לבדו במרכז המסך; ככל שהשם מתגלה הבמה נעה שמאלה,
+   וכשהשם כולו בחוץ הצמד — סימן ושם — עומד ממורכז. */
 (function () {
   var stage = document.getElementById('stage');
   var mark = document.getElementById('spMark');
@@ -37,6 +39,13 @@
   // יוצא מהמסך ממש, לא רק מהבמה
   var exitX = box.width + (window.innerWidth - box.right) + 60;
 
+  /* הבמה ממורכזת כשהיא סימן+שם. בפתיחה השם עוד לא קיים לעין, ולכן
+     מזיזים את הבמה ימינה בחצי רוחבו — ואז הסימן לבדו יושב במרכז
+     המסך. ההיסט נמוג בקצב שבו השם נחשף, כך שברגע שהאות האחרונה
+     יצאה מתחת לגלגל הצמד כבר ממורכז. */
+  var SHIFT = wb.width / 2;
+  stage.style.transform = 'translateX(' + SHIFT.toFixed(2) + 'px)';
+
   /* מהירות הגלגול נגזרת מהדרך שנותרה, לא קבועה: על טלפון צר יוצא
      גלגול נינוח, ועל מסך רחב הוא לא נמרח לנצח. */
   var startX = markLeft + mb.width * 0.44;
@@ -61,7 +70,7 @@
      שורה רק גדלה, ולכן אות שנחשפה לא נעלמת. */
   function revealWord() {
     var cy = y + flat;                    // מרכז הגלגל כפי שהוא מצויר
-    var pts = '0 0';
+    var pts = '0 0', shown = 0;
     for (var i = 0; i <= ROWS; i++) {
       var yl = wordH * i / ROWS;
       var dy = (wordTop + yl) - cy;
@@ -71,8 +80,13 @@
         if (f > seen[i]) seen[i] = f;
       }
       pts += ',' + seen[i].toFixed(1) + 'px ' + yl.toFixed(1) + 'px';
+      shown += seen[i];
     }
     word.style.clipPath = 'polygon(' + pts + ',0 ' + wordH.toFixed(1) + 'px)';
+
+    // הבמה מחליקה שמאלה בדיוק לפי החלק שכבר נחשף
+    var p = Math.min(1, shown / (wordW * (ROWS + 1)));
+    stage.style.transform = 'translateX(' + (SHIFT * (1 - p)).toFixed(2) + 'px)';
   }
 
   var x = startX;                         // נופל על כתר הסימן
