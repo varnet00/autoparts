@@ -7,9 +7,10 @@
    את התמונה כולה. הסימן נלחץ כמו גומי
    ומתאושש בתנודה דועכת. השם נחשף לאורך הקשת של הגלגל עצמו, ולכן
    האותיות יוצאות ממש מתחתיו ולא מאחורי קו ישר שמשאיר רווח.
-   השם יושב מחוץ לזרימה, ולכן רוחב הבמה הוא הסימן בלבד והוא ממורכז
-   כבר בציור הראשון — בלי להמתין ש-splash.js ייטען. הבמה מחליקה
-   שמאלה בחצי רוחב השם, וכשהיא מגיעה הצמד — סימן ושם — ממורכז. */
+   הרצף: הסימן לבדו במרכז; הגלגל נופל מימין לו, על הרצפה, ומקפץ
+   במקום — בלי תזוזה אופקית, ולכן שום אות לא נחשפת בזמן הקפיצות.
+   רק כשהוא מתייצב ומתחיל להתגלגל השם נפתח מאחוריו, ובאותו רגע הוא
+   גם מתחיל להחליק שמאלה אל הסימן. בסוף הצמד — סימן ושם — ממורכז. */
 (function () {
   var stage = document.getElementById('stage');
   var mark = document.getElementById('spMark');
@@ -21,9 +22,8 @@
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var G = 3200;            // תאוצת כובד — גלגל שטח כבד נופל בחדות
-  var E_LOGO = 0.52;       // מקדם החזרה מהסימן — גומי על מתכת
   var E_GROUND = 0.42;     // מהרצפה
-  var DEFLECT, ROLL_MAX, ROLL_ACC;   // נגזרים מאורך המסלול, ראו למטה
+  var ROLL_MAX, ROLL_ACC;  // נגזרים מאורך המסלול, ראו למטה
   var R;                   // רדיוס הגלגל
 
   var box = stage.getBoundingClientRect();
@@ -31,7 +31,6 @@
   var wb = word.getBoundingClientRect();
   R = (wheel.offsetWidth || 60) / 2;   // offsetWidth ולא getBoundingClientRect: לא מושפע מהסיבוב
 
-  var markTop = mb.top - box.top;         // המשטח שעליו נוחתים
   var markLeft = mb.left - box.left;
   var markRight = markLeft + mb.width;
   var ground = mb.bottom - box.top;       // קו הרצפה של הלוגו
@@ -46,13 +45,17 @@
      מזיזים את הבמה ימינה בחצי רוחבו — ואז הסימן לבדו יושב במרכז
      המסך. ההיסט נמוג בקצב שבו השם נחשף, כך שברגע שהאות האחרונה
      יצאה מתחת לגלגל הצמד כבר ממורכז. */
-  var slideT = -1, slideDur = 1;          // מתחילה בהקפצה מהסימן
+  var slideT = -1, slideDur = 1;          // מתחילה כשהגלגל מתייצב לגלגול
+
+  /* השם מתחיל רחוק יותר ימינה ומחליק אל הסימן. הגלגל נוחת בדיוק על
+     הקצה השמאלי שלו שם, ולכן הוא נופל מימין לסימן ולא עליו, והאות
+     הראשונה נפתחת מתחתיו ברגע שהוא מתחיל לנסוע. */
+  var GAP = R * 1.6;
+  var startX = wordLeft + GAP;
 
   /* מהירות הגלגול נגזרת מהדרך שנותרה, לא קבועה: על טלפון צר יוצא
      גלגול נינוח, ועל מסך רחב הוא לא נמרח לנצח. */
-  var startX = markLeft + mb.width * 0.44;
-  ROLL_MAX = Math.max(170, Math.min(340, (exitX + R - startX) / 2));
-  DEFLECT = ROLL_MAX * 0.92;
+  ROLL_MAX = Math.max(150, Math.min(300, (exitX + R - startX) / 2.4));
   ROLL_ACC = ROLL_MAX * 1.7;
 
   /* חזית החשיפה עוברת בדיוק במרכז הגלגל. האות נחשפת מתחתיו וחצי
@@ -63,16 +66,21 @@
   var RT = R * 0.98;                      // רדיוס הגומי, מעט פנימה מהמסגרת
   var seen = 0;                           // החזית רק גדלה, ולכן אות לא נעלמת
 
+  var slideE = 0;                         // התקדמות ההחלקה, 0..1
+
   function revealWord() {
-    var f = Math.max(0, Math.min(wordW, x - wordLeft));
+    // השם עצמו זז שמאלה תוך כדי, ולכן החזית נמדדת ממקומו עכשיו
+    var here = wordLeft + GAP * (1 - slideE);
+    var f = Math.max(0, Math.min(wordW, x - here));
     if (f > seen) seen = f;
+    word.style.transform = 'translateX(' + (GAP * (1 - slideE)).toFixed(2) + 'px)';
     word.style.clipPath = 'inset(0 ' + (wordW - seen).toFixed(1) + 'px 0 0)';
   }
 
-  var x = startX;                         // נופל על כתר הסימן
+  var x = startX;                         // נוחת מימין לסימן
   var y = R - box.top - 24;               // מתחיל מעל קצה המסך, לא בתוך הבמה
   var vx = 0, vy = 0, rot = 0;
-  var squash = 0, squashT = 0, hitLogo = false;
+  var squash = 0, squashT = 0, shook = false;
   var FLAT_MAX = 0.13 * R;                 // כמה הגומי נדחס לכל היותר
   var flat = 0;                            // עומק משטח המגע כרגע
   var last = 0, done = false, surface = 0;
@@ -109,30 +117,30 @@
     y += vy * dt;
     rot += (vx * dt) / R;                 // גלגול בלי החלקה
 
-    // הפגיעה הראשונה: על הסימן
-    var overLogo = x > markLeft - R * 0.4 && x < markRight + R * 0.4;
-    var floor = overLogo && !hitLogo ? markTop : ground;
-    surface = floor;
-    if (y + R > floor) {
-      y = floor - R;
-      var e = (floor === markTop) ? E_LOGO : E_GROUND;
+    surface = ground;
+    if (y + R > ground) {
+      y = ground - R;
       if (Math.abs(vy) > 70) {
-        if (floor === markTop) {
-          hitLogo = true;
-          squash = Math.min(0.2, Math.abs(vy) / 5200);   // הסימן נלחץ לפי עוצמת הפגיעה
+        if (!shook) {
+          /* הגלגל לא נוחת על הסימן אלא לידו, ולכן הסימן לא נמעך —
+             אבל המכה הראשונה עוברת ברצפה והוא רועד ממנה. חלש בהרבה
+             ממעיכה ישירה, וזה כל ההבדל. */
+          shook = true;
+          squash = Math.min(0.09, Math.abs(vy) / 15000);
           squashT = 0;
-          vx = DEFLECT;                                   // ומדיח את הגלגל הצידה
-          /* מכאן הסימן מחליק שמאלה. ההנעה היא בזמן ובעקומה רכה ולא
-             לפי כמה מהשם כבר נחשף: החשיפה עוצרת ומתחדשת עם כל
-             קפיצה של הגלגל, ומזה יוצאת תנועה מקוטעת. המשך הוא בדיוק
-             הזמן שייקח לגלגל לפנות את השם. */
-          slideT = 0;
-          slideDur = Math.max(0.35, (wordLeft + wordW + RT - x) / ROLL_MAX);
         }
-        vy = -vy * e;
+        vy = -vy * E_GROUND;                              // מקפץ במקום, בלי תזוזה הצידה
         flat = Math.min(FLAT_MAX, Math.abs(vy) / 260);    // רק הגומי, לפי עוצמת הפגיעה
       } else {
         vy = 0;
+        if (slideT < 0) {
+          /* הרגע שבו הקפיצות נגמרו והגלגול מתחיל. מכאן — ורק מכאן —
+             השם נפתח מאחורי הגלגל והצמד מתחיל להתמקם. ההנעה בזמן
+             ובעקומה רכה, ולא לפי כמה כבר נחשף: החשיפה תלויה בנסיעה,
+             ומזה הייתה יוצאת תנועה מקוטעת. */
+          slideT = 0;
+          slideDur = Math.max(0.5, (wordLeft + GAP + wordW + RT - x) / ROLL_MAX);
+        }
         if (vx < ROLL_MAX) vx += ROLL_ACC * dt;           // מתייצב ומתגלגל הלאה
       }
     }
@@ -142,14 +150,14 @@
     if (slideT >= 0 && slideT < slideDur) {               // הסימן מחליק שמאלה
       slideT = Math.min(slideDur, slideT + dt);
       var u = slideT / slideDur;
-      var e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-      stage.style.transform = 'translateX(' + (-SHIFT * e).toFixed(2) + 'px)';
+      slideE = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      stage.style.transform = 'translateX(' + (-SHIFT * slideE).toFixed(2) + 'px)';
     }
 
     // התאוששות הגומי: תנודה דועכת סביב הצורה המקורית
     if (squash !== 0) {
       squashT += dt;
-      var amp = 0.2 * Math.exp(-7 * squashT) * Math.cos(26 * squashT);
+      var amp = 0.09 * Math.exp(-7 * squashT) * Math.cos(26 * squashT);
       squash = Math.abs(amp) < 0.002 ? 0 : amp;
     }
 
