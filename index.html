@@ -443,8 +443,9 @@ svg{flex:none}
   clip-path:inset(0 100% 0 0);   /* נחשף בדיוק במקום שהגלגל כבר עבר */
   will-change:clip-path;
 }
-#splash .wheel{
+#splash .wheel,#splash .rim{
   position:absolute;left:0;top:0;width:52px;height:52px;
+  transform-origin:63.33% 49.49%;          /* ציר הגלגל בתוך הצילום */
   will-change:transform;transform:translate(-100px,-200px);
   user-select:none;-webkit-user-drag:none;
 }
@@ -452,11 +453,6 @@ svg{flex:none}
   position:absolute;left:0;top:0;width:52px;height:14px;border-radius:50%;
   pointer-events:none;will-change:transform,opacity;opacity:0;
   background:radial-gradient(ellipse at center, rgba(22,20,15,.42), rgba(22,20,15,0) 70%);
-}
-#splash .gloss{
-  position:absolute;left:0;top:0;width:52px;height:52px;border-radius:50%;
-  pointer-events:none;will-change:transform;transform:translate(-300px,-300px);
-  background:radial-gradient(circle at 34% 27%, rgba(255,255,255,.16), rgba(255,255,255,.03) 44%, rgba(255,255,255,0) 64%);
 }
 #splash .hint{
   position:absolute;bottom:calc(var(--s8) + env(safe-area-inset-bottom));
@@ -468,7 +464,7 @@ svg{flex:none}
 /* מי שביקש פחות תנועה מקבל את אותו מסך, מיד ובלי תנועה */
 @media (prefers-reduced-motion: reduce){
   #splash .word{clip-path:none}
-  #splash .wheel,#splash .gloss,#splash .shade{display:none}
+  #splash .wheel,#splash .rim,#splash .shade{display:none}
   #splash .hint{animation:none;opacity:1}
   #splash{transition:opacity .01s}
 }
@@ -484,7 +480,7 @@ svg{flex:none}
       <span class="word" id="spWord">AUTOPARTS</span>
       <span class="shade" id="spShade"></span>
       <img class="wheel" id="spWheel" src="/wheel.webp" alt="" aria-hidden="true" draggable="false">
-      <span class="gloss" id="spGloss"></span>
+      <img class="rim" id="spRim" src="/wheel-rim.webp" alt="" aria-hidden="true" draggable="false">
     </div>
     <span class="hint">מתחבר לשרת…</span>
   </div>
