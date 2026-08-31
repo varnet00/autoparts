@@ -23,6 +23,7 @@
   var G = 3200;            // תאוצת כובד — גלגל שטח כבד נופל בחדות
   var E_LOGO = 0.52;       // מקדם החזרה מהסימן — גומי על מתכת
   var E_GROUND = 0.42;     // מהרצפה
+  var MU = 1.15;           // אחיזת גומי במשטח — קובעת כמה מהר ההחלקה נבלמת
   var DEFLECT, ROLL_MAX, ROLL_ACC;   // נגזרים מאורך המסלול, ראו למטה
   var R;                   // רדיוס הגלגל
 
@@ -81,7 +82,7 @@
 
   var x = startX;                         // נופל על כתר הסימן
   var y = R - box.top - 24;               // מתחיל מעל קצה המסך, לא בתוך הבמה
-  var vx = 0, vy = 0, rot = 0;
+  var vx = 0, vy = 0, rot = 0, omega = 0;   // omega נפרדת מ-vx, ולכן אפשר להחליק
   var squash = 0, squashT = 0, hitLogo = false;
   var FLAT_MAX = 0.13 * R;                 // כמה הגומי נדחס לכל היותר
   var flat = 0;                            // עומק משטח המגע כרגע
@@ -117,7 +118,7 @@
     vy += G * dt;
     x += vx * dt;
     y += vy * dt;
-    rot += (vx * dt) / R;                 // גלגול בלי החלקה
+    rot += omega * dt;                    // הזווית נגזרת מהסיבוב עצמו, לא מהנסיעה
 
     // הפגיעה הראשונה: על הסימן
     var overLogo = x > markLeft - R * 0.4 && x < markRight + R * 0.4;
@@ -132,6 +133,7 @@
           squash = Math.min(0.2, Math.abs(vy) / 5200);   // הסימן נלחץ לפי עוצמת הפגיעה
           squashT = 0;
           vx = DEFLECT;                                   // ומדיח את הגלגל הצידה
+          omega = DEFLECT / R * 0.3;                      // ומעניק לו חלק מהסיבוב
         }
         vy = -vy * e;
         flat = Math.min(FLAT_MAX, Math.abs(vy) / 260);    // רק הגומי, לפי עוצמת הפגיעה
@@ -147,6 +149,20 @@
           slideDur = Math.max(0.5, (wordLeft + GAP + wordW + RT - x) / ROLL_MAX);
         }
         if (vx < ROLL_MAX) vx += ROLL_ACC * dt;           // מתייצב ומתגלגל הלאה
+        flat = Math.max(flat, R * 0.04);                  // צמיג טעון תמיד שטוח קצת
+      }
+
+      /* חיכוך בפתח המגע. הגלגל עוזב את הסימן עם מהירות הצידה אבל
+         כמעט בלי סיבוב, ולכן ברגע הנחיתה הוא מחליק — והחיכוך מאיץ
+         את הסיבוב ובולם מעט את הנסיעה עד שהשניים משתווים. מכאן
+         והלאה זה גלגול בלי החלקה. */
+      var slip = vx - omega * R;
+      if (Math.abs(slip) > 0.5) {
+        var d = Math.min(Math.abs(slip), 2 * MU * G * dt) * (slip > 0 ? 1 : -1);
+        vx -= d / 2;
+        omega += d / (2 * R);
+      } else {
+        omega = vx / R;
       }
     }
 
