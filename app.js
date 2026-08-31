@@ -559,10 +559,11 @@ function viewStock() {
     </div>`;
 }
 
-/* כרטיס מלאי: מה שהמוכר בא לבדוק — מחיר וכמה נשאר — עומד באמצע
-   בשורה משלו, ולא נדחק לפינה ליד התמונה. המק״ט המקורי יושב מתחת
-   לשם, כי זה מה שהקונה מחפש; כשיש כמה, מוצגים שניים וכפתור פותח
-   את השאר. המק״טים החלופיים נשארים למטה ולא מתערבבים איתם. */
+/* כרטיס מלאי: המחיר והכמות בעמודה שבצד, יחד עם התמונה, והעמודה
+   ממורכזת לגובה מול הטקסט — לא נצמדת לקצה העליון. המק״ט המקורי
+   יושב מתחת לשם, כי זה מה שהקונה מחפש; כשיש כמה, מוצגים שניים
+   וכפתור פותח את השאר. המק״טים החלופיים נשארים למטה ולא
+   מתערבבים איתם. */
 const OEM_SHOWN = 2;
 
 function stockCard(p) {
@@ -572,7 +573,7 @@ function stockCard(p) {
   const open = S.stockOems.has(p.id);
   const shown = open ? oems : oems.slice(0, OEM_SHOWN);
   return `<div class="card stack" style="padding: var(--s4) 17px;gap: var(--s4)">
-    <div class="row" style="align-items:flex-start;gap: var(--s4)">
+    <div class="row" style="align-items:center;gap: var(--s4)">
       <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
         <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc(p.name)}</span>
         <span class="mono" style="font-weight:600;font-size:var(--fs-sub)">${esc(p.part_no)}</span>
@@ -586,11 +587,11 @@ function stockCard(p) {
         ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
         <span>${kindTag(p.kind)}</span>
       </div>
-      ${thumb(p, 66)}
-    </div>
-    <div class="row hr" style="justify-content:center;gap: var(--s3);padding-top: var(--s4)">
-      <span class="price" style="font-size:var(--fs-lead)">${shekel(p.price)}</span>
-      <span class="mono muted" style="font-size:var(--fs-label)">${p.qty > 0 ? `×${p.qty} במלאי` : 'אזל'}</span>
+      <div class="stack" style="align-items:center;gap: var(--s2);flex:none">
+        ${thumb(p, 66)}
+        <span class="price" style="font-size:var(--fs-body)">${shekel(p.price)}</span>
+        <span class="mono muted" style="font-size:var(--fs-label)">${p.qty > 0 ? `×${p.qty} במלאי` : 'אזל'}</span>
+      </div>
     </div>
     ${alts.length ? `<div class="stack" style="gap: var(--s2)"><span class="label">מק״טים חלופיים</span>
       <div class="chips" style="gap: var(--s2)">${alts.slice(0, 4).map((n) => `<span class="num">${esc(n.number)}</span>`).join('')}</div></div>` : ''}
