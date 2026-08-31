@@ -38,8 +38,14 @@ const STOREFRONT = path.join(ROOT, 'index.html');
 // רק public/ נחשף; שאר התיקייה (קוד השרת, .git) לא.
 app.use(express.static(path.join(ROOT, 'public'), { maxAge: '1h' }));
 
+const DESKTOP = path.join(ROOT, 'desktop.html');
+
 app.get('/', (req, res) => res.sendFile(STOREFRONT));
 app.get('/app.js', (req, res) => res.sendFile(path.join(ROOT, 'app.js')));
+// גרסת המחשב: אותו API, פריסה של אתר. המעבר בין השתיים נעשה בדפדפן
+// לפי רוחב המסך, עם אפשרות לבחור ידנית דרך ?ui=
+app.get('/desktop', (req, res) => res.sendFile(DESKTOP));
+app.get('/desktop.js', (req, res) => res.sendFile(path.join(ROOT, 'desktop.js')));
 // הקבינט הפך למסך בתוך האפליקציה — הקישור הישן ממשיך לעבוד
 app.get('/cabinet.html', (req, res) => res.redirect(302, '/'));
 

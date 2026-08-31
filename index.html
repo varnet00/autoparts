@@ -2,6 +2,15 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
+<script>
+  /* מסך רחב מקבל את גרסת האתר, מסך צר את האפליקציה. ?ui=mobile נועל
+     על הגרסה הזו, וגם אפליקציה שהותקנה למסך הבית נשארת כאן. */
+  (function () {
+    var forced = /[?&]ui=mobile/.test(location.search);
+    var installed = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+    if (!forced && !installed && innerWidth >= 1024) location.replace('/desktop' + location.search);
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#efece8">
 <link rel="manifest" href="/manifest.json">

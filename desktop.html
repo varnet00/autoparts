@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<script>
+  /* חלון צר מדי לאתר — עוברים לגרסת האפליקציה, אלא אם ביקשו במפורש */
+  (function () {
+    if (!/[?&]ui=desktop/.test(location.search) && innerWidth < 860) location.replace('/' + location.search);
+  })();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#efece8">
+<title>autoparts — כל חלק. כל רכב.</title>
+<link rel="icon" href="/logo.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Heebo:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================ שפה עיצובית ============================
+   אותה שפה של האפליקציה — קרם, כתום, פינות רכות — אבל בפריסה של אתר:
+   שורת ניווט אחת למעלה, מסננים ברצועה קבועה מימין, ותוכן ברוחב מוגבל.
+   במסך גדול אין צורך להסתיר דברים מאחורי מחוות: הכול פרוש וברור. */
+:root{
+  --bg:#efece8; --card:#f7f5f2; --chip:#ece8e2; --ink:#16140f; --muted:#8b847b;
+  --line:#e4e0d9; --hair:#d8d3cb; --brand:#dd6612;
+  --orig-bg:#e7ecdf; --orig-fg:#3f5730;
+  --copy-bg:#ece8e2; --copy-fg:#5f5a52;
+  --used-bg:#f4e6d8; --used-fg:#8a5a24;
+
+  --sans:'Heebo',system-ui,sans-serif;
+  --disp:'Rubik',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+
+  --fs-hero:30px; --fs-lead:21px; --fs-body:15px; --fs-sub:14px; --fs-label:13px; --fs-micro:11px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:28px; --s7:40px; --s8:56px;
+
+  --rail:268px; --wrap:1240px; --head:64px;
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:var(--fs-body);
+  -webkit-font-smoothing:antialiased;
+}
+*{-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono);direction:ltr;unicode-bidi:isolate}
+.muted{color:var(--muted)}
+.label{font:500 var(--fs-label) var(--sans);color:var(--muted)}
+.row{display:flex;align-items:center}
+.stack{display:flex;flex-direction:column}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--s6)}
+.hide{display:none !important}
+
+/* ---------- שורת ניווט ---------- */
+.head{
+  position:sticky;top:0;z-index:30;background:rgba(239,236,232,.82);
+  -webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);
+  border-bottom:1px solid var(--line);
+}
+.head .wrap{height:var(--head);display:flex;align-items:center;gap: var(--s5)}
+.brand{display:flex;align-items:center;gap: var(--s3);direction:ltr;flex:none;cursor:pointer}
+.brand b{font:600 var(--fs-sub)/1 var(--mono);letter-spacing:1.6px}
+.nav{display:flex;align-items:center;gap: var(--s1);margin-inline-start: var(--s5)}
+.nav button{
+  padding:8px 14px;border-radius:10px;font:500 var(--fs-sub) var(--sans);color:var(--muted);
+  transition:background-color .18s var(--ease), color .18s var(--ease);
+}
+.nav button:hover{background:var(--chip);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--ink);color:#fff}
+.head .grow{flex:1}
+.headsearch{
+  flex:1;max-width:440px;display:flex;align-items:center;gap: var(--s2);
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0 var(--s3);height:40px;
+  transition:border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+.headsearch:focus-within{border-color:var(--hair);box-shadow:0 0 0 3px rgba(22,20,15,.05)}
+.headsearch input{flex:1;border:0;background:none;outline:none;min-width:0;font-size:var(--fs-sub)}
+.headsearch kbd{
+  font:500 11px var(--mono);color:var(--muted);border:1px solid var(--line);
+  border-radius:6px;padding:2px 6px;background:var(--bg);
+}
+.iconbtn{
+  width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  color:var(--ink);transition:background-color .18s var(--ease);
+}
+.iconbtn:hover{background:var(--chip)}
+
+/* ---------- שלד העמוד ---------- */
+main{padding:var(--s7) 0 var(--s8)}
+.cols{display:grid;grid-template-columns:var(--rail) 1fr;gap: var(--s7);align-items:start}
+@media (max-width:1080px){ .cols{grid-template-columns:1fr} .rail{position:static !important} }
+
+.rail{position:sticky;top:calc(var(--head) + var(--s6));display:flex;flex-direction:column;gap: var(--s5)}
+.railgroup{display:flex;flex-direction:column;gap: var(--s3)}
+.railhead{display:flex;align-items:center;justify-content:space-between}
+.railhead span{font:600 var(--fs-label) var(--sans);letter-spacing:.02em;color:var(--muted)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px}
+.pad{padding: var(--s5)}
+
+/* ---------- פקדים ---------- */
+.chips{display:flex;flex-wrap:wrap;gap: var(--s2)}
+.chip{
+  min-height:34px;padding:0 var(--s3);border-radius:999px;background:var(--chip);
+  font:500 var(--fs-label) var(--sans);display:inline-flex;align-items:center;white-space:nowrap;
+  transition:background-color .18s var(--ease), color .18s var(--ease);
+}
+.chip:hover{background:#e3ded6}
+.chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.field{display:flex;flex-direction:column;gap:6px}
+.field > span{font:500 var(--fs-label) var(--sans);color:var(--muted)}
+.field input,.field select,.field textarea{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:9px 12px;outline:none;width:100%;font-size:var(--fs-sub);
+  transition:border-color .18s var(--ease), box-shadow .18s var(--ease);
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--hair);box-shadow:0 0 0 3px rgba(22,20,15,.05);
+}
+.btn{
+  background:var(--ink);color:#fff;border-radius:10px;padding:10px var(--s5);
+  font:500 var(--fs-sub) var(--sans);display:inline-flex;align-items:center;justify-content:center;gap: var(--s2);
+  transition:opacity .18s var(--ease), transform .18s var(--ease);
+}
+.btn:hover{opacity:.92}
+.btn:active{transform:scale(.985)}
+.btn.wide{width:100%}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.btn.line{background:none;border:1px solid var(--line)}
+.btn.brand{background:var(--brand)}
+.link{color:var(--muted);font:500 var(--fs-label) var(--sans);text-decoration:underline;text-underline-offset:3px}
+.link:hover{color:var(--ink)}
+
+.tag{display:inline-block;padding:3px 9px;border-radius:999px;font:500 var(--fs-micro) var(--sans)}
+.tag.orig{background:var(--orig-bg);color:var(--orig-fg)}
+.tag.copy{background:var(--copy-bg);color:var(--copy-fg)}
+.tag.used{background:var(--used-bg);color:var(--used-fg)}
+.num{
+  display:inline-block;padding:3px 9px;border-radius:999px;background:var(--chip);
+  font:500 var(--fs-micro) var(--mono);letter-spacing:.3px;color:#4f4941;direction:ltr;
+}
+.num.oem{background:var(--orig-bg);color:var(--orig-fg)}
+
+/* ---------- רשת התוצאות ---------- */
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap: var(--s4)}
+.item{
+  background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  display:flex;flex-direction:column;cursor:pointer;
+  transition:border-color .18s var(--ease), transform .18s var(--ease), box-shadow .18s var(--ease);
+}
+.item:hover{border-color:var(--hair);transform:translateY(-2px);box-shadow:0 10px 24px rgba(22,20,15,.07)}
+.item .pic{
+  height:126px;background:#f1eeea;display:flex;align-items:center;justify-content:center;
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+}
+.item .pic.empty{
+  background:linear-gradient(180deg,#f3f0ec,#eeeae5);
+  font:500 var(--fs-micro) var(--sans);color:#bdb6ac;letter-spacing:.04em;
+}
+.item .body{padding: var(--s4);display:flex;flex-direction:column;gap:6px;flex:1}
+.item h3{margin:0;font:500 var(--fs-body)/1.3 var(--sans)}
+.item .foot{display:flex;align-items:center;justify-content:space-between;gap: var(--s2);margin-top:auto;padding-top: var(--s3)}
+.price{font:600 var(--fs-lead) var(--mono);direction:ltr}
+
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap: var(--s4);margin-bottom: var(--s5);flex-wrap:wrap}
+.crumbs{display:flex;align-items:center;gap: var(--s2);flex-wrap:wrap;font:500 var(--fs-label) var(--sans);color:var(--muted)}
+.crumbs .on{background:var(--chip);border-radius:999px;padding:4px 10px;color:var(--ink);display:inline-flex;gap:6px;align-items:center}
+
+/* ---------- טבלת המלאי ---------- */
+table{width:100%;border-collapse:collapse}
+th{text-align:start;font:600 var(--fs-label) var(--sans);color:var(--muted);padding:0 var(--s4) var(--s3)}
+td{padding: var(--s3) var(--s4);border-top:1px solid var(--line);vertical-align:middle}
+tr:hover td{background:rgba(236,232,226,.45)}
+
+/* ---------- שיחות ---------- */
+.chatcols{display:grid;grid-template-columns:300px 1fr;gap: var(--s5);height:min(70vh,620px)}
+.threadlist{overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-inline-end:6px}
+.thread{padding: var(--s3) var(--s4);border-radius:12px;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+.thread:hover{background:var(--chip)}
+.thread[aria-current="true"]{background:var(--ink);color:#fff}
+.thread[aria-current="true"] .label{color:rgba(255,255,255,.7)}
+.msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap: var(--s3);padding: var(--s5)}
+.bubble{max-width:70%;padding:10px 14px;border-radius:14px;font:400 var(--fs-sub)/1.55 var(--sans)}
+.bubble.me{background:var(--ink);color:#fff;align-self:flex-start;border-end-start-radius:5px}
+.bubble.them{background:var(--chip);align-self:flex-end;border-end-end-radius:5px}
+
+/* ---------- מודאל ---------- */
+.scrim{position:fixed;inset:0;background:rgba(22,20,15,.34);z-index:40;display:flex;align-items:center;justify-content:center;padding: var(--s6)}
+.modal{
+  background:var(--bg);border-radius:20px;width:min(720px,100%);max-height:88vh;overflow-y:auto;
+  box-shadow:0 30px 70px rgba(22,20,15,.28);
+}
+.modal .top{
+  position:sticky;top:0;background:var(--bg);display:flex;align-items:center;justify-content:space-between;
+  padding: var(--s5) var(--s6);border-bottom:1px solid var(--line);z-index:1;
+}
+
+.toast{
+  position:fixed;bottom:26px;inset-inline-start:26px;background:var(--ink);color:#fff;
+  padding:12px 18px;border-radius:12px;font:500 var(--fs-sub) var(--sans);z-index:60;
+  box-shadow:0 12px 30px rgba(22,20,15,.3);opacity:0;transform:translateY(8px);
+  transition:opacity .22s var(--ease), transform .22s var(--ease);pointer-events:none;
+}
+.toast.on{opacity:1;transform:none}
+.toast.bad{background:#8a2d1e}
+
+.empty{padding: var(--s8) 0;text-align:center;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap: var(--s3)}
+.spin{width:26px;height:26px;border-radius:999px;border:2px solid var(--hair);border-top-color:var(--ink);animation:sp .8s linear infinite;margin:var(--s8) auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media (prefers-reduced-motion: reduce){ *{transition:none !important;animation:none !important} }
+</style>
+</head>
+<body>
+<header class="head">
+  <div class="wrap">
+    <div class="brand" data-act="home">
+      <svg width="26" height="18" viewBox="71 180 496 333" aria-hidden="true"><path fill="#dd6612" fill-rule="evenodd" d="M72 180 L72 190 L108 365 L129 477 L134 489 L147 504 L160 511 L168 513 L468 513 L476 511 L490 503 L502 489 L507 476 L535 332 L567 182 L566 180 Z M97 202 L138 416 L166 351 L225 202 Z M412 202 L474 357 L484 378 L485 384 L497 410 L498 416 L500 415 L541 202 Z M318 245 L273 356 L270 360 L269 366 L256 394 L250 412 L247 416 L243 429 L240 433 L232 456 L224 472 L218 487 L219 489 L418 488 L399 440 L315 440 L315 436 L322 422 L339 377 L372 376 L319 245 Z"/></svg>
+      <b>AUTOPARTS</b>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <span class="grow"></span>
+    <form class="headsearch" data-act="search">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input name="q" placeholder="שם חלק או מספר מק״ט" autocomplete="off" id="q">
+      <kbd>/</kbd>
+    </form>
+    <div class="row" id="acct" style="gap:4px"></div>
+  </div>
+</header>
+
+<main id="view"><div class="spin"></div></main>
+<div id="layer"></div>
+<div class="toast" id="toast"></div>
+
+<script src="/desktop.js"></script>
+</body>
+</html>
