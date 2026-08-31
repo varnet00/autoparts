@@ -92,6 +92,7 @@ const S = {
   analogs: [],
   supOpen: true,
   stock: [],
+  stockOems: new Set(),  // אילו כרטיסים פתחו את כל המק״טים המקוריים
   sellerStats: null,
   conversations: [],
   conv: null,
@@ -197,12 +198,6 @@ function thumb(part, size) {
   const s = size || 72;
   if (!part.image_url) return '';
   return `<div class="thumb" style="width:${s}px;height:${s}px;background-image:url('${esc(part.image_url)}')"></div>`;
-}
-
-function partNums(part, max) {
-  const nums = (part.interchange_numbers || []).slice(0, max || 3);
-  if (!nums.length) return '';
-  return `<div class="chips" style="gap: var(--s2)">${nums.map((n) => `<span class="num">${esc(n.number)}</span>`).join('')}</div>`;
 }
 
 function emptyState(icon, title, sub) {
@@ -564,22 +559,41 @@ function viewStock() {
     </div>`;
 }
 
+/* כרטיס מלאי: מה שהמוכר בא לבדוק — מחיר וכמה נשאר — עומד באמצע
+   בשורה משלו, ולא נדחק לפינה ליד התמונה. המק״ט המקורי יושב מתחת
+   לשם, כי זה מה שהקונה מחפש; כשיש כמה, מוצגים שניים וכפתור פותח
+   את השאר. המק״טים החלופיים נשארים למטה ולא מתערבבים איתם. */
+const OEM_SHOWN = 2;
+
 function stockCard(p) {
+  const all = p.interchange_numbers || [];
+  const oems = all.filter((n) => n.is_oem);
+  const alts = all.filter((n) => !n.is_oem);
+  const open = S.stockOems.has(p.id);
+  const shown = open ? oems : oems.slice(0, OEM_SHOWN);
   return `<div class="card stack" style="padding: var(--s4) 17px;gap: var(--s4)">
     <div class="row" style="align-items:flex-start;gap: var(--s4)">
       <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
         <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc(p.name)}</span>
         <span class="mono" style="font-weight:600;font-size:var(--fs-sub)">${esc(p.part_no)}</span>
+        ${oems.length ? `<div class="chips" style="gap: var(--s2);align-items:center">
+          <span class="label">מק״ט מקורי</span>
+          ${shown.map((n) => `<span class="num oem">${esc(n.number)}</span>`).join('')}
+          ${oems.length > OEM_SHOWN ? `<button data-act="toggle-oems" data-id="${p.id}"
+            style="font:500 var(--fs-label) var(--sans);color:var(--ink);text-decoration:underline;text-underline-offset:3px;padding: var(--s2) 0"
+            >${open ? 'הסתר' : `הצג הכול · ${oems.length}`}</button>` : ''}
+        </div>` : ''}
         ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
         <span>${kindTag(p.kind)}</span>
       </div>
-      <div class="stack" style="align-items:center;gap: var(--s2)">
-        ${thumb(p, 66)}
-        <span class="price" style="font-size:var(--fs-body)">${shekel(p.price)}</span>
-        <span class="mono muted" style="font-size:var(--fs-label)">${p.qty > 0 ? `×${p.qty} במלאי` : 'אזל'}</span>
-      </div>
+      ${thumb(p, 66)}
     </div>
-    ${partNums(p, 4) ? `<div class="stack" style="gap: var(--s2)"><span class="label">מק״טים חלופיים</span>${partNums(p, 4)}</div>` : ''}
+    <div class="row hr" style="justify-content:center;gap: var(--s3);padding-top: var(--s4)">
+      <span class="price" style="font-size:var(--fs-lead)">${shekel(p.price)}</span>
+      <span class="mono muted" style="font-size:var(--fs-label)">${p.qty > 0 ? `×${p.qty} במלאי` : 'אזל'}</span>
+    </div>
+    ${alts.length ? `<div class="stack" style="gap: var(--s2)"><span class="label">מק״טים חלופיים</span>
+      <div class="chips" style="gap: var(--s2)">${alts.slice(0, 4).map((n) => `<span class="num">${esc(n.number)}</span>`).join('')}</div></div>` : ''}
     <div class="row hr" style="gap: var(--s2);padding-top: var(--s3)">
       <button class="btn row" data-act="edit" data-id="${p.id}" style="flex:1;justify-content:center;gap: var(--s2);padding: var(--s3);font-size:var(--fs-sub)">${ICON.pencil({ s: 14 })}ערוך</button>
       <button class="btn ghost" data-act="delete" data-id="${p.id}" style="width:46px;padding: var(--s3);display:flex;align-items:center;justify-content:center">${ICON.trash({ s: 16 })}</button>
@@ -1775,6 +1789,11 @@ document.addEventListener('click', async (ev) => {
   if (act === 'toggle') { S.openPart = S.openPart === Number(el.dataset.id) ? null : Number(el.dataset.id); S.keepScroll = true; render(); return; }
   if (act === 'open-part') { loadPart(el.dataset.id); return; }
   if (act === 'toggle-sup') { S.supOpen = !S.supOpen; S.keepScroll = true; render(); return; }
+  if (act === 'toggle-oems') {
+    const id = Number(el.dataset.id);
+    if (S.stockOems.has(id)) S.stockOems.delete(id); else S.stockOems.add(id);
+    S.keepScroll = true; render(); return;
+  }
 
   // צ׳אט
   if (act === 'start-chat') {
