@@ -3,7 +3,8 @@
    נגזרת מהדרך שעבר, גלגול בלי החלקה: θ = x / r.
    הוא נכנס מעל קצה המסך, לא מתוך הבמה, נופל בתאוצת כובד, מאבד
    חלק מהמהירות בכל פגיעה (מקדם החזרה), והסימן נלחץ כמו גומי
-   ומתאושש בתנודה דועכת. השם נחשף בדיוק במקום שהגלגל כבר פינה. */
+   ומתאושש בתנודה דועכת. השם נחשף לאורך הקשת של הגלגל עצמו, ולכן
+   האותיות יוצאות ממש מתחתיו ולא מאחורי קו ישר שמשאיר רווח. */
 (function () {
   var stage = document.getElementById('stage');
   var mark = document.getElementById('spMark');
@@ -40,6 +41,29 @@
   DEFLECT = ROLL_MAX * 0.92;
   ROLL_ACC = ROLL_MAX * 1.7;
 
+  /* חזית החשיפה של השם היא הקשת של הגלגל, לא קו אנכי: קו ישר
+     חותך את האות במרחק R מהמרכז, והרווח שנשאר עד לצמיג העגול
+     נראה כמו צל לבן שממנו האות מבצבצת. */
+  var ROWS = 8;
+  var wordTop = wb.top - box.top;
+  var wordH = wb.height;
+  var rollY = ground - R;                 // גובה מרכז הגלגל בזמן גלגול
+  var seen = [];                          // חזית לכל שורה — אות שנחשפה לא נעלמת
+  for (var i = 0; i <= ROWS; i++) seen.push(0);
+
+  function revealWord() {
+    var pts = '0 0';
+    for (var i = 0; i <= ROWS; i++) {
+      var yl = wordH * i / ROWS;
+      var dy = (wordTop + yl) - rollY;
+      var half = Math.abs(dy) < R ? Math.sqrt(R * R - dy * dy) : 0;
+      var f = Math.max(0, Math.min(wordW, (x - half) - wordLeft));
+      if (f > seen[i]) seen[i] = f;
+      pts += ',' + seen[i].toFixed(1) + 'px ' + yl.toFixed(1) + 'px';
+    }
+    word.style.clipPath = 'polygon(' + pts + ',0 ' + wordH.toFixed(1) + 'px)';
+  }
+
   var x = startX;                         // נופל על כתר הסימן
   var y = R - box.top - 24;               // מתחיל מעל קצה המסך, לא בתוך הבמה
   var vx = 0, vy = 0, rot = 0;
@@ -62,8 +86,7 @@
     // גומי: נלחץ לגובה ומתרחב לרוחב, ושומר על נפח בערך
     var k = squash;
     mark.style.transform = 'scaleY(' + (1 - k) + ') scaleX(' + (1 + k * 0.55) + ')';
-    var shown = Math.max(0, Math.min(wordW, (x - R) - wordLeft));
-    word.style.clipPath = 'inset(0 ' + Math.max(0, wordW - shown) + 'px 0 0)';
+    revealWord();
   }
 
   function step(now) {
