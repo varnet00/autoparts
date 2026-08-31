@@ -36,7 +36,18 @@ const STOREFRONT = path.join(ROOT, 'index.html');
 
 // מניפסט ואייקונים — כדי ש"הוסף למסך הבית" ייתן אפליקציה במסך מלא.
 // רק public/ נחשף; שאר התיקייה (קוד השרת, .git) לא.
-app.use(express.static(path.join(ROOT, 'public'), { maxAge: '1h' }));
+//
+// קוד חייב להיבדק מול השרת בכל טעינה. index.html ו-app.js כבר מתנהגים
+// ככה (sendFile נותן max-age=0 עם ETag), אבל splash.js ישב שעה בזיכרון
+// הדפדפן — ולכן תיקון שכולו בתוכו פשוט לא הגיע לטלפון. תמונות ופונטים
+// כן נשמרות, ומי שמחליף קובץ תמונה בלי לשנות שם מוסיף ?v= ב-HTML.
+const CODE = /\.(?:js|mjs|json|webmanifest|html)$/i;
+app.use(express.static(path.join(ROOT, 'public'), {
+  maxAge: '1h',
+  setHeaders(res, filePath) {
+    if (CODE.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 
 const DESKTOP = path.join(ROOT, 'desktop.html');
 
