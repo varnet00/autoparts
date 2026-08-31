@@ -44,6 +44,7 @@
      המסך. ההיסט נמוג בקצב שבו השם נחשף, כך שברגע שהאות האחרונה
      יצאה מתחת לגלגל הצמד כבר ממורכז. */
   var SHIFT = wb.width / 2;
+  var slideT = -1, slideDur = 1;          // מתחילה בהקפצה מהסימן
   stage.style.transform = 'translateX(' + SHIFT.toFixed(2) + 'px)';
 
   /* מהירות הגלגול נגזרת מהדרך שנותרה, לא קבועה: על טלפון צר יוצא
@@ -53,40 +54,27 @@
   DEFLECT = ROLL_MAX * 0.92;
   ROLL_ACC = ROLL_MAX * 1.7;
 
-  /* חזית החשיפה של השם היא הקשת של הגלגל, לא קו אנכי: קו ישר
-     חותך את האות במרחק R מהמרכז, והרווח שנשאר עד לצמיג העגול
-     נראה כמו צל לבן שממנו האות מבצבצת. */
-  var ROWS = 8;
+  /* חזית החשיפה היא קו אנכי אחד, לא מדרגה לכל שורה. הקו נמדד בגובה
+     שבו האותיות נגמרות למטה — שם הצמיג הכי קרוב למרכזו — ולכן כל
+     מה שנחשף מעליו עדיין מכוסה בגומי ואין רווח לפני האות. קו אחד
+     לכל הגובה פירושו גם שלא נשארת חצי אות מחוקה במקום שהגלגל לא
+     דרך עליו בדיוק. */
   var wordTop = wb.top - box.top;
   var wordH = wb.height;
-  var RT = R * 0.98;                      // רדיוס הגומי בפועל, מעט פנימה מהמסגרת
-  var seen = [];                          // חזית לכל שורה — אות שנחשפה לא נעלמת
-  for (var i = 0; i <= ROWS; i++) seen.push(0);
+  var REF = wordTop + wordH * 0.86;       // גובה הייחוס: מתחת לתחתית האותיות
+  var RT = R * 0.98;                      // רדיוס הגומי, מעט פנימה מהמסגרת
+  var seen = 0;                           // החזית רק גדלה, ולכן אות לא נעלמת
 
-  /* השם נחשף לפי הקשת של הגלגל במקום שבו הוא באמת נמצא עכשיו, ולא
-     לפי גובה הגלגול: כשהוא מקפץ מעל השם, קשת של גלגל שיושב על
-     הרצפה כבר לא מכסה את האות, ונפער רווח לפניה. שורה שהגלגל לא
-     חוצה כרגע פשוט לא מתקדמת — ככה אין קפיצה קדימה, והחזית לכל
-     שורה רק גדלה, ולכן אות שנחשפה לא נעלמת. */
   function revealWord() {
-    var cy = y + flat;                    // מרכז הגלגל כפי שהוא מצויר
-    var pts = '0 0', shown = 0;
-    for (var i = 0; i <= ROWS; i++) {
-      var yl = wordH * i / ROWS;
-      var dy = (wordTop + yl) - cy;
-      if (Math.abs(dy) <= R) {          // שורה שהגלגל חוצה כרגע
-        var half = Math.sqrt(Math.max(0, RT * RT - dy * dy));
-        var f = Math.max(0, Math.min(wordW, (x - half) - wordLeft));
-        if (f > seen[i]) seen[i] = f;
-      }
-      pts += ',' + seen[i].toFixed(1) + 'px ' + yl.toFixed(1) + 'px';
-      shown += seen[i];
-    }
-    word.style.clipPath = 'polygon(' + pts + ',0 ' + wordH.toFixed(1) + 'px)';
-
-    // הבמה מחליקה שמאלה בדיוק לפי החלק שכבר נחשף
-    var p = Math.min(1, shown / (wordW * (ROWS + 1)));
-    stage.style.transform = 'translateX(' + (SHIFT * (1 - p)).toFixed(2) + 'px)';
+    /* בלי תנאים: כשהגלגל חוצה את הגובה הזה half הוא חצי המיתר והאות
+       נחתכת מתחת לגומי; כשהוא מקפץ מעליו half מתאפס מעצמו והחזית
+       עוברת למרכזו. הנוסחה רציפה בין שני המצבים, ולכן החשיפה לא
+       קופאת באמצע קפיצה ולא נשארת חצי אות מחוקה מאחורי הגלגל. */
+    var dy = REF - (y + flat);
+    var half = Math.sqrt(Math.max(0, RT * RT - dy * dy));
+    var f = Math.max(0, Math.min(wordW, (x - half) - wordLeft));
+    if (f > seen) seen = f;
+    word.style.clipPath = 'inset(0 ' + (wordW - seen).toFixed(1) + 'px 0 0)';
   }
 
   var x = startX;                         // נופל על כתר הסימן
@@ -142,6 +130,12 @@
           squash = Math.min(0.2, Math.abs(vy) / 5200);   // הסימן נלחץ לפי עוצמת הפגיעה
           squashT = 0;
           vx = DEFLECT;                                   // ומדיח את הגלגל הצידה
+          /* מכאן הסימן מחליק שמאלה. ההנעה היא בזמן ובעקומה רכה ולא
+             לפי כמה מהשם כבר נחשף: החשיפה עוצרת ומתחדשת עם כל
+             קפיצה של הגלגל, ומזה יוצאת תנועה מקוטעת. המשך הוא בדיוק
+             הזמן שייקח לגלגל לפנות את השם. */
+          slideT = 0;
+          slideDur = Math.max(0.35, (wordLeft + wordW + RT - x) / ROLL_MAX);
         }
         vy = -vy * e;
         flat = Math.min(FLAT_MAX, Math.abs(vy) / 260);    // רק הגומי, לפי עוצמת הפגיעה
@@ -152,6 +146,13 @@
     }
 
     if (flat > 0) flat *= Math.exp(-dt / 0.045);          // הגומי חוזר לצורתו
+
+    if (slideT >= 0 && slideT < slideDur) {               // הסימן מחליק שמאלה
+      slideT = Math.min(slideDur, slideT + dt);
+      var u = slideT / slideDur;
+      var e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      stage.style.transform = 'translateX(' + (SHIFT * (1 - e)).toFixed(2) + 'px)';
+    }
 
     // התאוששות הגומי: תנודה דועכת סביב הצורה המקורית
     if (squash !== 0) {
