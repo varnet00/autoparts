@@ -8,6 +8,7 @@
   var mark = document.getElementById('spMark');
   var word = document.getElementById('spWord');
   var wheel = document.getElementById('spWheel');
+  var gloss = document.getElementById('spGloss');
   if (!stage || !mark || !word || !wheel) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -39,7 +40,10 @@
   var last = 0, done = false;
 
   function paint() {
-    wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R) + 'px) rotate(' + rot + 'rad) scaleY(' + tyre + ')';
+    var place = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
+    wheel.style.transform = place + ' rotate(' + rot + 'rad) scaleY(' + tyre + ')';
+    // מקור האור עומד במקומו בזמן שהגלגל מסתובב, ולכן הברק לא מסתובב איתו
+    if (gloss) gloss.style.transform = place + ' scaleY(' + tyre + ')';
     // גומי: נלחץ לגובה ומתרחב לרוחב, ושומר על נפח בערך
     var k = squash;
     mark.style.transform = 'scaleY(' + (1 - k) + ') scaleX(' + (1 + k * 0.55) + ')';

@@ -226,9 +226,14 @@ tr:hover td{background:rgba(236,232,226,.45)}
   clip-path:inset(0 100% 0 0);will-change:clip-path;
 }
 #splash .wheel{position:absolute;left:0;top:0;width:72px;height:72px;will-change:transform;transform:translate(-200px,-300px)}
+#splash .gloss{
+  position:absolute;left:0;top:0;width:72px;height:72px;border-radius:50%;
+  pointer-events:none;will-change:transform;transform:translate(-300px,-300px);
+  background:radial-gradient(circle at 32% 26%, rgba(255,255,255,.24), rgba(255,255,255,.04) 44%, rgba(255,255,255,0) 64%);
+}
 @media (prefers-reduced-motion: reduce){
   #splash .word{clip-path:none}
-  #splash .wheel{display:none}
+  #splash .wheel,#splash .gloss{display:none}
   #splash{transition:opacity .01s}
 }
 
@@ -248,28 +253,41 @@ tr:hover td{background:rgba(236,232,226,.45)}
     <span class="word" id="spWord">AUTOPARTS</span>
     <svg class="wheel" id="spWheel" viewBox="0 0 100 100" aria-hidden="true">
       <defs>
-        <radialGradient id="spAlloy" cx="36%" cy="30%">
-          <stop offset="0" stop-color="#efece7"/><stop offset=".5" stop-color="#c3beb6"/><stop offset="1" stop-color="#8a857d"/>
+        <radialGradient id="spRub" cx="34%" cy="27%" r="80%">
+          <stop offset="0" stop-color="#464339"/><stop offset=".42" stop-color="#2b2822"/>
+          <stop offset=".78" stop-color="#191811"/><stop offset="1" stop-color="#0c0b07"/>
         </radialGradient>
-        <linearGradient id="spRub" x1=".2" y1="0" x2=".8" y2="1">
-          <stop offset="0" stop-color="#3a3833"/><stop offset=".55" stop-color="#232119"/><stop offset="1" stop-color="#131209"/>
-        </linearGradient>
+        <radialGradient id="spAlloy" cx="34%" cy="28%">
+          <stop offset="0" stop-color="#f4f1ec"/><stop offset=".45" stop-color="#c9c4bc"/>
+          <stop offset=".82" stop-color="#948f87"/><stop offset="1" stop-color="#6b665d"/>
+        </radialGradient>
       </defs>
-      <g fill="#1b1a15"><path d="M92.6 44.1L98.2 45.2L98.2 54.8L92.6 55.9Z"/><path d="M92.5 56.5L98.3 59.6L94.7 70.6L88.2 69.8Z"/><path d="M87.9 70.2L91.8 74.4L86.1 82.2L81.0 79.8Z"/><path d="M80.6 80.2L83.4 86.1L74.0 92.9L69.3 88.4Z"/><path d="M68.8 88.7L69.5 94.3L60.3 97.3L57.5 92.3Z"/><path d="M57.0 92.4L55.8 98.9L44.2 98.9L43.0 92.4Z"/><path d="M42.5 92.3L39.7 97.3L30.5 94.3L31.2 88.7Z"/><path d="M30.7 88.4L26.0 92.9L16.6 86.1L19.4 80.2Z"/><path d="M19.0 79.8L13.9 82.2L8.2 74.4L12.1 70.2Z"/><path d="M11.8 69.8L5.3 70.6L1.7 59.6L7.5 56.5Z"/><path d="M7.4 55.9L1.8 54.8L1.8 45.2L7.4 44.1Z"/><path d="M7.5 43.5L1.7 40.4L5.3 29.4L11.8 30.2Z"/><path d="M12.1 29.8L8.2 25.6L13.9 17.8L19.0 20.2Z"/><path d="M19.4 19.8L16.6 13.9L26.0 7.1L30.7 11.6Z"/><path d="M31.2 11.3L30.5 5.7L39.7 2.7L42.5 7.7Z"/><path d="M43.0 7.6L44.2 1.1L55.8 1.1L57.0 7.6Z"/><path d="M57.5 7.7L60.3 2.7L69.5 5.7L68.8 11.3Z"/><path d="M69.3 11.6L74.0 7.1L83.4 13.9L80.6 19.8Z"/><path d="M81.0 20.2L86.1 17.8L91.8 25.6L87.9 29.8Z"/><path d="M88.2 30.2L94.7 29.4L98.3 40.4L92.5 43.5Z"/></g>
-      <circle cx="50" cy="50" r="44.5" fill="url(#spRub)"/>
-      <circle cx="50" cy="50" r="44.5" fill="none" stroke="#0f0e0a" stroke-width="1.2"/>
-      <circle cx="50" cy="50" r="38.5" fill="none" stroke="#46433c" stroke-width="1.1" opacity=".75"/>
-      <circle cx="50" cy="50" r="34.6" fill="#201e19"/>
-      <circle cx="50" cy="50" r="33.3" fill="url(#spAlloy)"/>
-      <circle cx="50" cy="50" r="33.3" fill="none" stroke="#6b665e" stroke-width=".9"/>
-      <g fill="#726c63"><circle cx="81.6" cy="50.0" r="1.5"/><circle cx="80.7" cy="57.6" r="1.5"/><circle cx="78.0" cy="64.7" r="1.5"/><circle cx="73.7" cy="71.0" r="1.5"/><circle cx="68.0" cy="76.0" r="1.5"/><circle cx="61.2" cy="79.5" r="1.5"/><circle cx="53.8" cy="81.4" r="1.5"/><circle cx="46.2" cy="81.4" r="1.5"/><circle cx="38.8" cy="79.5" r="1.5"/><circle cx="32.0" cy="76.0" r="1.5"/><circle cx="26.3" cy="71.0" r="1.5"/><circle cx="22.0" cy="64.7" r="1.5"/><circle cx="19.3" cy="57.6" r="1.5"/><circle cx="18.4" cy="50.0" r="1.5"/><circle cx="19.3" cy="42.4" r="1.5"/><circle cx="22.0" cy="35.3" r="1.5"/><circle cx="26.3" cy="29.0" r="1.5"/><circle cx="32.0" cy="24.0" r="1.5"/><circle cx="38.8" cy="20.5" r="1.5"/><circle cx="46.2" cy="18.6" r="1.5"/><circle cx="53.8" cy="18.6" r="1.5"/><circle cx="61.2" cy="20.5" r="1.5"/><circle cx="68.0" cy="24.0" r="1.5"/><circle cx="73.7" cy="29.0" r="1.5"/><circle cx="78.0" cy="35.3" r="1.5"/><circle cx="80.7" cy="42.4" r="1.5"/></g>
-      <circle cx="50" cy="50" r="29.6" fill="#2a2823"/>
-      <g fill="url(#spAlloy)"><path d="M61.9 48.8L78.6 48.4L78.6 51.6L61.9 51.2Z"/><path d="M61.5 53.5L77.0 59.5L75.8 62.4L60.6 55.7Z"/><path d="M59.3 57.6L71.3 69.1L69.1 71.3L57.6 59.3Z"/><path d="M55.7 60.6L62.4 75.8L59.5 77.0L53.5 61.5Z"/><path d="M51.2 61.9L51.6 78.6L48.4 78.6L48.8 61.9Z"/><path d="M46.5 61.5L40.5 77.0L37.6 75.8L44.3 60.6Z"/><path d="M42.4 59.3L30.9 71.3L28.7 69.1L40.7 57.6Z"/><path d="M39.4 55.7L24.2 62.4L23.0 59.5L38.5 53.5Z"/><path d="M38.1 51.2L21.4 51.6L21.4 48.4L38.1 48.8Z"/><path d="M38.5 46.5L23.0 40.5L24.2 37.6L39.4 44.3Z"/><path d="M40.7 42.4L28.7 30.9L30.9 28.7L42.4 40.7Z"/><path d="M44.3 39.4L37.6 24.2L40.5 23.0L46.5 38.5Z"/><path d="M48.8 38.1L48.4 21.4L51.6 21.4L51.2 38.1Z"/><path d="M53.5 38.5L59.5 23.0L62.4 24.2L55.7 39.4Z"/><path d="M57.6 40.7L69.1 28.7L71.3 30.9L59.3 42.4Z"/><path d="M60.6 44.3L75.8 37.6L77.0 40.5L61.5 46.5Z"/></g>
-      <circle cx="50" cy="50" r="12.8" fill="url(#spAlloy)"/>
-      <circle cx="50" cy="50" r="12.8" fill="none" stroke="#6b665e" stroke-width=".9"/>
-      <g fill="#4a453e"><circle cx="50.0" cy="41.8" r="2"/><circle cx="57.1" cy="45.9" r="2"/><circle cx="57.1" cy="54.1" r="2"/><circle cx="50.0" cy="58.2" r="2"/><circle cx="42.9" cy="54.1" r="2"/><circle cx="42.9" cy="45.9" r="2"/></g>
-      <circle cx="50" cy="50" r="4.8" fill="#17160f"/>
+
+      <!-- טבעת הסוליה: בלוקים בגבהים ורוחבים משתנים, עם פינות מעוגלות -->
+      <g fill="#141308" stroke="#141308" stroke-width="1.1" stroke-linejoin="round"><path d="M90.9 42.8L97.4 43.4L97.7 53.8L91.2 54.9Z"/><path d="M91.3 54.5L97.4 57.0L94.8 67.0L88.2 66.2Z"/><path d="M87.7 67.4L91.9 70.8L88.2 77.0L83.2 74.9Z"/><path d="M83.9 74.0L88.0 79.2L80.8 86.7L75.5 82.8Z"/><path d="M75.8 82.5L78.3 88.6L69.4 93.8L65.3 88.6Z"/><path d="M64.1 89.0L64.7 94.4L57.6 96.2L55.7 91.1Z"/><path d="M56.7 91.0L56.0 97.5L45.6 97.7L44.6 91.1Z"/><path d="M45.0 91.2L42.4 97.3L32.4 94.6L33.3 88.0Z"/><path d="M32.1 87.5L28.7 91.7L22.5 87.9L24.7 82.9Z"/><path d="M25.6 83.6L20.4 87.6L13.0 80.4L16.9 75.1Z"/><path d="M17.2 75.4L11.0 77.9L5.9 68.8L11.2 64.8Z"/><path d="M11.6 65.8L6.3 66.7L4.2 59.7L9.2 57.5Z"/><path d="M9.0 56.2L2.4 55.4L2.4 45.0L8.9 44.1Z"/><path d="M8.9 44.5L2.8 41.8L5.7 31.9L12.2 32.8Z"/><path d="M11.8 33.8L7.4 30.6L10.9 24.2L16.0 26.2Z"/><path d="M16.8 25.2L12.7 19.9L20.1 12.6L25.4 16.6Z"/><path d="M25.0 16.9L22.6 10.7L31.7 5.7L35.7 11.1Z"/><path d="M34.7 11.4L33.9 6.1L40.9 4.1L43.0 9.1Z"/><path d="M44.3 8.9L45.3 2.3L55.6 2.4L56.4 9.0Z"/><path d="M53.7 8.7L56.0 2.5L66.1 4.9L65.4 11.5Z"/><path d="M66.7 12.0L69.9 7.7L76.2 11.3L74.2 16.3Z"/><path d="M75.3 17.1L80.6 13.1L87.8 20.6L83.7 25.8Z"/><path d="M82.0 23.6L88.1 20.9L93.4 29.8L88.3 33.9Z"/><path d="M88.8 35.2L94.1 34.4L96.0 41.4L91.0 43.5Z"/></g>
+      <g fill="#413d34" opacity=".8"><path d="M95.2 43.5L97.0 43.7L97.3 53.6L95.5 53.9Z"/><path d="M95.3 56.4L96.9 57.0L94.4 66.7L92.6 66.5Z"/><path d="M90.0 69.6L91.4 70.6L87.9 76.6L86.3 75.9Z"/><path d="M86.4 77.6L87.5 79.0L80.6 86.2L79.2 85.1Z"/><path d="M77.3 86.7L77.9 88.3L69.3 93.3L68.2 91.9Z"/><path d="M64.2 92.3L64.4 94.0L57.7 95.7L57.1 94.0Z"/><path d="M55.9 95.3L55.8 97.0L45.8 97.2L45.5 95.5Z"/><path d="M43.1 95.2L42.4 96.8L32.7 94.1L33.0 92.4Z"/><path d="M29.9 89.8L28.8 91.2L22.9 87.5L23.7 86.0Z"/><path d="M21.9 86.1L20.6 87.2L13.4 80.2L14.5 78.8Z"/><path d="M13.0 76.8L11.4 77.4L6.5 68.7L7.9 67.7Z"/><path d="M8.4 66.1L6.7 66.4L4.7 59.7L6.3 59.1Z"/><path d="M4.6 55.4L2.9 55.2L2.8 45.2L4.6 44.9Z"/><path d="M4.9 42.5L3.3 41.8L6.1 32.2L7.8 32.5Z"/><path d="M9.3 31.7L7.9 30.7L11.3 24.6L12.9 25.3Z"/><path d="M14.3 21.5L13.2 20.1L20.3 13.1L21.7 14.1Z"/><path d="M23.7 12.6L23.0 11.0L31.8 6.2L32.8 7.6Z"/><path d="M34.5 8.2L34.2 6.5L40.9 4.6L41.5 6.2Z"/><path d="M45.2 4.6L45.4 2.8L55.4 2.9L55.6 4.6Z"/><path d="M55.5 4.6L56.1 3.0L65.8 5.3L65.6 7.1Z"/><path d="M68.8 9.6L69.8 8.2L75.9 11.6L75.2 13.2Z"/><path d="M79.0 14.7L80.4 13.6L87.3 20.8L86.2 22.1Z"/><path d="M86.1 22.0L87.7 21.3L92.9 29.9L91.5 30.9Z"/><path d="M92.0 35.0L93.7 34.7L95.5 41.4L93.9 42.0Z"/></g>
+
+      <!-- גוף הצמיג: דופן גבוהה, אור נופל משמאל למעלה -->
+      <circle cx="50" cy="50" r="43.4" fill="url(#spRub)"/>
+      <circle cx="50" cy="50" r="43.4" fill="none" stroke="#0a0906" stroke-width="1"/>
+      <circle cx="50" cy="50" r="40.2" fill="none" stroke="#4b4740" stroke-width="1.6" opacity=".5"/>
+      <circle cx="50" cy="50" r="34.5" fill="none" stroke="#565149" stroke-width=".9"
+              stroke-dasharray="2.2 3.4" opacity=".5"/>   <!-- כיתוב מובלט על הדופן -->
+      <circle cx="50" cy="50" r="29.5" fill="none" stroke="#403c35" stroke-width="1" opacity=".45"/>
+
+      <!-- מפגש גומי-מתכת -->
+      <circle cx="50" cy="50" r="27.0" fill="#0f0e09"/>
+      <circle cx="50" cy="50" r="25.5" fill="url(#spAlloy)"/>
+      <circle cx="50" cy="50" r="25.5" fill="none" stroke="#6b665e" stroke-width=".8"/>
+      <g fill="#726c63"><circle cx="73.4" cy="50.0" r="1.2"/><circle cx="72.5" cy="56.6" r="1.2"/><circle cx="69.7" cy="62.7" r="1.2"/><circle cx="65.3" cy="67.7" r="1.2"/><circle cx="59.7" cy="71.3" r="1.2"/><circle cx="53.3" cy="73.2" r="1.2"/><circle cx="46.7" cy="73.2" r="1.2"/><circle cx="40.3" cy="71.3" r="1.2"/><circle cx="34.7" cy="67.7" r="1.2"/><circle cx="30.3" cy="62.7" r="1.2"/><circle cx="27.5" cy="56.6" r="1.2"/><circle cx="26.6" cy="50.0" r="1.2"/><circle cx="27.5" cy="43.4" r="1.2"/><circle cx="30.3" cy="37.3" r="1.2"/><circle cx="34.7" cy="32.3" r="1.2"/><circle cx="40.3" cy="28.7" r="1.2"/><circle cx="46.7" cy="26.8" r="1.2"/><circle cx="53.3" cy="26.8" r="1.2"/><circle cx="59.7" cy="28.7" r="1.2"/><circle cx="65.3" cy="32.3" r="1.2"/><circle cx="69.7" cy="37.3" r="1.2"/><circle cx="72.5" cy="43.4" r="1.2"/></g>
+      <circle cx="50" cy="50" r="21.7" fill="#221f18"/>
+      <g fill="url(#spAlloy)"><path d="M58.9 49.0L71.0 48.7L71.0 51.3L58.9 51.0Z"/><path d="M58.5 52.9L69.4 57.9L68.3 60.3L57.6 54.8Z"/><path d="M56.4 56.3L64.1 65.6L62.1 67.2L54.8 57.6Z"/><path d="M53.0 58.5L55.9 70.1L53.4 70.7L51.0 58.9Z"/><path d="M49.0 58.9L46.6 70.7L44.1 70.1L47.0 58.5Z"/><path d="M45.2 57.6L37.9 67.2L35.9 65.6L43.6 56.3Z"/><path d="M42.4 54.8L31.7 60.3L30.6 57.9L41.5 52.9Z"/><path d="M41.1 51.0L29.0 51.3L29.0 48.7L41.1 49.0Z"/><path d="M41.5 47.1L30.6 42.1L31.7 39.7L42.4 45.2Z"/><path d="M43.6 43.7L35.9 34.4L37.9 32.8L45.2 42.4Z"/><path d="M47.0 41.5L44.1 29.9L46.6 29.3L49.0 41.1Z"/><path d="M51.0 41.1L53.4 29.3L55.9 29.9L53.0 41.5Z"/><path d="M54.8 42.4L62.1 32.8L64.1 34.4L56.4 43.7Z"/><path d="M57.6 45.2L68.3 39.7L69.4 42.1L58.5 47.1Z"/></g>
+      <circle cx="50" cy="50" r="9.4" fill="url(#spAlloy)"/>
+      <circle cx="50" cy="50" r="9.4" fill="none" stroke="#6b665e" stroke-width=".8"/>
+      <g fill="#4a453e"><circle cx="50.0" cy="44.4" r="1.5"/><circle cx="54.8" cy="47.2" r="1.5"/><circle cx="54.8" cy="52.8" r="1.5"/><circle cx="50.0" cy="55.6" r="1.5"/><circle cx="45.2" cy="52.8" r="1.5"/><circle cx="45.2" cy="47.2" r="1.5"/></g>
+      <circle cx="50" cy="50" r="3.2" fill="#141309"/>
     </svg>
+    <span class="gloss" id="spGloss"></span>
   </div>
 </div>
 
