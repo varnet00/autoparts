@@ -49,7 +49,10 @@
   var tyre = document.getElementById('spTyre');      // הגומי — נמעך
   var rim = document.getElementById('spRim');        // החישוק — קשיח
   var shade = document.getElementById('spShade');
-  if (!stage || !mark || !word || !wheel) return;
+  /* אם ה-HTML שהגיע מהמטמון ישן יותר מהקובץ הזה, החלקים החדשים
+     פשוט לא קיימים. אז עוצרים בשקט — מסך הפתיחה יישאר סטטי ויימוג
+     כרגיל — במקום ליפול על אלמנט חסר ולהשאיר את הגלגל תקוע בפינה. */
+  if (!stage || !mark || !word || !wheel || !cut || !tyre || !rim) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var G = 1200;            // נפילה קלה יותר; עומק המעיכה תלוי בגובה, לא בו
