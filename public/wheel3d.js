@@ -67,7 +67,7 @@
     '    b = vec2(uRot.x * b.x - uRot.y * b.y, uRot.y * b.x + uRot.x * b.y);',
     '    N = normalize(N + vec3(b, 0.0) * 0.62);',
     '    float lum = dot(t.rgb, vec3(0.299, 0.587, 0.114));',
-    '    float metal = smoothstep(0.20, 0.50, lum);',
+    '    float metal = smoothstep(0.10, 0.34, lum);',
     '    float ndl = max(dot(N, L), 0.0);',
     '    vec3 H = normalize(L + V);',
     '    shine = pow(max(dot(N, H), 0.0), 30.0) * (0.03 + 0.60 * metal);',
