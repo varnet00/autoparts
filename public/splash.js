@@ -1,8 +1,8 @@
   /* ============ מסך הפתיחה: גלגל שנופל, מקפיץ, ומתגלגל ============
-   הגלגל הוא גוף תלת-ממדי אמיתי (ראו wheel3d.js) ולא תמונה שמסובבים:
-   משטח סיבוב שנבנה מחתך הצמיג, עם הצילום כאלבדו, תאורה שיושבת
-   בעולם ורצועת דריכה שעוברת מסביב. אם אין WebGL נופלים בחזרה
-   לתמונה מסתובבת, ואז המעיכה נעשית בחיתוך CSS.
+   הגלגל הוא הרנדר עצמו — התמונה כפי שהיא, מסתובבת. בלי מודל ובלי
+   נפח מודבק. החלונות שבין החישוקים שקופים בקובץ, ולכן רואים דרכם
+   את הרקע, בדיוק כמו בגלגל אמיתי. מה שנכנס מתחת לקו הקרקע פשוט
+   לא מצויר, ולכן הגומי נראה משתטח במגע והחישוק נשאר עגול.
 
    המגע אינו החזרה מיידית אלא כוח: הצמיג הוא קפיץ עם בולם, החדירה
    שלו למשטח היא בדיוק המעיכה שרואים, וההקפצה נולדת מהכוח הזה —
@@ -41,8 +41,7 @@
   var mark = document.getElementById('spMark');
   var word = document.getElementById('spWord');
   var wheel = document.getElementById('spWheel');   // המסגרת: מיקום במסך
-  var spin = document.getElementById('spSpin');      // גיבוי דו-ממדי
-  var glc = document.getElementById('spGl');        // הבד של המודל
+  var spin = document.getElementById('spSpin');      // התמונה שמסתובבת
   var shade = document.getElementById('spShade');
   if (!stage || !mark || !word || !wheel) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -61,11 +60,6 @@
   var CROWN_SLOPE = 0.05;  // כתר הסימן מעוגל קלות — הזריקה יוצאת מעט אלכסונית
   var BASE_OM = 6;         // קצב הסיבוב שאיתו הגלגל נכנס למסך, על מסך צר
   var OM0;                 // נגזר מאורך המסלול
-  /* מלפנים בדיוק, כמו ברנדר עצמו: בלי סטיית מצלמה, בלי רצועת דריכה
-     שנחשפת מהצד, בלי נפח מודבק. מה שרואים הוא הצילום כפי שהוא,
-     מסתובב. הנטייה הקטנה שבנסיעה היא היחידה שמזיזה את הזווית. */
-  var YAW = 0;
-  var PITCH = 0;
   var H = 0.0012;          // צעד הסימולציה — הקפיץ קשיח, צריך צעד קצר
 
   var box = stage.getBoundingClientRect();
@@ -113,22 +107,6 @@
   function easeInOut(u) {
     u = Math.max(0, Math.min(1, u));
     return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-  }
-
-  /* המודל התלת-ממדי נטען במקביל. עד שהוא מוכן מציירים את התמונה
-     המסתובבת, ולכן גם בלי WebGL וגם לפני שהצילום הגיע יש גלגל. */
-  var g3 = null, use3 = false;
-  if (glc && window.createWheel3D) {
-    g3 = window.createWheel3D(glc, spin ? spin.src : '/wheel.webp', 1.34);
-    if (g3) {
-      g3.resize(R * 2 * 1.34, window.devicePixelRatio || 1);
-      g3.onready = function () {
-        use3 = true;
-        glc.style.display = 'block';
-        if (spin) spin.style.display = 'none';
-        wheel.style.clipPath = 'none';
-      };
-    }
   }
 
   /* חזית החשיפה עוברת במרכז הגלגל, ולכן האות יוצאת ממש מתחתיו.
@@ -223,12 +201,13 @@
 
   function paint() {
     wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
-    if (use3) {
-      g3.render(rot, Math.min(0.45, pen / R), YAW + steer, PITCH + lean);
-    } else {
-      // בגיבוי הדו-ממדי הגומי לא נמעך אלא נחתך: מה שמתחת לקרקע נעלם
-      wheel.style.clipPath = pen > 0.15 ? 'inset(0 0 ' + pen.toFixed(2) + 'px 0)' : 'none';
-      if (spin) spin.style.transform = 'rotate(' + rot + 'rad)';
+    // הציר שוקע כעומק החדירה, ומה שמתחת לקרקע לא מצויר: הגומי
+    // נראה משתטח על הקרקע והחישוק נשאר עגול
+    wheel.style.clipPath = pen > 0.15 ? 'inset(0 0 ' + pen.toFixed(2) + 'px 0)' : 'none';
+    // הסיבוב סביב הציר, ומעליו הנטייה וההיגוי של ההתנודדות
+    if (spin) {
+      spin.style.transform = 'rotateX(' + lean.toFixed(4) + 'rad) rotateY('
+        + steer.toFixed(4) + 'rad) rotate(' + rot.toFixed(4) + 'rad)';
     }
 
     var near = Math.max(0, 1 - Math.max(0, surface - (y + R)) / 130);
