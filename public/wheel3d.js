@@ -70,8 +70,8 @@
     '    float metal = smoothstep(0.10, 0.34, lum);',
     '    float ndl = max(dot(N, L), 0.0);',
     '    vec3 H = normalize(L + V);',
-    '    shine = pow(max(dot(N, H), 0.0), 30.0) * (0.03 + 0.60 * metal);',
-    '    col = t.rgb * (0.76 + 0.34 * ndl) + fres * 0.085 * (1.0 - metal);',
+    '    shine = pow(max(dot(N, H), 0.0), 30.0) * (0.02 + 0.34 * metal);',
+    '    col = t.rgb * (0.94 + 0.14 * ndl);',
     '  } else if (vInf.x < 1.5) {',
     /* רצועת הדריכה: בלוקים וחריצים מסביב, שורות חיצוניות מוסטות בחצי
        בלוק כמו בצמיג שטח. החריץ גם מכהה וגם מטה את הנורמל, ולכן
@@ -296,7 +296,7 @@
     var uRot = gl.getUniformLocation(prog, 'uRot');
 
     // 1.02: הנטייה מגדילה מעט את ההיטל, וכך הרדיוס האנכי נשאר בדיוק R
-    var half = margin * (1 + 0.31 / CAM) * 1.030;
+    var half = margin * (1 + 0.31 / CAM) * 0.996;
     gl.uniformMatrix4fv(uProj, false, persp(2 * Math.atan(half / CAM), CAM - 2, CAM + 2));
     gl.enable(gl.DEPTH_TEST);
     gl.clearColor(0, 0, 0, 0);
