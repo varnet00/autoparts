@@ -58,11 +58,12 @@
     /* אור מלטף בשוליים: שם המשטח כמעט משיק למבט, וקו האור שם הוא
        מה שמפריד גוף עגול מרקע בהיר. בלעדיו הגומי הכהה נדבק לרקע. */
     '  float fres = pow(1.0 - abs(dot(N, V)), 3.0);',
-    '  vec3 col; float shine = 0.0;',
+    '  vec3 col; float shine = 0.0; float a = 1.0;',
     '  if (vInf.x < 0.5) {',
     /* פני הגלגל: הצילום כאלבדו, והבליטות מהצילום מסובבות יחד עם הגלגל
        כדי שהברק יישאר בעולם בזמן שהחישוק נע תחתיו */
     '    vec4 t = texture2D(uTex, vUv);',
+    '    a = t.a;',
     '    vec2 b = texture2D(uBump, vUv).xy * 2.0 - 1.0;',
     '    b = vec2(uRot.x * b.x - uRot.y * b.y, uRot.y * b.x + uRot.x * b.y);',
     '    N = normalize(N + vec3(b, 0.0) * 0.62);',
@@ -89,10 +90,13 @@
     '    shine = pow(max(dot(N, H), 0.0), 14.0) * 0.05 * blk;',
     '    col = vec3(alb) * (0.62 + 0.95 * ndl) + fres * 0.10;',
     '  } else {',
+    /* הצד הפנימי. החלונות שבין החישוקים חייבים להיחתך גם כאן, אחרת
+       רואים דרכם את גב הגלגל במקום את הרקע. */
+    '    a = texture2D(uTex, vUv).a;',
     '    float ndl = max(dot(N, L), 0.0);',
-    '    col = vec3(0.026 + 0.030 * ndl);',    // הצד הפנימי — כמעט שחור
+    '    col = vec3(0.026 + 0.030 * ndl);',
     '  }',
-    '  gl_FragColor = vec4(col + shine, 1.0);',
+    '  gl_FragColor = vec4(col + shine, a);',
     '}'
   ].join('\n');
 
@@ -107,15 +111,14 @@
      אבל לצילום יש כל החריצים והברגים — והם נותנים לאור על מה לרוץ. */
   var TEXN = 256;                                  // חזקת שתיים: תנאי ל-mipmap ב-WebGL1
 
-  /* הצילום מוקטן לבד אטום בגוון הגומי: אחרת שוליים חצי-שקופים
-     נמרחים לכהים בהקטנה ומופיע קו סביב הצמיג. */
+  /* הצילום מוקטן על בד שקוף: השקיפות חייבת לשרוד, כי דרך החלונות
+     שבין החישוקים רואים את הרקע — כמו בגלגל אמיתי. הצבע שמתחת
+     לפיקסלים השקופים כבר כהה בקובץ, ולכן ההקטנה לא מושכת פנימה
+     גוון בהיר ואין הילה סביב החישוק. */
   function toCanvas(img) {
     var c = document.createElement('canvas');
     c.width = c.height = TEXN;
-    var g = c.getContext('2d');
-    g.fillStyle = 'rgb(20,20,19)';
-    g.fillRect(0, 0, TEXN, TEXN);
-    g.drawImage(img, 0, 0, TEXN, TEXN);
+    c.getContext('2d').drawImage(img, 0, 0, TEXN, TEXN);
     return c;
   }
 
@@ -163,7 +166,7 @@
     for (j = PROF.length - 1; j >= 0; j--) {
       var p2 = PROF[j][0];
       rings.push({ r: p2, z: -PROF[j][1], kind: 2, rub: p2 < 0.60 ? 0 : Math.min(1, (p2 - 0.60) / 0.16),
-                   uvR: 0, bv: 0, rel: -1 });
+                   uvR: p2 * 0.985, bv: 0, rel: -1 });
     }
 
     function ringR(rg, i) {
@@ -299,6 +302,10 @@
     var half = margin * (1 + 0.31 / CAM) * 0.996;
     gl.uniformMatrix4fv(uProj, false, persp(2 * Math.atan(half / CAM), CAM - 2, CAM + 2));
     gl.enable(gl.DEPTH_TEST);
+    /* כיסוי לפי אלפא: קצוות החלונות מקבלים החלקה מה-MSAA, ופיקסל
+       שקוף לגמרי גם לא כותב עומק — ולכן רואים דרכו את הרקע ולא את
+       גב הגלגל. */
+    gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
     gl.clearColor(0, 0, 0, 0);
 
     var mv = new Float32Array(16), spin = new Float32Array(9);
