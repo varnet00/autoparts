@@ -1055,7 +1055,7 @@ function hideSplash() {
 }
 
 (async function boot() {
-  const scene = new Promise((done) => setTimeout(done, 3200));
+  const scene = new Promise((done) => setTimeout(done, 2900));
   const [cats, veh] = await Promise.allSettled([api('/categories'), api('/vehicles')]);
   if (cats.status === 'fulfilled') S.depts = cats.value.departments;
   if (veh.status === 'fulfilled') S.vehicles = veh.value.kinds;

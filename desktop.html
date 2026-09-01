@@ -233,6 +233,9 @@ tr:hover td{background:rgba(236,232,226,.45)}
   user-select:none;-webkit-user-drag:none;
 }
 #splash .wheel img{display:block;width:100%;height:100%;will-change:transform}
+/* הבד של המודל רחב מהגלגל: מקום להתנפחות הגומי במגע ולרצועת
+   הדריכה שנחשפת בסטיית המצלמה. הוא נדלק רק כשהמודל מוכן. */
+#splash .wheel canvas{position:absolute;left:-17%;top:-17%;width:134%;height:134%;display:none}
 #splash .shade{
   position:absolute;left:0;top:0;width:84px;height:16px;border-radius:50%;
   pointer-events:none;will-change:transform,opacity;opacity:0;
@@ -259,7 +262,7 @@ tr:hover td{background:rgba(236,232,226,.45)}
     </svg>
     <span class="word" id="spWord">AUTOPARTS</span>
     <span class="shade" id="spShade"></span>
-    <span class="wheel" id="spWheel" aria-hidden="true"><img id="spSpin" src="/wheel.webp?v=8" alt="" draggable="false"></span>
+    <span class="wheel" id="spWheel" aria-hidden="true"><img id="spSpin" src="/wheel.webp?v=8" alt="" draggable="false"><canvas id="spGl"></canvas></span>
   </div>
 </div>
 
@@ -288,6 +291,7 @@ tr:hover td{background:rgba(236,232,226,.45)}
   // גם אם משהו נשבר בטעינה, המסך לא נשאר תקוע
   setTimeout(function(){ var s=document.getElementById('splash'); if(s) s.classList.add('gone'); }, 8000);
 </script>
+<script src="/wheel3d.js"></script>
 <script src="/splash.js"></script>
 <script src="/desktop.js"></script>
 </body>
