@@ -53,7 +53,7 @@
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var G = 1200;            // נפילה קלה יותר; עומק המעיכה תלוי בגובה, לא בו
-  var SAG = 0.010;         // צמיג מעט מרוקן: שוקע יותר ונמעך עמוק יותר
+  var SAG = 0.016;         // צמיג מרוקן למחצה: שוקע יותר ונמעך עמוק יותר
   /* בליעה פנימית של הגומי לפי קצב העיוות (האנט-קרוסלי): הכוח הבולם
      גדל עם החדירה, ולכן אין קפיצת כוח ברגע הנגיעה, והוא גדל עם
      המהירות — פגיעה חזקה בולעת הרבה, וקפיצה קטנה כמעט לא. מזה יוצא
@@ -62,6 +62,13 @@
   var HYST = 0.0026;
   var BULGE = 0.55;        // כמה הגומי מתרחב לרוחב ביחס לעומק המעיכה
   var VREST = 55;          // מתחת למהירות הזו המגע נחשב מנוחה
+  var FLAT0 = 0.05;        // משטח המגע של צמיג רך גם בלי מכה, ביחידות רדיוס
+
+  /* הסימן נותן קצת. הוא קשיח בערך פי שמונה מהצמיג, ולכן כמעט כל
+     ההיענות במגע נשארת של הגומי והגלגל עדיין ניתז ממנו כמעט כמו מאבן —
+     אבל העין קולטת שגם הוא הגיב. מסה על קפיץ עם בולם, מונע מכוח
+     המגע עצמו, ומשטח הנחיתה יורד יחד איתו. */
+  var ML = 8, KL = 13000, CL = 160;
   var MU = 1.05;           // אחיזת גומי
   var RR = 0.012;          // התנגדות גלגול
   var BOTTOM = 0.24;       // מאיזו חדירה הצמיג יושב על החישוק ומתקשה
@@ -78,6 +85,7 @@
   var markTop = mb.top - box.top;
   var markLeft = mb.left - box.left;
   var markCx = markLeft + mb.width / 2;
+  var markH = mb.height || 1;
   var ground = mb.bottom - box.top;       // קו הרצפה של הסימן
   var wordLeft = wb.left - box.left;
   var wordW = wb.width;
@@ -135,6 +143,7 @@
      שהוא תופס משטח — בלעדיו הוא נוחת בלי סיבוב, מחליק בכל
      נגיעה ומאבד חצי מהמהירות בכל נחיתה. */
   var vx = 0, vy = 0, rot = 0, om = OM0;
+  var md = 0, mdv = 0;                     // הכנעת הסימן ומהירותה
   var lean = 0, leanV = 0, steer = 0;      // נטייה והיגוי
   var kick = 1, wasAir = true;             // כל נחיתה מנערת לצד השני
   var vIn = 0;                             // מהירות הכניסה למגע הנוכחי
@@ -147,7 +156,7 @@
     if (!pastLogo) {
       var dx = px - markCx;
       if (Math.abs(dx) < CROWN_HALF) {
-        return [markTop + CROWN * dx * dx, 2 * CROWN * dx, 1];
+        return [markTop + md + CROWN * dx * dx, 2 * CROWN * dx, 1];
       }
     }
     return [ground, 0, 0];
@@ -193,6 +202,11 @@
     }
     surface = ys;
 
+    // הסימן: מסה על קפיץ, מונע מכוח המגע ומתאושש בתנודה דועכת
+    mdv += ((onLogo ? Fn : 0) - KL * md - CL * mdv) / ML * h;
+    md += mdv * h;
+    if (md < 0 && mdv > -0.5) { md = 0; mdv = 0; }
+
     var ws = Math.max(2.5, Math.abs(om) * LEAN_F);
     leanV += (-ws * ws * lean - 2 * LEAN_D * ws * leanV) * h;
     lean += leanV * h;
@@ -219,7 +233,7 @@
        למעיכה הנראית — באוויר הגלגל עגול לגמרי, כמו צמיג אמיתי.
        מה שנחתך מעבר לחדירה הפיזיקלית מוחזר בשקיעת הציר, אחרת
        הגלגל היה מרחף מעל הקרקע בדיוק באותו שיעור. */
-    var flat = pen > 0 ? Math.max(pen, R * 0.03) : 0;
+    var flat = pen > 0 ? Math.max(pen, R * FLAT0) : 0;
     wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R + flat - pen) + 'px)';
     cut.style.clipPath = flat > 0.12 ? 'inset(0 0 ' + flat.toFixed(2) + 'px 0)' : 'none';
     // הסיבוב סביב הציר, ומעליו הנטייה וההיגוי של ההתנודדות
@@ -235,6 +249,10 @@
       shade.style.transform = 'translate(' + (x - R) + 'px,' + (surface - 7) + 'px)'
         + ' scale(' + (1.25 - 0.35 * near) + ',' + (0.55 + 0.45 * near) + ')';
     }
+    // הגומי לוחץ את הסימן לגובה והוא מתרחב מעט לרוחב
+    var k = Math.max(-0.02, Math.min(0.09, md / markH));
+    mark.style.transform = 'scaleY(' + (1 - k).toFixed(4) + ') scaleX(' + (1 + k * 0.45).toFixed(4) + ')';
+
     if (stageT >= 0) {
       stageE = easeOut(stageT / stageDur);
       stage.style.transform = 'translateX(' + (-SHIFT * stageE).toFixed(2) + 'px)';
