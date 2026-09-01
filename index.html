@@ -449,10 +449,20 @@ svg{flex:none}
    מסתובבת. ככה משטח המגע נשאר אופקי גם כשהגלגל מסובב. */
 #splash .wheel{
   position:absolute;left:0;top:0;width:60px;height:60px;
-  will-change:transform,clip-path;transform:translate(-100px,-400px);
+  will-change:transform;transform:translate(-100px,-400px);
   user-select:none;-webkit-user-drag:none;
 }
-#splash .wheel img{display:block;width:100%;height:100%;will-change:transform}
+/* חתך הקרקע נעשה בקופסה שאינה מסתובבת ואינה נמתחת: כך המשטח
+   השטוח נשאר אופקי, והצמיג שמתרחב במגע לא נחתך בצדדים */
+#splash .wheel .cut{position:absolute;left:-50%;top:0;width:200%;height:100%;will-change:clip-path}
+#splash .wheel img{position:absolute;top:0;left:25%;width:50%;height:100%;display:block;will-change:transform}
+/* הצמיג לבדו — מרכז הגלגל חתוך ממנו, ולכן אפשר למעוך אותו
+   בלי לגעת בחישוק. החישוק לבדו — נשאר עגול וקשיח תמיד. */
+#splash .wheel .tyre{
+  -webkit-mask-image:radial-gradient(circle closest-side at 50% 50%,transparent 0 52%,#000 55%);
+  mask-image:radial-gradient(circle closest-side at 50% 50%,transparent 0 52%,#000 55%);
+}
+#splash .wheel .rim{clip-path:circle(27.5% at 50% 50%)}
 #splash .shade{
   position:absolute;left:0;top:0;width:60px;height:15px;border-radius:50%;
   pointer-events:none;will-change:transform,opacity;opacity:0;
@@ -483,7 +493,7 @@ svg{flex:none}
       </svg>
       <span class="word" id="spWord">AUTOPARTS</span>
       <span class="shade" id="spShade"></span>
-      <span class="wheel" id="spWheel" aria-hidden="true"><img id="spSpin" src="/wheel.webp?v=11" alt="" draggable="false"></span>
+      <span class="wheel" id="spWheel" aria-hidden="true"><span class="cut" id="spCut"><img class="tyre" id="spTyre" src="/wheel.webp?v=12" alt="" draggable="false"><img class="rim" id="spRim" src="/wheel.webp?v=12" alt="" draggable="false"></span></span>
     </div>
     <span class="hint">מתחבר לשרת…</span>
   </div>

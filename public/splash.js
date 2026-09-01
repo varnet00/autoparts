@@ -1,8 +1,12 @@
   /* ============ מסך הפתיחה: גלגל שנופל, מקפיץ, ומתגלגל ============
    הגלגל הוא הרנדר עצמו — התמונה כפי שהיא, מסתובבת. בלי מודל ובלי
    נפח מודבק. החלונות שבין החישוקים שקופים בקובץ, ולכן רואים דרכם
-   את הרקע, בדיוק כמו בגלגל אמיתי. מה שנכנס מתחת לקו הקרקע פשוט
-   לא מצויר, ולכן הגומי נראה משתטח במגע והחישוק נשאר עגול.
+   את הרקע, בדיוק כמו בגלגל אמיתי.
+
+   התמונה מפוצלת לשתי שכבות: גומי וחישוק. מה שנכנס מתחת לקו הקרקע
+   לא מצויר, והגומי גם מתרחב הצידה לפי עומק המעיכה — נפח נשמר.
+   החישוק אינו נמתח לעולם: הוא נשאר עגול ורק שוקע עם הציר, בדיוק
+   כמו בגלגל אמיתי שהאוויר בו מעט חסר.
 
    המגע אינו החזרה מיידית אלא כוח: הצמיג הוא קפיץ עם בולם, החדירה
    שלו למשטח היא בדיוק המעיכה שרואים, וההקפצה נולדת מהכוח הזה —
@@ -41,19 +45,23 @@
   var mark = document.getElementById('spMark');
   var word = document.getElementById('spWord');
   var wheel = document.getElementById('spWheel');   // המסגרת: מיקום במסך
-  var spin = document.getElementById('spSpin');      // התמונה שמסתובבת
+  var cut = document.getElementById('spCut');        // קופסת החיתוך, לא מסתובבת
+  var tyre = document.getElementById('spTyre');      // הגומי — נמעך
+  var rim = document.getElementById('spRim');        // החישוק — קשיח
   var shade = document.getElementById('spShade');
   if (!stage || !mark || !word || !wheel) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var G = 1200;            // נפילה קלה יותר; עומק המעיכה תלוי בגובה, לא בו
-  var SAG = 0.0034;        // שקיעת הצמיג תחת משקלו שלו, ביחידות רדיוס
+  var SAG = 0.010;         // צמיג מעט מרוקן: שוקע יותר ונמעך עמוק יותר
   /* בליעה פנימית של הגומי לפי קצב העיוות (האנט-קרוסלי): הכוח הבולם
      גדל עם החדירה, ולכן אין קפיצת כוח ברגע הנגיעה, והוא גדל עם
      המהירות — פגיעה חזקה בולעת הרבה, וקפיצה קטנה כמעט לא. מזה יוצא
      בדיוק מה שרואים אצל כדור קופץ: מכה ראשונה בולעת, ואחריה שרשרת
      קפיצות חיות שדועכות לאט. */
   var HYST = 0.0026;
+  var BULGE = 0.55;        // כמה הגומי מתרחב לרוחב ביחס לעומק המעיכה
+  var VREST = 55;          // מתחת למהירות הזו המגע נחשב מנוחה
   var MU = 1.05;           // אחיזת גומי
   var RR = 0.012;          // התנגדות גלגול
   var BOTTOM = 0.24;       // מאיזו חדירה הצמיג יושב על החישוק ומתקשה
@@ -129,6 +137,7 @@
   var vx = 0, vy = 0, rot = 0, om = OM0;
   var lean = 0, leanV = 0, steer = 0;      // נטייה והיגוי
   var kick = 1, wasAir = true;             // כל נחיתה מנערת לצד השני
+  var vIn = 0;                             // מהירות הכניסה למגע הנוכחי
   var pen = 0, surface = ground, pastLogo = false;
   var last = 0, done = false;
 
@@ -154,11 +163,11 @@
     pen = (y + R) - ys;
     var Fn = 0;
     if (pen > 0) {
-      if (wasAir) { kick = -kick; wasAir = false; }
       var inv = 1 / Math.sqrt(1 + sl * sl);
       var nx = sl * inv, ny = -inv;          // נורמל היוצא מהמשטח
       var tx = -ny, ty = nx;                 // משיק, לכיוון ימין
       var vn = vx * nx + vy * ny;            // שלילי כשנכנסים פנימה
+      if (wasAir) { kick = -kick; wasAir = false; vIn = Math.abs(vn); }
       var q = pen / (BOTTOM * R);
       Fn = K * pen * (1 + 20 * q * q * q * q) * (1 - HYST * vn);   // מתקשה על החישוק
       if (Fn < 0) Fn = 0;                                          // משטח לא מושך
@@ -169,6 +178,12 @@
       om -= Ft / R * h;                      // אותו כוח מסובב את הגלגל
       var rr = RR * Fn / R * h;              // התנגדות גלגול, דרך המומנט
       om -= sgn(om) * Math.min(Math.abs(om), rr);
+      /* מגע מנוחה. הבליעה של הגומי גדלה עם קצב העיוות, ולכן נגיעה
+         איטית מאוד כמעט לא נבלעת והגלגל היה רועד בלי סוף בשבריר
+         פיקסל. המבחן הוא על מהירות הכניסה למגע ולא על המהירות
+         הרגעית — אחרת הוא היה מאפס גם את שיא הדחיסה של פגיעה חזקה
+         ומבטל את ההקפצה עצמה. */
+      if (vIn < VREST) { vx -= vn * nx; vy -= vn * ny; }
       if (onLogo && stageT < 0) stageT = 0;   // מרגע הפגיעה הבמה זזה
       // רק מכה של ממש מנערת את הגלגל; המשקל השוטף לא
       if (Fn > 4 * G) leanV += (Fn - 4 * G) * LEAN_KICK * h * kick;
@@ -200,15 +215,19 @@
   }
 
   function paint() {
-    wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
-    // הציר שוקע כעומק החדירה, ומה שמתחת לקרקע לא מצויר: הגומי
-    // נראה משתטח על הקרקע והחישוק נשאר עגול
-    wheel.style.clipPath = pen > 0.15 ? 'inset(0 0 ' + pen.toFixed(2) + 'px 0)' : 'none';
+    /* בצמיג מעט מרוקן יש משטח מגע קטן גם סתם כך, ולכן במגע יש רצפה
+       למעיכה הנראית — באוויר הגלגל עגול לגמרי, כמו צמיג אמיתי.
+       מה שנחתך מעבר לחדירה הפיזיקלית מוחזר בשקיעת הציר, אחרת
+       הגלגל היה מרחף מעל הקרקע בדיוק באותו שיעור. */
+    var flat = pen > 0 ? Math.max(pen, R * 0.03) : 0;
+    wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R + flat - pen) + 'px)';
+    cut.style.clipPath = flat > 0.12 ? 'inset(0 0 ' + flat.toFixed(2) + 'px 0)' : 'none';
     // הסיבוב סביב הציר, ומעליו הנטייה וההיגוי של ההתנודדות
-    if (spin) {
-      spin.style.transform = 'rotateX(' + lean.toFixed(4) + 'rad) rotateY('
-        + steer.toFixed(4) + 'rad) rotate(' + rot.toFixed(4) + 'rad)';
-    }
+    var sp = 'rotateX(' + lean.toFixed(4) + 'rad) rotateY('
+      + steer.toFixed(4) + 'rad) rotate(' + rot.toFixed(4) + 'rad)';
+    // הגומי שנמעך לגובה מתרחב לרוחב; הרוחב נמדד במסך ולכן אחרי הסיבוב
+    if (tyre) tyre.style.transform = 'scaleX(' + (1 + BULGE * flat / R).toFixed(4) + ') ' + sp;
+    if (rim) rim.style.transform = sp;
 
     var near = Math.max(0, 1 - Math.max(0, surface - (y + R)) / 130);
     if (shade) {
