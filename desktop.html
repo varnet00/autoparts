@@ -243,6 +243,14 @@ tr:hover td{background:rgba(236,232,226,.45)}
   mask-image:radial-gradient(circle closest-side at 50% 50%,transparent 0 52%,#000 55%);
 }
 #splash .wheel .rim{clip-path:circle(27.5% at 50% 50%)}
+/* רגע הפגיעה מצויר בקדרים של הרנדר עצמו: הגומי שם נמעך ומתנפח
+   כמו במציאות. הרצועה חתוכה כך שתחתית כל תא היא קו הקרקע, ולכן
+   התאים מתחלפים בלי לקפוץ. 117.5% = 168/143, יחס התא לגלגל. */
+#splash .wheel .hit{
+  position:absolute;left:50%;width:117.5%;height:117.5%;transform:translateX(-50%);
+  background:url(/hit.webp?v=1) no-repeat;background-size:800% 100%;
+  display:none;will-change:background-position,top;
+}
 #splash .shade{
   position:absolute;left:0;top:0;width:84px;height:16px;border-radius:50%;
   pointer-events:none;will-change:transform,opacity;opacity:0;
@@ -269,7 +277,7 @@ tr:hover td{background:rgba(236,232,226,.45)}
     </svg>
     <span class="word" id="spWord">AUTOPARTS</span>
     <span class="shade" id="spShade"></span>
-    <span class="wheel" id="spWheel" aria-hidden="true"><span class="cut" id="spCut"><img class="tyre" id="spTyre" src="/wheel.webp?v=13" alt="" draggable="false"><img class="rim" id="spRim" src="/wheel.webp?v=13" alt="" draggable="false"></span></span>
+    <span class="wheel" id="spWheel" aria-hidden="true"><span class="cut" id="spCut"><img class="tyre" id="spTyre" src="/wheel.webp?v=13" alt="" draggable="false"><img class="rim" id="spRim" src="/wheel.webp?v=13" alt="" draggable="false"></span><span class="hit" id="spHit"></span></span>
   </div>
 </div>
 

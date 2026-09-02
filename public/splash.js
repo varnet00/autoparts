@@ -3,7 +3,12 @@
    נפח מודבק. החלונות שבין החישוקים שקופים בקובץ, ולכן רואים דרכם
    את הרקע, בדיוק כמו בגלגל אמיתי.
 
-   התמונה מפוצלת לשתי שכבות: גומי וחישוק. מה שנכנס מתחת לקו הקרקע
+   ברגע הפגיעה מצויר משהו אחר לגמרי: קדרי הרנדר עצמם. שם הגומי
+   נמעך ומתנפח כמו במציאות, ואת זה לא מחקים — פשוט מציגים. הרצועה
+   חתוכה כך שתחתית כל תא היא קו הקרקע, והקדר נבחר לפי עומק המעיכה
+   הנוכחי: בדרך פנימה מהתאים הראשונים, בדרך החוצה מהאחרונים.
+
+   בשאר הזמן התמונה מפוצלת לשתי שכבות: גומי וחישוק. מה שנכנס מתחת לקו הקרקע
    לא מצויר, והגומי גם מתרחב הצידה לפי עומק המעיכה — נפח נשמר.
    החישוק אינו נמתח לעולם: הוא נשאר עגול ורק שוקע עם הציר, בדיוק
    כמו בגלגל אמיתי שהאוויר בו מעט חסר.
@@ -48,15 +53,16 @@
   var cut = document.getElementById('spCut');        // קופסת החיתוך, לא מסתובבת
   var tyre = document.getElementById('spTyre');      // הגומי — נמעך
   var rim = document.getElementById('spRim');        // החישוק — קשיח
+  var hit = document.getElementById('spHit');        // קדרי הפגיעה מהרנדר
   var shade = document.getElementById('spShade');
   /* אם ה-HTML שהגיע מהמטמון ישן יותר מהקובץ הזה, החלקים החדשים
      פשוט לא קיימים. אז עוצרים בשקט — מסך הפתיחה יישאר סטטי ויימוג
      כרגיל — במקום ליפול על אלמנט חסר ולהשאיר את הגלגל תקוע בפינה. */
-  if (!stage || !mark || !word || !wheel || !cut || !tyre || !rim) return;
+  if (!stage || !mark || !word || !wheel || !cut || !tyre || !rim || !hit) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var G = 1200;            // נפילה קלה יותר; עומק המעיכה תלוי בגובה, לא בו
-  var SAG = 0.016;         // צמיג מרוקן למחצה: שוקע יותר ונמעך עמוק יותר
+  var SAG = 0.016;         // צמיג רך: המגע נמשך מספיק כדי לראות את הרנדר
   /* בליעה פנימית של הגומי לפי קצב העיוות (האנט-קרוסלי): הכוח הבולם
      גדל עם החדירה, ולכן אין קפיצת כוח ברגע הנגיעה, והוא גדל עם
      המהירות — פגיעה חזקה בולעת הרבה, וקפיצה קטנה כמעט לא. מזה יוצא
@@ -67,6 +73,14 @@
   var BULGE = 0.55;        // כמה הגומי מתרחב לרוחב ביחס לעומק המעיכה
   var VREST = 55;          // מתחת למהירות הזו המגע נחשב מנוחה
   var FLAT0 = 0.05;        // משטח המגע של צמיג רך גם בלי מכה, ביחידות רדיוס
+  /* עומק המעיכה בכל קדר של הרצועה, כפי שנמדד ברנדר, בחלקי רדיוס.
+     ארבעת הראשונים הם הדחיסה, מהרביעי והלאה ההתאוששות. */
+  var HIT_D = [0.000, 0.009, 0.069, 0.112, 0.043, 0.026, 0.009, 0.009];
+  var HIT_MAX = 0.112;
+  var HIT_ON = 0.02;       // מאיזה עומק עוברים לקדרי הרנדר
+  var HIT_TAIL = 0.11;     // כמה הגומי ממשיך להתאושש אחרי שהמגע נגמר
+  var HIT_CELL = 168 / 143;   // יחס התא לקוטר הגלגל
+  var HIT_FOOT = 3 / (143 / 233);   // כמה התא יורד מתחת לקו הקרקע, ביחידות רנדר
 
   /* הסימן נותן קצת. הוא קשיח בערך פי שמונה מהצמיג, ולכן כמעט כל
      ההיענות במגע נשארת של הגומי והגלגל עדיין ניתז ממנו כמעט כמו מאבן —
@@ -239,12 +253,61 @@
     if (wordT >= 0 && wordT < wordDur) wordT = Math.min(wordDur, wordT + h);
   }
 
+  /* בחירת הקדר לפי עומק המעיכה. בדרך פנימה מחפשים בין הקדרים
+     הראשונים, בדרך החוצה בין האחרונים — לאותו עומק יש שתי צורות
+     שונות, וזה בדיוק מה שנותן לפגיעה את ההרגשה של חומר ולא של
+     תמונה שנמתחת. */
+  function hitFrame(depth, closing) {
+    var lo = closing ? 0 : 3, hi = closing ? 3 : HIT_D.length - 1;
+    var best = lo, bd = 1e9;
+    for (var i = lo; i <= hi; i++) {
+      var e = Math.abs(HIT_D[i] - depth);
+      if (e < bd) { bd = e; best = i; }
+    }
+    return best;
+  }
+
+  var penPrev = 0, tailT = -1;
+
   function paint() {
     /* בצמיג מעט מרוקן יש משטח מגע קטן גם סתם כך, ולכן במגע יש רצפה
        למעיכה הנראית — באוויר הגלגל עגול לגמרי, כמו צמיג אמיתי.
        מה שנחתך מעבר לחדירה הפיזיקלית מוחזר בשקיעת הציר, אחרת
        הגלגל היה מרחף מעל הקרקע בדיוק באותו שיעור. */
     var flat = pen > 0 ? Math.max(pen, R * FLAT0) : 0;
+
+    /* מכה של ממש — מציגים את הרנדר. התא מונח לפי המשטח ולא לפי
+       הציר, כי בתוכו הגלגל כבר מעוך בדיוק כמו שצריך. */
+    /* המכה עצמה קצרה מאוד — פגיעה חזקה נמשכת פחות מפריים. אבל
+       הקרקס של הצמיג ממשיך להתנודד גם אחרי שהוא עזב את הקרקע, וזה
+       בדיוק מה שמצולם ברנדר. לכן אחרי המגע ממשיכים להריץ את קדרי
+       ההתאוששות, ומעתה התא נצמד לגלגל עצמו ולא למשטח. */
+    var deep = pen > R * HIT_ON;
+    if (deep) tailT = 0;
+    else if (tailT >= 0) tailT += 1 / 60;
+    var showHit = deep || (tailT >= 0 && tailT < HIT_TAIL);
+    hit.style.display = showHit ? 'block' : 'none';
+    cut.style.display = showHit ? 'none' : '';
+    if (showHit) {
+      var f, foot;
+      if (deep) {
+        f = hitFrame(Math.min(pen / R, HIT_MAX), pen >= penPrev);
+        foot = surface;
+      } else {
+        var u = tailT / HIT_TAIL;                    // 0..1 по кадрам отдачи
+        f = Math.min(HIT_D.length - 1, 4 + Math.floor(u * (HIT_D.length - 4)));
+        foot = y + R;
+      }
+      var cell = 2 * R * HIT_CELL;
+      hit.style.backgroundPosition = (f * 100 / (HIT_D.length - 1)).toFixed(3) + '% 0';
+      hit.style.top = (foot - (y - R) + HIT_FOOT * (R / 116.5) - cell).toFixed(2) + 'px';
+      wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
+      penPrev = pen;
+      paintRest();
+      return;
+    }
+    if (tailT >= HIT_TAIL) tailT = -1;
+    penPrev = pen;
     wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R + flat - pen) + 'px)';
     cut.style.clipPath = flat > 0.12 ? 'inset(0 0 ' + flat.toFixed(2) + 'px 0)' : 'none';
     // הסיבוב סביב הציר, ומעליו הנטייה וההיגוי של ההתנודדות
@@ -254,6 +317,10 @@
     if (tyre) tyre.style.transform = 'scaleX(' + (1 + BULGE * flat / R).toFixed(4) + ') ' + sp;
     if (rim) rim.style.transform = sp;
 
+    paintRest();
+  }
+
+  function paintRest() {
     var near = Math.max(0, 1 - Math.max(0, surface - (y + R)) / 130);
     if (shade) {
       shade.style.opacity = (0.12 + 0.5 * near).toFixed(3);
