@@ -346,14 +346,18 @@
       if (!inHit) { inHit = true; hitMax = 0; }
       if (pk > hitMax) hitMax = pk;
       if (pk >= penPrev) {
-        // נכנסים: הצורה נגזרת ישירות מעומק המעיכה, כמו ברנדר
+        /* נכנסים: הצורה נגזרת ישירות מהמעיכה העמוקה ביותר שהייתה
+           מאז הציור הקודם, כדי שמכה שנופלת בין שני פריימים לא
+           תיעלם. */
         hitF = hitAt(Math.min(pk / R, HIT_MAX), true);
       } else {
-        /* יוצאים: הגומי מתיישר יחד עם המגע. הצורה נמדדת ביחס למה
-           שנשאר מהמעיכה, ולכן היא מגיעה לגלגל עגול בדיוק ברגע
-           שהגלגל עוזב את המשטח — ולא ממשיכה להתנדנד באוויר. */
-        var u = 1 - pk / Math.max(hitMax, 1e-6);
-        hitF = 3 + (HIT_D.length - 1 - 3) * Math.max(0, Math.min(1, u));
+        /* יוצאים: לפי המעיכה שיש ברגע הזה ממש — לא לפי השיא שהיה
+           בתוך הפריים, אחרת הפריים האחרון של המגע היה מראה גומי
+           שעוד מנופח, ומיד אחריו גלגל עגול, וזאת קפיצה שרואים.
+           מה שנשאר מהמעיכה נמתח על טווח ההתאוששות של הרנדר, ולכן
+           הצורה עוקבת אחרי העומק האמיתי ומגיעה לעגול בדיוק כשהמגע
+           נגמר. */
+        hitF = hitAt(HIT_MAX * Math.max(0, pen) / Math.max(hitMax, 1e-6), false);
       }
     } else {
       inHit = false;
@@ -387,10 +391,18 @@
       var qt = HIT_D[i0] + (HIT_D[i1] - HIT_D[i0]) * fr;   // העומק המדויק עכשיו
       var wt = HIT_W[i0] + (HIT_W[i1] - HIT_W[i0]) * fr;   // והרוחב המדויק
       var cell = 2 * R * HIT_CELL;
+      var gy = foot - (y - R);                 // קו הקרקע בתוך המסגרת
       hit.style.backgroundPosition = (k * 100 / (HIT_N - 1)).toFixed(3) + '% 0';
-      hit.style.top = (foot - (y - R) + HIT_FOOT * (R / 116.5) - cell).toFixed(2) + 'px';
+      hit.style.top = (gy + HIT_FOOT * (R / 116.5) - cell).toFixed(2) + 'px';
       hit.style.transform = 'translateX(-50%) scale('
         + (wt / HIT_W[k]).toFixed(4) + ',' + ((2 - qt) / (2 - HIT_D[k])).toFixed(4) + ')';
+      /* שכבת האור נצמדת בדיוק לגלגל שמצויר עכשיו: תחתיתה על קו
+         הקרקע, גובהה כגובה הגלגל המעוך, רוחבה כרוחבו. ככה זה אותו
+         אור ממש כמו בגלגל המתגלגל, ואין קפיצה ברגע המגע. */
+      if (lite) {
+        lite.style.transform = 'translateY(' + (gy - 2 * R).toFixed(2) + 'px) scale('
+          + wt.toFixed(4) + ',' + (1 - qt / 2).toFixed(4) + ')';
+      }
       wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R) + 'px)';
       penPrev = pk;
       paintRest();
@@ -408,6 +420,7 @@
     if (rim) rim.style.transform = sp;
     // שכבת האור מתרחבת עם הגומי אבל לא מסתובבת איתו
     if (lite) lite.style.transform = 'scaleX(' + wide + ')';
+
 
     paintRest();
   }
