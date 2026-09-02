@@ -452,6 +452,14 @@ svg{flex:none}
   will-change:transform;transform:translate(-100px,-400px);
   user-select:none;-webkit-user-drag:none;
 }
+/* הגלגל הוא גוף ולא מדבקה: מאחורי החישוק יושב עיגול אטום בצבע
+   הרקע, ולכן החלונות שבין החישוקים לא מראים את מה שמאחור. מעל רקע
+   ריק הוא בלתי נראה, וכשהגלגל עובר מול הסימן — הסימן נחסם, והעין
+   קוראת שני גופים זה לפני זה במקום שתי תמונות זו על זו. */
+#splash .wheel .hub{
+  position:absolute;left:22.5%;top:22.5%;width:55%;height:55%;
+  border-radius:50%;background:var(--bg);
+}
 /* חתך הקרקע נעשה בקופסה שאינה מסתובבת ואינה נמתחת: כך המשטח
    השטוח נשאר אופקי, והצמיג שמתרחב במגע לא נחתך בצדדים */
 #splash .wheel .cut{position:absolute;left:-50%;top:0;width:200%;height:100%;will-change:clip-path}
@@ -469,7 +477,8 @@ svg{flex:none}
 #splash .wheel .hit{
   position:absolute;left:50%;width:117.5%;height:117.5%;transform:translateX(-50%);
   background:url(/hit.webp?v=1) no-repeat;background-size:800% 100%;
-  display:none;will-change:background-position,top;
+  transform-origin:50% 98.214%;   /* קו הקרקע בתוך התא */
+  display:none;will-change:background-position,top,transform;
 }
 #splash .shade{
   position:absolute;left:0;top:0;width:60px;height:15px;border-radius:50%;
@@ -501,7 +510,7 @@ svg{flex:none}
       </svg>
       <span class="word" id="spWord">AUTOPARTS</span>
       <span class="shade" id="spShade"></span>
-      <span class="wheel" id="spWheel" aria-hidden="true"><span class="cut" id="spCut"><img class="tyre" id="spTyre" src="/wheel.webp?v=13" alt="" draggable="false"><img class="rim" id="spRim" src="/wheel.webp?v=13" alt="" draggable="false"></span><span class="hit" id="spHit"></span></span>
+      <span class="wheel" id="spWheel" aria-hidden="true"><span class="hub"></span><span class="cut" id="spCut"><img class="tyre" id="spTyre" src="/wheel.webp?v=13" alt="" draggable="false"><img class="rim" id="spRim" src="/wheel.webp?v=13" alt="" draggable="false"></span><span class="hit" id="spHit"></span></span>
     </div>
     <span class="hint">מתחבר לשרת…</span>
   </div>
