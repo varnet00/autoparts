@@ -2000,7 +2000,7 @@ S.authMode = 'login';
 render();
 
 // רצף הפתיחה נגמר ב-2.2 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
-const splashFloor = new Promise((resolve) => setTimeout(resolve, 3400));
+const splashFloor = new Promise((resolve) => setTimeout(resolve, 3500));
 Promise.allSettled([loadMe(), loadVehicles(), loadCategories()])
   .then(() => splashFloor)
   .then(hideSplash);
