@@ -49,6 +49,11 @@
   var wheel = document.getElementById('spWheel');   // המסגרת: מיקום במסך
   var tyre = document.getElementById('spTyre');      // הגלגל עצמו — מסתובב
   var shade = document.getElementById('spShade');
+  var floor = document.getElementById('spFloor');    // קו הקרקע
+  var glow = document.getElementById('spGlow');      // ההבזק החם
+  var ring = document.getElementById('spRing');      // גל ההלם
+  var trail = document.getElementById('spTrail');    // פס המהירות
+  var chars = word.querySelectorAll('i');            // האותיות, אחת אחת
   /* אם ה-HTML שהגיע מהמטמון ישן יותר מהקובץ הזה, החלקים החדשים
      פשוט לא קיימים. אז עוצרים בשקט — מסך הפתיחה יישאר סטטי ויימוג
      כרגיל — במקום ליפול על אלמנט חסר ולהשאיר את הגלגל תקוע בפינה. */
@@ -100,29 +105,59 @@
   OM0 = Math.max(BASE_OM, Math.min(3.6 * BASE_OM, BASE_OM * runway / 345));
 
   var SHH = shade ? shade.offsetHeight / 2 : 0;   // חצי גובה הצל, נמדד פעם אחת
+  var TW = trail ? trail.offsetWidth : 0, TH = trail ? trail.offsetHeight : 0;
 
-  var seen = 0, GAP = 0;
+  /* מרכז כל אות, במערכת הצירים של הבמה. הגלגל עובר על פניהן
+     משמאל לימין, ולכן די להשוות את ה-x שלו כדי לדעת מתי כל אות
+     נוחתת — אין כאן שום תזמון כתוב מראש. */
+  var charCx = [], i;
+  for (i = 0; i < chars.length; i++) {
+    var cr = chars[i].getBoundingClientRect();
+    charCx.push(cr.left - box.left + cr.width / 2);
+  }
+  var CH_DUR = 0.13;                      // כמה נמשכת נחיתת אות
+  var CH_RISE = R * 0.34;                 // מאיזה גובה היא נופלת
+  /* מרווח מזערי בין אות לאות. על מסך רחב הגלגל חוצה את השם מהר
+     מאוד, ובלי זה כל האותיות היו נוחתות כמעט יחד — רעש ולא קצב.
+     עם המרווח יוצא פעימה קבועה, והשם נבנה בזמן שהגלגל נוסע. */
+  var CH_GAP = 0.055, chWait = 0;
+  var charT = [];
+  for (i = 0; i < chars.length; i++) charT.push(-1);
+
+  /* הפגיעה בסימן. ממנה מתחילים שלושה דברים בבת אחת: רעד קצר של
+     כל הסצנה, טבעת הלם שנפתחת ממקום המגע, וקו הרצפה שנמתח
+     החוצה. שלושתם דועכים לבד ואינם משנים דבר בפיזיקה. */
+  var impT = -1, impX = 0, impY = 0;
+  var SHAKE_A = R * 0.11, SHAKE_F = 15, SHAKE_D = 0.075;
+  var RING_R = R * 2.3, RING_DUR = 0.34;
+  var GLOW_R = R * 2.2, GLOW_DUR = 0.40;
+  var FLOOR_DUR = 0.46;
+
   var stageT = -1, stageDur = 0.70, stageE = 0;   // הבמה — מרגע הפגיעה
-  var wordT = -1, wordDur = 1, wordE = 0;        // השם — מרגע ההתייצבות
 
   function sgn(v) { return v > 0 ? 1 : v < 0 ? -1 : 0; }
-  /* הבמה נדחפת מהפגיעה: מהר בהתחלה ונרגעת — כמו רתע. השם מתקרב
-     ברכות משני הצדדים, בלי זינוק ובלי עצירה חדה. */
+  /* הבמה נדחפת מהפגיעה: מהר בהתחלה ונרגעת — כמו רתע. */
   function easeOut(u) { u = Math.max(0, Math.min(1, u)); return 1 - Math.pow(1 - u, 3); }
-  function easeInOut(u) {
-    u = Math.max(0, Math.min(1, u));
-    return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
-  }
 
-  /* חזית החשיפה עוברת במרכז הגלגל, ולכן האות יוצאת ממש מתחתיו.
-     כל עוד הגלגל מקפץ אין חשיפה בכלל: הקפיצות מדלגות על אותיות. */
-  function revealWord() {
-    if (wordT < 0) return;
-    var here = wordLeft + GAP * (1 - wordE);
-    var f = Math.max(0, Math.min(wordW, x - here));
-    if (f > seen) seen = f;
-    word.style.transform = 'translateX(' + (GAP * (1 - wordE)).toFixed(2) + 'px)';
-    word.style.clipPath = 'inset(0 ' + (wordW - seen).toFixed(1) + 'px 0 0)';
+  /* נחיתת האותיות. אות מתחילה ליפול ברגע שהגלגל עבר את מרכזה,
+     ונוחתת עם קפיצה קטנה — כאילו הגלגל הפיל אותה למקומה. */
+  function backOut(u) {
+    u = Math.max(0, Math.min(1, u)); var p = u - 1;
+    return 1 + p * p * (2.4 * p + 1.4);
+  }
+  function dropChars(dt) {
+    if (impT < 0) return;                 // לפני הפגיעה שום דבר לא נופל
+    if (chWait > 0) chWait -= dt;
+    for (var i = 0; i < chars.length; i++) {
+      if (charT[i] < 0) {
+        if (x < charCx[i] - R * 0.15 || chWait > 0) continue;
+        charT[i] = 0; chWait = CH_GAP;
+      } else if (charT[i] >= CH_DUR) continue;
+      charT[i] = Math.min(CH_DUR, charT[i] + dt);
+      var u = charT[i] / CH_DUR, e = backOut(u);
+      chars[i].style.opacity = Math.min(1, u * 2.2).toFixed(3);
+      chars[i].style.transform = 'translateY(' + (-CH_RISE * (1 - e)).toFixed(2) + 'px)';
+    }
   }
 
   var x = startX;
@@ -190,37 +225,41 @@
          הרגעית — אחרת הוא היה מאפס גם את שיא הדחיסה של פגיעה חזקה
          ומבטל את ההקפצה עצמה. */
       if (vIn < VREST) { vx -= vn * nx; vy -= vn * ny; }
-      if (onLogo && stageT < 0) stageT = 0;   // מרגע הפגיעה הבמה זזה
+      if (onLogo && stageT < 0) {
+        stageT = 0; impT = 0; impX = x; impY = ys;   // מרגע הפגיעה הכול מתחיל
+      }
     } else {
       pen = 0;
       wasAir = true;
     }
 
-    if (wordT < 0 && pen > 0 && pastLogo && vIn < 200) {
-      /* הנגיעה הרכה הראשונה ברצפה: הקפיצות כבר נגמרו והגלגל נוסע.
-         המבחן הוא על מהירות הכניסה למגע — נחיתה חזקה עוד אומרת
-         שיש קפיצה אחריה, ואז אין טעם לפתוח אותיות. מכאן
-         והלאה הגלגל כבר נוסע — הקפיצות שנשארו נמוכות. השם מונח כך
-         שקצהו השמאלי בדיוק כאן, ומכאן הוא נפתח ומתקרב אל הסימן. */
-      /* עוד קצת ימינה מנקודת הנגיעה: בקפיצה הראשונה הגלגל עדיין
-         עולה גבוה, וכך האות הראשונה יוצאת רק כשהוא כבר יורד. */
-      GAP = Math.max(0, x - wordLeft) + R * 0.7;
-      wordT = 0;
-      wordDur = Math.max(0.34, Math.min(0.70, GAP / 170));
-    }
     if (stageT >= 0 && stageT < stageDur) stageT = Math.min(stageDur, stageT + h);
-    if (wordT >= 0 && wordT < wordDur) wordT = Math.min(wordDur, wordT + h);
   }
 
   /* אין מסננים ואין שכבות מתחלפות: כל פריים הוא שתי השמות של
      transform ותו לא. מסנן טשטוש התנועה היה יפה אבל הוא מה
      שהתקע במכשירים חלשים דווקא ברגעים המהירים — הנפילה והקפיצה. */
-  function paint() {
+  function paint(dt) {
+    dt = dt || 0;
     /* הגלגל קשיח ועגול תמיד. החדירה למשטח היא כוח בלבד ואינה
        מצוירת: מרימים את הציור בדיוק בגובה החדירה, ולכן תחתית
        הגלגל יושבת על המשטח ולא שוקעת בו. */
     wheel.style.transform = 'translate(' + (x - R) + 'px,' + (y - R - pen) + 'px)';
     tyre.style.transform = 'rotate(' + rot.toFixed(4) + 'rad)';
+
+    /* פס המהירות: נמתח מאחורי הגלגל לפי המהירות האנכית. במקום
+       מסנן טשטוש — צורה אחת שזזה, וזה כמעט חינם. */
+    if (trail) {
+      var sp = Math.min(1, Math.abs(vy) / (G * 0.62));
+      if (sp > 0.05 && pen <= 0) {
+        trail.style.opacity = (0.85 * sp).toFixed(3);
+        trail.style.transform = 'translate(' + (x - TW / 2) + 'px,' + (y - TH) + 'px)'
+          + ' scaleY(' + (0.35 + 0.65 * sp).toFixed(3) + ')';
+      } else if (trail.style.opacity !== '0') trail.style.opacity = '0';
+    }
+
+    dropChars(dt);
+    if (impT >= 0 && impT < 1) impT += dt;
     paintRest();
   }
 
@@ -235,12 +274,47 @@
       shade.style.transform = 'translate(' + (x - R) + 'px,' + (ground - SHH) + 'px)'
         + ' scale(' + (1.60 - 0.78 * near).toFixed(3) + ',' + (0.45 + 0.62 * near).toFixed(3) + ')';
     }
-    if (stageT >= 0) {
-      stageE = easeOut(stageT / stageDur);
-      stage.style.transform = 'translateX(' + (-SHIFT * stageE).toFixed(2) + 'px)';
+    /* רגע הפגיעה. שלושה דברים דועכים במקביל, כל אחד בקצב שלו:
+       טבעת הלם שנפתחת ממקום המגע, הבזק חם מאחורי הסימן, ורעד קצר
+       של כל הסצנה — כמו מצלמה שקיבלה מכה. הרעד הוא תנודה דועכת
+       ולא ניעור אקראי, ולכן הוא נקרא כמכה אחת ולא כרעש. */
+    var sx = 0, sy = 0;
+    if (impT >= 0) {
+      if (impT < RING_DUR && ring) {
+        var u = impT / RING_DUR, rr = RING_R * easeOut(u), dd = (2 * rr).toFixed(1) + 'px';
+        ring.style.opacity = (0.8 * (1 - u) * (1 - u)).toFixed(3);
+        ring.style.width = dd; ring.style.height = dd;
+        ring.style.transform = 'translate(' + (impX - rr).toFixed(1) + 'px,'
+          + (impY - rr).toFixed(1) + 'px)';
+      } else if (ring && ring.style.opacity !== '0') ring.style.opacity = '0';
+
+      if (impT < GLOW_DUR && glow) {
+        var g = impT / GLOW_DUR;
+        var gr = GLOW_R * (0.5 + 0.5 * easeOut(g));
+        /* התיבה היא פיקסל אחד, וה-scale נעשה סביב מרכזה — ולכן
+           ההזזה מציבה את המרכז, לא את הפינה. */
+        glow.style.opacity = (0.75 * Math.min(1, g * 10) * (1 - g) * (1 - g)).toFixed(3);
+        glow.style.transform = 'translate(' + (impX - 0.5).toFixed(1) + 'px,'
+          + (impY - 0.5).toFixed(1) + 'px) scale(' + (2 * gr).toFixed(2) + ')';
+      } else if (glow && glow.style.opacity !== '0') glow.style.opacity = '0';
+
+      if (impT < 0.34) {
+        var k = SHAKE_A * Math.exp(-impT / SHAKE_D);
+        sy = k * Math.sin(2 * Math.PI * SHAKE_F * impT);
+        sx = k * 0.35 * Math.sin(2 * Math.PI * SHAKE_F * 0.7 * impT);
+      }
+      if (floor) {
+        var fu = Math.min(1, impT / FLOOR_DUR);
+        floor.style.opacity = Math.min(1, impT / 0.14).toFixed(3);
+        floor.style.transform = 'translateX(-50%) scaleX(' + easeOut(fu).toFixed(4) + ')';
+      }
     }
-    if (wordT >= 0) wordE = easeInOut(wordT / wordDur);
-    revealWord();
+
+    if (stageT >= 0) stageE = easeOut(stageT / stageDur);
+    if (stageT >= 0 || sx || sy) {
+      stage.style.transform = 'translate(' + (-SHIFT * stageE + sx).toFixed(2) + 'px,'
+        + sy.toFixed(2) + 'px)';
+    }
   }
 
   function step(now) {
@@ -249,7 +323,7 @@
     last = now;
     var n = Math.max(1, Math.ceil(dt / H)), h = dt / n;
     for (var i = 0; i < n; i++) sub(h);
-    paint();
+    paint(dt);
     if (x - R > exitX) { done = true; return; }
     if (!done) requestAnimationFrame(step);
   }
