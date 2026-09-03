@@ -61,7 +61,19 @@ router.get('/', (req, res) => {
   if (!rows.length && nn.length >= 3) { rows = prefixStmt.all(nn); mode = 'prefix'; }
   if (!rows.length) { rows = textSearch(raw, req.query); mode = 'text'; }
 
-  const found = rows.map((r) => card(r, r.matched || null));
+  /* אותה פוזיציה יכולה להיתפס פעמיים: "04465" הוא קידומת גם של
+     04465-02220 וגם של 04465-YZZQ7, ושניהם אותה פוזיציה. בלי איחוד
+     הכרטיס היה מופיע פעמיים — בדיוק הכפילות שכל המבנה הזה נבנה כדי
+     להעלים. מהמספרים שנתפסו שומרים את הקצר ביותר: הוא הקרוב ביותר
+     למה שהוקלד. */
+  const byId = new Map();
+  for (const r of rows) {
+    const prev = byId.get(r.id);
+    if (!prev) { byId.set(r.id, r); continue; }
+    const a = String(r.matched || ''), b = String(prev.matched || '');
+    if (a && (!b || a.length < b.length)) byId.set(r.id, r);
+  }
+  const found = [...byId.values()].map((r) => card(r, r.matched || null));
 
   /* "עשוי להתאים" נמדד תמיד ביחס למק״ט אחד. בחיפוש לפי שם אין מק״ט
      כזה, ולכן אין למה למדוד: חיפוש "TRW" היה מחזיר רפידות לטויוטה
@@ -74,9 +86,17 @@ router.get('/', (req, res) => {
     });
   }
 
-  /* כשהמק״ט נמצא, הפוזיציה שלו היא התוצאה הראשונה והיא היחידה
-     ב"מדויק" — כל השאר נמצאים מתחת, כמותאמים. שני מנפיקים שונים
-     עם אותם ספרות זה מקרה נדיר אבל אפשרי, ואז שניהם למעלה. */
+  /* "עשוי להתאים" נמדד ביחס למק״ט אחד, ולכן הוא נבנה רק כשנמצאה
+     בדיוק פוזיציה אחת. חיפוש חלקי כמו "0446" יכול להחזיר שמונה
+     מק״טים שונים, ואז הכותרת הייתה מודדת ביחס לשמונה עוגנים בבת
+     אחת — בדיוק התקלה שבגללה ירדה הכותרת מחיפוש לפי שם. */
+  if (found.length !== 1) {
+    return res.json({
+      query: { raw, norm: nn, mode, numberish: numberish(raw) },
+      exact: found, compatible: [], compatible_without_offers: 0,
+    });
+  }
+
   const seen = new Set(found.map((c) => c.id));
   const compatible = [];
   let emptyCount = 0;

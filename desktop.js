@@ -36,6 +36,9 @@ const S = {
   groups: null,
   pos: null, posOffers: [], posCompat: [], posEmpty: 0, posLoading: false, partBack: 'catalog',
   compatNote: false,
+  // כמה נטען מול כמה יש: רשימה שנחתכת בשקט משאירה את המשתמש בטוח
+  // שראה הכול
+  posTotal: 0, posPage: 1, browseTotal: 0, browsePage: 1, loadingMore: false,
   convs: [], conv: null, msgs: [],
   stock: [], stats: null,
   draft: null, cutout: true,
@@ -152,9 +155,10 @@ async function loadCatalog() {
     } else {
       /* גם הדפדוף מחזיר פוזיציות: אותו חלק היה מופיע במדף אצל כל
          מוכר בנפרד, וזו אותה תקלה שהחיפוש תוקן בגללה. */
-      const data = await api(`/positions?${filterParams({ limit: 60 })}`);
+      const data = await api(`/positions?${filterParams({ limit: 48 })}`);
       S.groups = { query: { mode: 'browse' }, exact: data.items, compatible: [], compatible_without_offers: 0 };
       S.items = []; S.total = data.pagination.total;
+      S.browseTotal = data.pagination.total; S.browsePage = 1;
     }
   } catch (e) { toast(e.message, true); S.items = []; S.groups = null; S.total = 0; }
   S.loading = false; render();
@@ -162,15 +166,39 @@ async function loadCatalog() {
 
 /* התמצית ורשימת המוכרים נטענות בנפרד: ראש המסך נצבע מיד ולא מחכה
    לרשימה, שאצל פוזיציה מבוקשת יכולה להיות ארוכה. */
+/* "עוד" קיים כי רשימה שנגמרת בשקט משכנעת שזה כל מה שיש. */
+async function loadMoreBrowse() {
+  if (S.loadingMore || !S.groups) return;
+  S.loadingMore = true; render();
+  try {
+    const data = await api(`/positions?${filterParams({ limit: 48, page: S.browsePage + 1 })}`);
+    S.browsePage += 1;
+    S.groups = { ...S.groups, exact: [...S.groups.exact, ...data.items] };
+  } catch (e) { toast(e.message, true); }
+  S.loadingMore = false; render();
+}
+
+async function loadMoreOffers() {
+  if (S.loadingMore || !S.pos) return;
+  S.loadingMore = true; render();
+  try {
+    const { offers } = await api(`/positions/${S.pos.id}/offers?page=${S.posPage + 1}`);
+    S.posPage += 1;
+    S.posOffers = [...S.posOffers, ...offers];
+  } catch (e) { toast(e.message, true); }
+  S.loadingMore = false; render();
+}
+
 async function loadPosition(id) {
   S.pos = null; S.posOffers = []; S.posCompat = []; S.posEmpty = 0; S.posLoading = true;
+  S.posTotal = 0; S.posPage = 1;
   go('position');
   try {
     const data = await api(`/positions/${id}`);
     S.pos = data.position; S.posCompat = data.compatible; S.posEmpty = data.compatible_without_offers;
     render();
-    const { offers } = await api(`/positions/${id}/offers`);
-    S.posOffers = offers;
+    const { offers, pagination } = await api(`/positions/${id}/offers`);
+    S.posOffers = offers; S.posTotal = pagination.total; S.posPage = 1;
   } catch (e) { toast(e.message, true); }
   S.posLoading = false; render();
 }
@@ -380,6 +408,15 @@ function shownCount() {
   return n === 0 ? 'אין תוצאות' : n === 1 ? 'מק״ט אחד' : `${n} מק״טים`;
 }
 
+/* "עוד" רק כשנשאר עוד, ותמיד עם המספרים — אחרת השאלה "נגמר או שיש
+   עוד?" נשארת פתוחה. */
+function moreBtn(shown, total, act, label) {
+  if (!total || shown >= total) return '';
+  return `<div class="row" style="justify-content:center;margin-top: var(--s5)">
+    <button class="btn ghost" data-act="${act}"${S.loadingMore ? ' disabled' : ''}>
+      ${S.loadingMore ? 'טוען…' : `${label} · מוצגים ${shown} מתוך ${total}`}</button></div>`;
+}
+
 function groupResults() {
   const g = S.groups;
   // סינון המצב פועל על הפוזיציות שיש בהן הצעה כזאת — המצב הוא תכונה
@@ -389,6 +426,7 @@ function groupResults() {
   if (!exact.length && !compat.length) return null;
   return `
     <div class="results">${exact.map(posCard).join('')}</div>
+    ${g.query && g.query.mode === 'browse' ? moreBtn(exact.length, S.browseTotal, 'more-browse', 'עוד מק״טים') : ''}
     ${compat.length ? compatHead(g.compatible_without_offers) + `<div class="results">${compat.map(posCard).join('')}</div>` : ''}`;
 }
 
@@ -470,7 +508,8 @@ function viewPosition() {
           ${S.posLoading ? '<div class="spin"></div>' : S.posOffers.length
             ? `<div class="card" style="overflow:hidden"><table>
                  <thead><tr><th>ספק</th><th>מצב</th><th>יצרן</th><th>מלאי</th><th>מחיר</th></tr></thead>
-                 <tbody>${S.posOffers.map(offerRow).join('')}</tbody></table></div>`
+                 <tbody>${S.posOffers.map(offerRow).join('')}</tbody></table></div>
+               ${moreBtn(S.posOffers.length, S.posTotal, 'more-offers', 'עוד ספקים')}`
             : `<div class="empty"><span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">אין הצעות כרגע</span>
                  <span>המק״ט מוכר לנו, אבל אף ספק לא מציע אותו</span></div>`}
         </section>
@@ -957,6 +996,8 @@ document.addEventListener('click', async (ev) => {
   if (act === 'open-part') { openPart(Number(el.dataset.id)); return; }
   if (act === 'open-offer') { openPart(Number(el.dataset.id), 'position'); return; }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
+  if (act === 'more-browse') { loadMoreBrowse(); return; }
+  if (act === 'more-offers') { loadMoreOffers(); return; }
   if (act === 'compat-note') { S.compatNote = !S.compatNote; render(); return; }
 
   // מסננים

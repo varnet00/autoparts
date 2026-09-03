@@ -97,6 +97,9 @@ const S = {
   // המק״ט שהוקלד — ומתחתיה פוזיציות של מנפיקים אחרים שמתאימות לה
   groups: null,
   pos: null, posOffers: [], posCompat: [], posEmpty: 0, compatNote: false,
+  // כמה יש בסך הכול מול כמה כבר נטענו: בלי זה הרשימה נחתכת בשקט
+  // והמשתמש בטוח שראה הכול
+  posTotal: 0, posPage: 1, browseTotal: 0, browsePage: 1, loadingMore: false,
   /* איפה כל לשונית נעצרה. מי שהיה בתוצאות חיפוש, קפץ להודעות וחזר,
      חוזר לתוצאות — ולא למסך בית ריק. בלי זה כל הצצה בלשונית אחרת
      מוחקת את מה שהמשתמש בנה, וזה הופך את האי התחתון למסוכן. */
@@ -461,6 +464,7 @@ function groupResults() {
   }
   return `
     ${exact.map((c) => posCard(c)).join('')}
+    ${g.query && g.query.mode === 'browse' ? moreBtn(exact.length, S.browseTotal, 'more-browse', 'עוד מק״טים') : ''}
     ${compat.length ? compatHead(g.compatible_without_offers) + compat.map((c) => posCard(c)).join('') : ''}`;
 }
 
@@ -756,6 +760,7 @@ function viewPosition() {
           : S.posOffers.length
             ? S.posOffers.map(offerCard).join('')
             : emptyState(ICON.search({ s: 30 }), 'אין הצעות כרגע', 'המק״ט מוכר לנו, אבל אף ספק לא מציע אותו')}
+        ${moreBtn(S.posOffers.length, S.posTotal, 'more-offers', 'עוד ספקים')}
       </div>
 
       ${S.posCompat.length ? `<div class="pad stack" style="gap: var(--s3)">
@@ -764,6 +769,14 @@ function viewPosition() {
       </div>` : ''}
       <div style="height:calc(var(--dock-h) + var(--s8))"></div>
     </div>`;
+}
+
+/* "עוד" מופיע רק כשבאמת נשאר עוד, ותמיד עם המספרים: כמה מוצג מתוך
+   כמה. כפתור בלי המספרים משאיר את השאלה "נגמר או שיש עוד?" פתוחה. */
+function moreBtn(shown, total, act, label) {
+  if (!total || shown >= total) return '';
+  return `<button class="btn ghost" data-act="${act}"${S.loadingMore ? ' disabled' : ''}>
+    ${S.loadingMore ? 'טוען…' : `${label} · מוצגים ${shown} מתוך ${total}`}</button>`;
 }
 
 function posRow(label, value) {
@@ -1349,10 +1362,11 @@ async function loadSearch() {
          והדפדוף החזיר הצעות, ואותו חלק הופיע במדף ארבע פעמים אצל
          ארבעה מוכרים — אותה תקלה שהחיפוש תוקן בגללה, רק בכניסה
          השנייה. עכשיו בכל מקום רואים מק״טים. */
-      const data = await api(`/positions?${filterParams({ limit: 60 })}`);
+      const data = await api(`/positions?${filterParams({ limit: 30 })}`);
       S.groups = { query: { mode: 'browse' }, exact: data.items, compatible: [], compatible_without_offers: 0 };
       S.items = [];
       S.total = data.pagination.total;
+      S.browseTotal = data.pagination.total; S.browsePage = 1;
     }
   } catch (e) {
     toast(e.message, true); S.items = []; S.groups = null; S.total = 0;
@@ -1360,18 +1374,43 @@ async function loadSearch() {
   S.loading = false; render();
 }
 
+/* עוד מק״טים במדף. בלי זה הרשימה נגמרת בשקט אחרי שלושים והמשתמש
+   בטוח שזה כל מה שיש — וזה בדיוק ההפך ממה שקטלוג אמור לעשות. */
+async function loadMoreBrowse() {
+  if (S.loadingMore || !S.groups) return;
+  S.loadingMore = true; S.keepScroll = true; render();
+  try {
+    const data = await api(`/positions?${filterParams({ limit: 30, page: S.browsePage + 1 })}`);
+    S.browsePage += 1;
+    S.groups = { ...S.groups, exact: [...S.groups.exact, ...data.items] };
+  } catch (e) { toast(e.message, true); }
+  S.loadingMore = false; S.keepScroll = true; render();
+}
+
+async function loadMoreOffers() {
+  if (S.loadingMore || !S.pos) return;
+  S.loadingMore = true; S.keepScroll = true; render();
+  try {
+    const { offers } = await api(`/positions/${S.pos.id}/offers?page=${S.posPage + 1}`);
+    S.posPage += 1;
+    S.posOffers = [...S.posOffers, ...offers];
+  } catch (e) { toast(e.message, true); }
+  S.loadingMore = false; S.keepScroll = true; render();
+}
+
 /* התמצית והמוכרים נטענים בנפרד: ראש המסך נצבע מיד, ורשימת המוכרים
    מגיעה אחריו. אצל פוזיציה מבוקשת יש הרבה מוכרים, ואין סיבה
    שהכותרת תחכה להם. */
 async function loadPosition(id) {
   S.pos = null; S.posOffers = []; S.posCompat = []; S.posEmpty = 0; S.posLoading = true;
+  S.posTotal = 0; S.posPage = 1;
   go('position');
   try {
     const data = await api(`/positions/${id}`);
     S.pos = data.position; S.posCompat = data.compatible; S.posEmpty = data.compatible_without_offers;
     render();
-    const { offers } = await api(`/positions/${id}/offers`);
-    S.posOffers = offers;
+    const { offers, pagination } = await api(`/positions/${id}/offers`);
+    S.posOffers = offers; S.posTotal = pagination.total; S.posPage = 1;
   } catch (e) { toast(e.message, true); }
   S.posLoading = false; render();
 }
@@ -2016,6 +2055,8 @@ document.addEventListener('click', async (ev) => {
   if (act === 'search') { go('search'); return; }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
   if (act === 'position') { go('position'); return; }
+  if (act === 'more-browse') { loadMoreBrowse(); return; }
+  if (act === 'more-offers') { loadMoreOffers(); return; }
   if (act === 'compat-note') { S.compatNote = !S.compatNote; S.keepScroll = true; render(); return; }
 
   if (act === 'create') {
