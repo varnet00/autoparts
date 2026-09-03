@@ -105,4 +105,50 @@ function compatibleCards(positionId) {
   return { items: live, empty: cards.length - live.length };
 }
 
-module.exports = { card, compatibleCards, compatibleIds, posStmt };
+/* מסננים על פוזיציות. אותו קוד משרת את החיפוש לפי שם ואת הדפדוף
+   במדפים, ולכן "מערכת בלמים · טויוטה · 2018" מסננת אותו דבר בשני
+   המקומות — ולא מחזירה שתי תשובות שונות לאותה שאלה. */
+const { isCategory, isDepartment, categoryIdsOf } = require('./categories');
+const { isKind } = require('./vehicles');
+
+function filterSql(f) {
+  const where = [];
+  const params = {};
+  if (f.department && f.department !== 'all' && isDepartment(f.department)) {
+    const ids = categoryIdsOf(f.department);
+    where.push(`p.category IN (${ids.map((_, i) => `@d${i}`).join(', ')})`);
+    ids.forEach((id, i) => { params[`d${i}`] = id; });
+  }
+  if (f.category && f.category !== 'all' && isCategory(f.category)) {
+    where.push('p.category = @category');
+    params.category = f.category;
+  }
+  const fit = [];
+  if (f.vehicle_kind && f.vehicle_kind !== 'all' && isKind(f.vehicle_kind)) {
+    fit.push('vehicle_kind = @vkind'); params.vkind = f.vehicle_kind;
+  }
+  if (f.vehicle_make && f.vehicle_make !== 'all') { fit.push('vehicle_make = @vmake'); params.vmake = f.vehicle_make; }
+  if (f.make_q && String(f.make_q).trim()) {
+    fit.push("vehicle_make LIKE '%' || @mq || '%'"); params.mq = String(f.make_q).trim();
+  }
+  if (f.vehicle_model && String(f.vehicle_model).trim()) {
+    fit.push("vehicle_model LIKE '%' || @vmodel || '%'"); params.vmodel = String(f.vehicle_model).trim();
+  }
+  const y = parseInt(f.year);
+  // חלק בלי טווח שנים מתאים לכל השנים, ולכן NULL נחשב פתוח
+  if (!Number.isNaN(y)) {
+    fit.push('(year_from IS NULL OR year_from <= @year) AND (year_to IS NULL OR year_to >= @year)');
+    params.year = y;
+  }
+  if (fit.length) {
+    where.push(`EXISTS (SELECT 1 FROM position_fitment WHERE position_id = p.id AND ${fit.join(' AND ')})`);
+  }
+  // מצב הוא תכונה של ההצעה: הפוזיציה נשארת אם מישהו מוכר אותה כך
+  if (f.kind && f.kind !== 'all') {
+    where.push('EXISTS (SELECT 1 FROM parts WHERE position_id = p.id AND kind = @kind)');
+    params.kind = f.kind;
+  }
+  return { where, params };
+}
+
+module.exports = { card, compatibleCards, compatibleIds, posStmt, filterSql };

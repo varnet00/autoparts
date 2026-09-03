@@ -1,8 +1,45 @@
 const express = require('express');
 const db = require('../db');
-const { card, compatibleCards, posStmt } = require('../position-view');
+const { card, compatibleCards, posStmt, filterSql } = require('../position-view');
 
 const router = express.Router();
+
+/* GET /api/positions — דפדוף במדפים, גם הוא בפוזיציות.
+
+   קודם החיפוש החזיר פוזיציות והדפדוף החזיר הצעות, ואותו חלק הופיע
+   במדף ארבע פעמים אצל ארבעה מוכרים. זו בדיוק התקלה שהחיפוש תוקן
+   בגללה, רק בכניסה השנייה. עכשיו יש מודל אחד: בכל מקום שבו רואים
+   רשימה של חלקים — רואים מק״טים, וההשוואה בין מוכרים בתוך המק״ט.
+
+   פוזיציה בלי הצעות אינה במדף: אין מה לקנות בה. */
+router.get('/', (req, res) => {
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 30, 1), 100);
+  const { where, params } = filterSql(req.query);
+  where.push('EXISTS (SELECT 1 FROM parts WHERE position_id = p.id)');
+  const clause = `WHERE ${where.join(' AND ')}`;
+
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM positions p ${clause}`).get(params).n;
+  /* סדר: קודם מה שיש במלאי, אחר כך מה שיש לו יותר ספקים — שם יש מה
+     להשוות — ובתוך זה הזול. מק״ט שאין לו מלאי יורד למטה ולא נעלם:
+     לפעמים דווקא הוא המספר הנכון לפנות איתו. */
+  const rows = db
+    .prepare(
+      `SELECT p.*,
+              (SELECT COUNT(*) FROM parts WHERE position_id = p.id) AS n_offers,
+              (SELECT COUNT(*) FROM parts WHERE position_id = p.id AND stock = 'in' AND qty > 0) AS n_stock,
+              (SELECT MIN(price) FROM parts WHERE position_id = p.id) AS min_price
+       FROM positions p ${clause}
+       ORDER BY (n_stock > 0) DESC, n_offers DESC, min_price ASC, p.id
+       LIMIT @limit OFFSET @offset`
+    )
+    .all({ ...params, limit, offset: (page - 1) * limit });
+
+  res.json({
+    items: rows.map((r) => card(r)),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
+});
 
 /* GET /api/positions/:id — התמצית שבראש המסך.
    נפרד מרשימת המוכרים בכוונה: התמצית מגיעה מיד ונצבעת, והמוכרים

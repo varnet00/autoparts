@@ -30,7 +30,7 @@ const S = {
   // נתונים
   depts: [], vehicles: [], models: [],
   items: [], total: 0, loading: false,
-  part: null, analogs: [],
+  part: null,
   // חיפוש מחזיר פוזיציות ולא הצעות: פוזיציה אחת למעלה — זו של המק״ט
   // שהוקלד — ומתחתיה מנפיקים אחרים שמתאימים לאותו מספר ייחוס
   groups: null,
@@ -150,8 +150,11 @@ async function loadCatalog() {
       S.groups = data; S.items = [];
       S.total = data.exact.length + data.compatible.length;
     } else {
-      const data = await api(`/parts?${filterParams({ limit: 60 })}`);
-      S.groups = null; S.items = data.items; S.total = data.pagination.total;
+      /* גם הדפדוף מחזיר פוזיציות: אותו חלק היה מופיע במדף אצל כל
+         מוכר בנפרד, וזו אותה תקלה שהחיפוש תוקן בגללה. */
+      const data = await api(`/positions?${filterParams({ limit: 60 })}`);
+      S.groups = { query: { mode: 'browse' }, exact: data.items, compatible: [], compatible_without_offers: 0 };
+      S.items = []; S.total = data.pagination.total;
     }
   } catch (e) { toast(e.message, true); S.items = []; S.groups = null; S.total = 0; }
   S.loading = false; render();
@@ -182,10 +185,10 @@ async function loadModels() {
 }
 
 async function openPart(id, from) {
-  S.part = null; S.analogs = []; S.partBack = from || 'catalog'; go('part');
+  S.part = null; S.partBack = from || 'catalog'; go('part');
   try {
-    const [{ part }, { analogs }] = await Promise.all([api(`/parts/${id}`), api(`/parts/${id}/analogs`)]);
-    S.part = part; S.analogs = analogs;
+    const { part } = await api(`/parts/${id}`);
+    S.part = part;
   } catch (e) { toast(e.message, true); }
   render();
 }
@@ -299,6 +302,10 @@ function crumbs() {
 }
 
 
+/* רשימת האנלוגים ירדה מכרטיס המוכר: היא הייתה בדיוק מה שמסך
+   הפוזיציה עושה, רק שערבבה מוכרים של אותו מק״ט עם מנפיקים אחרים.
+   שתי רשימות שאומרות אותו דבר בשתי צורות זה בלבול, לא בחירה. */
+
 /* ============ כרטיס פוזיציה ============
    בתוצאות מופיעות פוזיציות ולא הצעות: חיפוש של 04465-02220 היה
    מחזיר ארבעה כרטיסים שהם חלק אחד אצל ארבעה מוכרים.
@@ -315,12 +322,14 @@ function posCard(c) {
           <span class="label">${esc(c.brand)}</span>
         </div>
         ${c.name ? `<h3 style="font-weight:400;color:var(--muted)">${esc(c.name)}</h3>` : ''}
-        ${c.aka.length ? `<span class="label" style="font-size:var(--fs-micro)">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
+        ${c.matched_number && c.matched_number !== c.number
+          ? `<span class="label" style="font-size:var(--fs-micro);color:var(--brand)">חיפשתם <span class="mono">${esc(c.matched_number)}</span> · המק״ט הראשי היום</span>`
+          : c.aka.length ? `<span class="label" style="font-size:var(--fs-micro)">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
         ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-micro)">${esc(c.fits[0])}</span>` : ''}
         <div class="foot">
           <div class="row" style="gap:6px;flex-wrap:wrap">
             ${c.by_kind.map((k) => kindTag(k.kind)).join('')}
-            <span class="label">${c.offers} ספקים</span>
+            <span class="label">${c.offers === 1 ? 'ספק אחד' : `${c.offers} ספקים`}</span>
           </div>
           ${c.price ? `<span class="stack" style="gap:2px;align-items:flex-end">
               <span class="price">${shekel(c.price.avg)}</span>
@@ -348,6 +357,27 @@ function compatHead(empty) {
     </div>
     ${S.compatNote ? `<div class="note" id="compatNote">${NOTE_FIT}</div>` : ''}
   </div>`;
+}
+
+/* מק״ט שלא נמצא הוא מבוי סתום: "לא נמצא" לבדו לא אומר מה לעשות
+   עכשיו. מספר שאינו בקטלוג עדיין יכול להימצא אצל ספק. */
+function deadEnd() {
+  const numberish = S.groups && S.groups.query && S.groups.query.numberish;
+  return numberish
+    ? `<span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">המק״ט ${esc(S.q.trim())} לא נמצא</span>
+       <span>בדקו את המספר, או חפשו לפי שם החלק — מק״ט שאינו בקטלוג עדיין יכול להיות אצל ספק</span>`
+    : `<span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">לא נמצאו חלקים</span>
+       <span>נסו מק״ט אחר, או הסירו חלק מהמסננים</span>`;
+}
+
+/* המונה סופר את מה שמצויר ולא את מה שהשרת החזיר, ובעברית יחיד
+   ורבים אינם אותה מילה. */
+function shownCount() {
+  const g = S.groups;
+  if (!g) return `${S.total} מק״טים`;
+  const pick = (l) => (S.kind === 'all' ? l : l.filter((c) => c.by_kind.some((k) => k.kind === S.kind)));
+  const n = pick(g.exact).length + pick(g.compatible).length;
+  return n === 0 ? 'אין תוצאות' : n === 1 ? 'מק״ט אחד' : `${n} מק״טים`;
 }
 
 function groupResults() {
@@ -390,15 +420,14 @@ function viewCatalog() {
         <div class="toolbar">
           <div class="stack" style="gap:6px">
             <h1 style="margin:0;font:600 var(--fs-hero)/1.2 var(--disp)">${S.q ? 'תוצאות חיפוש' : 'קטלוג החלקים'}</h1>
-            <span class="label">${S.loading ? 'מחפש…' : S.groups ? `${S.total} מק״טים` : `${S.total} פוזיציות`}</span>
+            <span class="label">${S.loading ? 'מחפש…' : shownCount()}</span>
           </div>
           ${crumbs()}
         </div>
         ${S.loading ? '<div class="spin"></div>'
           : (S.groups && groupResults()) || (S.items.length
             ? `<div class="results">${S.items.map(itemCard).join('')}</div>`
-            : `<div class="empty"><span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">לא נמצאו חלקים</span>
-                 <span>נסו מק״ט אחר, או הסירו חלק מהמסננים</span>
+            : `<div class="empty">${deadEnd()}
                  ${anyFilter() ? '<button class="btn ghost" data-act="clear">נקה סינון</button>' : ''}</div>`)}
       </section>
     </div>`;
@@ -489,7 +518,6 @@ function viewPart() {
   const oems = all.filter((n) => n.is_oem);
   const nums = all.filter((n) => !n.is_oem);
   const s = p.seller;
-  const cheaper = S.analogs.filter((a) => a.price < p.price).length;
 
   return `
     <div class="wrap">
@@ -526,29 +554,14 @@ function viewPart() {
             </div>` : ''}
           </div>` : ''}
 
-          <div class="stack" style="gap: var(--s4)">
-            <div class="railhead">
-              <span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">אותו חלק אצל מוכרים אחרים</span>
-              <span class="label">${S.analogs.length ? `${S.analogs.length} הצעות${cheaper ? ` · ${cheaper} זולות יותר` : ''}` : 'אין כרגע'}</span>
+          ${p.position_id ? `<div class="card row between" style="gap: var(--s4);padding: var(--s5);cursor:pointer"
+               data-act="open-pos" data-id="${p.position_id}">
+            <div class="stack" style="gap:4px">
+              <span style="font:600 var(--fs-lead) var(--disp)">כל הספקים של המק״ט הזה</span>
+              <span class="label">להשוות מחיר, מצב ומלאי במקום אחד</span>
             </div>
-            ${S.analogs.length ? `<div class="card" style="overflow:hidden">
-              <table>
-                <tbody>
-                  ${S.analogs.map((a) => `<tr data-act="open-part" data-id="${a.id}" style="cursor:pointer">
-                    <td style="width:46%">
-                      <div class="stack" style="gap:3px">
-                        <span style="font:500 var(--fs-sub) var(--sans)">${esc(a.name)}</span>
-                        <span class="mono muted" style="font-size:var(--fs-micro)">${esc(a.part_no)}</span>
-                      </div>
-                    </td>
-                    <td>${kindTag(a.kind)}</td>
-                    <td><span class="label">${esc(a.seller ? a.seller.name : '—')}</span></td>
-                    <td style="text-align:start"><span class="mono" style="font-weight:600">${shekel(a.price)}</span>
-                      ${a.price < p.price ? `<span class="tag orig" style="margin-inline-start:6px">−${shekel(p.price - a.price)}</span>` : ''}</td>
-                  </tr>`).join('')}
-                </tbody>
-              </table>
-            </div>` : ''}
+            <span class="mono" style="font-weight:600;font-size:var(--fs-lead)">${esc(p.part_no)}</span>
+          </div>` : ''}
           </div>
         </section>
 

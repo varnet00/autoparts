@@ -93,7 +93,6 @@ const S = {
   total: 0,
   openPart: null,       // איזה כרטיס פתוח ברשימה
   part: null,
-  analogs: [],
   // תוצאות החיפוש הן רשימה של רשימות: פוזיציה אחת למעלה — זו של
   // המק״ט שהוקלד — ומתחתיה פוזיציות של מנפיקים אחרים שמתאימות לה
   groups: null,
@@ -401,20 +400,32 @@ function viewSearch() {
         </div>
       </div>
       <div class="pad row between" style="padding-top: var(--s5)">
-        <span class="label">${S.loading ? 'מחפש…' : `${S.total} תוצאות`}</span>
+        <span class="label">${S.loading ? 'מחפש…' : resultsWord(shownCount())}</span>
         ${activeFilters.length ? `<button class="label" data-act="clear-filters" style="text-decoration:underline">נקה סינון</button>` : ''}
       </div>
       ${activeFilters.length ? `<div class="pad" style="padding-top: var(--s2)">
         <span class="label">${esc(activeFilters.join(' · '))}</span>
       </div>` : ''}
       <div class="pad stack" style="gap: var(--s3);padding-top: var(--s3)">
-        ${S.loading ? loader() : S.groups ? groupResults() : S.items.length
-            ? S.items.map(resultCard).join('')
-            : emptyState(ICON.search({ s: 30 }), 'לא נמצאו חלקים', 'נסו מק״ט אחר או נקו את הסינון')}
+        ${S.loading ? loader() : groupResults()}
       </div>
     </div>`;
 }
 
+
+// עברית מבדילה יחיד מרבים, ו"1 ספקים" נקרא כמו טקסט שנוצר במכונה
+function suppliersWord(n) { return n === 1 ? 'ספק אחד' : `${n} ספקים`; }
+
+/* המונה סופר את מה שמצויר על המסך ולא את מה שהשרת החזיר: אחרת
+   הכותרת אומרת "2 תוצאות" מעל מסך שכתוב בו "אין הצעות". */
+function shownCount() {
+  if (!S.groups) return S.total;
+  return ofKind(S.groups.exact).length + ofKind(S.groups.compatible).length;
+}
+function resultsWord(n) {
+  if (!n) return 'אין תוצאות';
+  return n === 1 ? 'תוצאה אחת' : `${n} תוצאות`;
+}
 
 /* סינון המצב פועל על הפוזיציות שיש בהן הצעה כזאת: המצב הוא תכונה
    של ההצעה, ולכן פוזיציה נשארת אם מישהו מוכר אותה במצב המבוקש. */
@@ -425,10 +436,28 @@ function ofKind(list) {
 
 function groupResults() {
   const g = S.groups;
+  if (!g) return loader();
   const exact = ofKind(g.exact);
   const compat = ofKind(g.compatible);
+
+  /* המק״ט נמצא, אבל מסנן המצב הסתיר אותו. מסך ריק כאן הוא שקר:
+     יש הצעות, פשוט לא במצב שנבחר. אומרים בדיוק את זה, ונותנים
+     כפתור אחד לחזור — במקום להשאיר אדם מול "לא נמצא" על מק״ט
+     שהוא בדיוק הקליד. */
+  if (!exact.length && !compat.length && (g.exact.length || g.compatible.length)) {
+    return `${emptyState(ICON.search({ s: 30 }), 'אין הצעות במצב הזה',
+      `המק״ט קיים אצל ${suppliersWord(g.exact.reduce((n, c) => n + c.offers, 0))}, אבל לא במצב שנבחר`)}
+      <div class="pad"><button class="btn" data-act="kind" data-kind="all">להראות את כל המצבים</button></div>`;
+  }
+
   if (!exact.length && !compat.length) {
-    return emptyState(ICON.search({ s: 30 }), 'לא נמצאו חלקים', 'נסו מק״ט אחר או נקו את הסינון');
+    /* מק״ט שלא נמצא הוא מבוי סתום: "לא נמצא" לבדו לא אומר לאדם מה
+       לעשות עכשיו. אם הוקלד מספר — מציעים לבדוק אותו ולפנות לספקים,
+       כי מק״ט שאין בקטלוג עדיין יכול להימצא אצל מוכר. */
+    return g.query && g.query.numberish
+      ? emptyState(ICON.search({ s: 30 }), `המק״ט ${S.q.trim()} לא נמצא`,
+          'בדקו את המספר, או חפשו לפי שם החלק — מק״ט שאינו בקטלוג עדיין יכול להיות אצל ספק')
+      : emptyState(ICON.search({ s: 30 }), 'לא נמצאו חלקים', 'נסו מק״ט אחר או נקו את הסינון');
   }
   return `
     ${exact.map((c) => posCard(c)).join('')}
@@ -460,11 +489,13 @@ function posCard(c, opts) {
           <span class="label">${esc(c.brand)}</span>
         </div>
         ${c.name ? `<span style="font:400 var(--fs-sub)/1.3 var(--sans);color:var(--muted)">${esc(c.name)}</span>` : ''}
-        ${c.aka.length ? `<span class="label" style="font-size:var(--fs-micro)">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
+        ${c.matched_number && c.matched_number !== c.number
+          ? `<span class="label" style="font-size:var(--fs-micro);color:var(--orange)">חיפשתם <span class="mono">${esc(c.matched_number)}</span> · המק״ט הראשי היום</span>`
+          : c.aka.length ? `<span class="label" style="font-size:var(--fs-micro)">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
         ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(c.fits[0])}</span>` : ''}
         <div class="row" style="gap: var(--s2);flex-wrap:wrap;padding-top:2px">
           ${c.by_kind.map((k) => kindTag(k.kind)).join('')}
-          <span class="label">${c.offers} ספקים${c.in_stock ? '' : ' · אין במלאי'}</span>
+          <span class="label">${c.offers === 1 ? 'ספק אחד' : `${c.offers} ספקים`}${c.in_stock ? '' : ' · אין במלאי'}</span>
         </div>
       </div>
       ${price}
@@ -489,38 +520,6 @@ function compatHead(empty) {
       ${empty ? `<span class="label">עוד ${empty} מק״טים · אין במלאי</span>` : ''}
     </div>
     ${S.compatNote ? `<div class="note" id="compatNote">${NOTE_FIT}</div>` : ''}
-  </div>`;
-}
-
-/* הכרטיס ברשימה עונה על שאלה אחת: זה החלק שלי ובכמה. השאר —
-   מק״טים חלופיים, פרטי המוכר, אנלוגים — נמצא בכרטיס עצמו. */
-function resultCard(p) {
-  const open = S.openPart === p.id;
-  return `<div class="card">
-    <div class="row" style="align-items:flex-start;gap: var(--s4);padding: var(--s4) 17px;cursor:pointer" data-act="toggle" data-id="${p.id}">
-      <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
-        <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc(p.name)}</span>
-        <span class="mono" style="font-weight:600;font-size:var(--fs-sub);letter-spacing:.4px">${esc(p.part_no)}</span>
-        <div class="row" style="gap: var(--s2);flex-wrap:wrap">
-          ${kindTag(p.kind)}
-          ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
-        </div>
-      </div>
-      <div class="row" style="gap: var(--s3)">
-        ${p.image_url ? `<span class="thumb" style="width:60px;height:60px;background-image:url('${esc(p.image_url)}')"></span>` : ''}
-        <span class="price">${shekel(p.price)}</span>
-        <span style="color:#b8b0a6;transform:rotate(${open ? '-90' : '0'}deg);transition:.15s">${ICON.chevron({ s: 18 })}</span>
-      </div>
-    </div>
-    ${open ? `<div class="hr stack" style="padding: var(--s4) 17px;gap: var(--s3)">
-      ${(p.interchange_numbers || []).some((n) => n.is_oem) ? `<div class="row" style="gap: var(--s2);flex-wrap:wrap">
-        <span class="label">מחליף את</span>
-        ${(p.interchange_numbers || []).filter((n) => n.is_oem).map((n) => `<span class="num oem">${esc(n.number)}</span>`).join('')}
-      </div>` : ''}
-      <span style="font:500 var(--fs-sub) var(--sans)">${esc(p.seller ? p.seller.name : '—')}${p.seller ? ` · ${esc(p.seller.city)}` : ''}</span>
-      <span class="label">${p.qty > 0 ? `${p.qty} במלאי` : 'אזל מהמלאי'}</span>
-      <button class="btn" data-act="open-part" data-id="${p.id}">לכרטיס החלק</button>
-    </div>` : ''}
   </div>`;
 }
 
@@ -587,21 +586,16 @@ function viewPart() {
         </div>
       </div>
 
-      <div class="pad stack" style="gap: var(--s3);padding-top: var(--s5)">
-        <div class="row between">
-          <span class="label">אנלוגים זמינים</span>
-          <span class="label mono">${S.analogs.length}</span>
+      ${p.position_id ? `<div class="pad" style="padding-top: var(--s5)">
+        <div class="card row between" style="gap: var(--s3);padding: var(--s4) 17px;cursor:pointer"
+             data-act="open-pos" data-id="${p.position_id}">
+          <div class="stack" style="gap: var(--s1);min-width:0">
+            <span style="font:500 var(--fs-sub) var(--sans)">כל הספקים של המק״ט הזה</span>
+            <span class="label">להשוות מחיר, מצב ומלאי</span>
+          </div>
+          <span class="mono" style="font-weight:600">${esc(p.part_no)}</span>
         </div>
-        ${S.analogs.length
-          ? S.analogs.map((a) => `<div class="card row" style="gap: var(--s3);padding: var(--s4) 16px;cursor:pointer" data-act="open-part" data-id="${a.id}">
-              <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
-                <span class="mono" style="font-weight:600;font-size:var(--fs-sub)">${esc(a.part_no)}</span>
-                <span class="mono muted" style="font-size:var(--fs-label)">${esc(a.maker || (a.seller ? a.seller.name : ''))}</span>
-              </div>
-              ${kindTag(a.kind)}
-              <span class="price" style="font-size:var(--fs-sub)">${shekel(a.price)}</span>
-            </div>`).join('')
-          : `<div class="card" style="padding: var(--s4) 17px"><span class="label">לא נמצאו הצעות מקבילות</span></div>`}
+      </div>` : ''}
       </div>
     </div>`;
 }
@@ -1351,9 +1345,13 @@ async function loadSearch() {
       S.items = [];
       S.total = data.exact.length + data.compatible.length;
     } else {
-      const data = await api(`/parts?${filterParams({ limit: 50 })}`);
-      S.groups = null;
-      S.items = data.items;
+      /* גם הדפדוף במדפים מחזיר פוזיציות. קודם החיפוש החזיר מק״טים
+         והדפדוף החזיר הצעות, ואותו חלק הופיע במדף ארבע פעמים אצל
+         ארבעה מוכרים — אותה תקלה שהחיפוש תוקן בגללה, רק בכניסה
+         השנייה. עכשיו בכל מקום רואים מק״טים. */
+      const data = await api(`/positions?${filterParams({ limit: 60 })}`);
+      S.groups = { query: { mode: 'browse' }, exact: data.items, compatible: [], compatible_without_offers: 0 };
+      S.items = [];
       S.total = data.pagination.total;
     }
   } catch (e) {
@@ -1380,13 +1378,17 @@ async function loadPosition(id) {
 
 /* מאיפה הגיעו לכרטיס: מהחיפוש או מתוך פוזיציה. בלי זה "חזרה" היה
    מחזיר תמיד לחיפוש, ומי שהשווה מוכרים בתוך פוזיציה היה מאבד אותה. */
+/* רשימת האנלוגים ירדה מכאן: היא הייתה בדיוק מה שמסך הפוזיציה עושה,
+   רק שהיא ערבבה מוכרים של אותו מק״ט עם מנפיקים אחרים. שתי רשימות
+   שאומרות אותו דבר בשתי צורות שונות זה בלבול, לא בחירה. במקומה יש
+   שורה אחת שמובילה לפוזיציה — ובקשה אחת פחות לשרת. */
 async function loadPart(id, from) {
-  S.part = null; S.analogs = []; S.supOpen = true;
+  S.part = null; S.supOpen = true;
   S.partBack = from || 'search';
   go('part');
   try {
-    const [{ part }, { analogs }] = await Promise.all([api(`/parts/${id}`), api(`/parts/${id}/analogs`)]);
-    S.part = part; S.analogs = analogs;
+    const { part } = await api(`/parts/${id}`);
+    S.part = part;
   } catch (e) { toast(e.message, true); }
   render();
 }
@@ -1887,7 +1889,7 @@ function refreshCount() {
   const seq = ++countSeq;
   countTimer = setTimeout(async () => {
     try {
-      const data = await api(`/parts?${filterParams({ limit: 1 })}`);
+      const data = await api(`/positions?${filterParams({ limit: 1 })}`);
       if (seq !== countSeq) return;
       S.sheetCount = data.pagination.total;
     } catch (e) {

@@ -2,7 +2,6 @@ const express = require('express');
 const db = require('../db');
 const { isKind } = require('../vehicles');
 const { isCategory, isDepartment, categoryIdsOf } = require('../categories');
-const { compatibleIds } = require('../position-view');
 
 const router = express.Router();
 
@@ -122,28 +121,10 @@ router.get('/:id', (req, res) => {
   res.json({ part });
 });
 
-// GET /api/parts/:id/analogs — הצעות מקבילות לאותו חלק.
-// נשען עכשיו על הקטלוג: אותה פוזיציה אצל מוכרים אחרים, ואחריה
-// הפוזיציות שמפנות לאותו מספר ייחוס. הוא נשאר בחיים בשביל מסך
-// החלק הישן; המסך החדש קורא ל-/api/positions/:id/offers.
-router.get('/:id/analogs', (req, res) => {
-  const id = parseInt(req.params.id);
-  if (Number.isNaN(id)) return res.status(400).json({ error: 'מזהה לא תקין' });
-
-  const part = db.prepare('SELECT * FROM parts WHERE id = ?').get(id);
-  if (!part) return res.status(404).json({ error: 'החלק לא נמצא' });
-  if (!part.position_id) return res.json({ analogs: [] });
-
-  const ids = [part.position_id, ...compatibleIds(part.position_id)];
-  const rows = db
-    .prepare(
-      `SELECT * FROM parts
-       WHERE id != ? AND position_id IN (${ids.map(() => '?').join(', ')})
-       ORDER BY position_id = ? DESC, price ASC`
-    )
-    .all(id, ...ids, part.position_id);
-
-  res.json({ analogs: attachSellerAndInterchange(rows) });
-});
+/* רשימת האנלוגים הייתה מעקף סביב קטלוג שלא היה קיים: היא ערבבה
+   מוכרים של אותו מק״ט עם מנפיקים אחרים באותה רשימה. עכשיו יש
+   /api/positions/:id/offers למוכרים של אותו מק״ט ו-compatible
+   למנפיקים אחרים, ושתי השאלות נענות בנפרד. שתי דרכים לשאול אותו
+   דבר מתפצלות מוקדם או מאוחר. */
 
 module.exports = router;

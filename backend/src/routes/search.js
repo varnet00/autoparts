@@ -1,8 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { norm } = require('../catalog');
-const { isCategory, isDepartment, categoryIdsOf } = require('../categories');
-const { card, compatibleCards } = require('../position-view');
+const { card, compatibleCards, filterSql } = require('../position-view');
 
 const router = express.Router();
 
@@ -36,34 +35,20 @@ const prefixStmt = db.prepare(
    מדויקת, ומסנן ישן שנשאר פתוח מקודם היה מחביא ממנו בדיוק את מה
    שביקש. "לא נמצא" על מק״ט שכן קיים הוא התשובה הגרועה ביותר שיש. */
 function textSearch(q, f) {
-  const where = ["(p.name LIKE '%' || @q || '%' OR p.brand LIKE '%' || @q || '%')"];
-  const params = { q };
-  if (f.department && f.department !== 'all' && isDepartment(f.department)) {
-    const ids = categoryIdsOf(f.department);
-    where.push(`p.category IN (${ids.map((_, i) => `@d${i}`).join(', ')})`);
-    ids.forEach((id, i) => { params[`d${i}`] = id; });
-  }
-  if (f.category && f.category !== 'all' && isCategory(f.category)) {
-    where.push('p.category = @category');
-    params.category = f.category;
-  }
-  const fit = [];
-  if (f.vehicle_make && f.vehicle_make !== 'all') { fit.push('vehicle_make = @vmake'); params.vmake = f.vehicle_make; }
-  if (f.make_q) { fit.push("vehicle_make LIKE '%' || @mq || '%'"); params.mq = f.make_q; }
-  if (f.vehicle_model) { fit.push("vehicle_model LIKE '%' || @vmodel || '%'"); params.vmodel = f.vehicle_model; }
-  if (f.vehicle_kind && f.vehicle_kind !== 'all') { fit.push('vehicle_kind = @vkind'); params.vkind = f.vehicle_kind; }
-  const y = parseInt(f.year);
-  // חלק בלי טווח שנים מתאים לכל השנים, ולכן NULL נחשב פתוח
-  if (!Number.isNaN(y)) {
-    fit.push('(year_from IS NULL OR year_from <= @year) AND (year_to IS NULL OR year_to >= @year)');
-    params.year = y;
-  }
-  if (fit.length) {
-    where.push(`EXISTS (SELECT 1 FROM position_fitment WHERE position_id = p.id AND ${fit.join(' AND ')})`);
-  }
+  const { where, params } = filterSql(f);
+  where.unshift("(p.name LIKE '%' || @q || '%' OR p.brand LIKE '%' || @q || '%')");
+  params.q = q;
   return db
     .prepare(`SELECT DISTINCT p.* FROM positions p WHERE ${where.join(' AND ')} ORDER BY p.id LIMIT 12`)
     .all(params);
+}
+
+/* האם הוקלד מק״ט ולא שם. כשחיפוש של מק״ט לא מצא כלום, "לא נמצא"
+   לבדו הוא מבוי סתום: צריך להציע לבדוק את המספר או לפנות לספקים.
+   בחיפוש לפי שם אותה הודעה הייתה מיותרת. */
+function numberish(raw) {
+  const nn = norm(raw);
+  return nn.length >= 4 && /\d/.test(nn);
 }
 
 router.get('/', (req, res) => {
@@ -76,22 +61,34 @@ router.get('/', (req, res) => {
   if (!rows.length && nn.length >= 3) { rows = prefixStmt.all(nn); mode = 'prefix'; }
   if (!rows.length) { rows = textSearch(raw, req.query); mode = 'text'; }
 
+  const found = rows.map((r) => card(r, r.matched || null));
+
+  /* "עשוי להתאים" נמדד תמיד ביחס למק״ט אחד. בחיפוש לפי שם אין מק״ט
+     כזה, ולכן אין למה למדוד: חיפוש "TRW" היה מחזיר רפידות לטויוטה
+     ודיסק להיונדאי תחת אותה כותרת, ומי שקורא אותה שואל בצדק —
+     מתאים למה? לכן בחיפוש לפי שם התוצאות הן רשימה אחת ותו לא. */
+  if (mode === 'text') {
+    return res.json({
+      query: { raw, norm: nn, mode, numberish: numberish(raw) },
+      exact: found, compatible: [], compatible_without_offers: 0,
+    });
+  }
+
   /* כשהמק״ט נמצא, הפוזיציה שלו היא התוצאה הראשונה והיא היחידה
      ב"מדויק" — כל השאר נמצאים מתחת, כמותאמים. שני מנפיקים שונים
      עם אותם ספרות זה מקרה נדיר אבל אפשרי, ואז שניהם למעלה. */
-  const exact = rows.map((r) => card(r, r.matched || null));
-  const seen = new Set(exact.map((c) => c.id));
+  const seen = new Set(found.map((c) => c.id));
   const compatible = [];
   let emptyCount = 0;
-  for (const c of exact) {
+  for (const c of found) {
     const { items, empty } = compatibleCards(c.id);
     emptyCount += empty;
     for (const it of items) if (!seen.has(it.id)) { seen.add(it.id); compatible.push(it); }
   }
 
   res.json({
-    query: { raw, norm: nn, mode },
-    exact,
+    query: { raw, norm: nn, mode, numberish: numberish(raw) },
+    exact: found,
     compatible,
     compatible_without_offers: emptyCount,
   });

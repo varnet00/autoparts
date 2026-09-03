@@ -114,7 +114,14 @@ input[type=checkbox]{accent-color:var(--ink);width:18px;height:18px}
 
 /* ---------- поиск ---------- */
 .searchbar{background:var(--card);border-radius:999px;padding: var(--s4) var(--s5);display:flex;align-items:center;gap: var(--s3);box-shadow:0 6px 20px rgba(22,20,15,.07)}
-.searchbar input{flex:1;border:0;background:none;outline:none;font-size:var(--fs-body);min-width:0}
+/* מק״ט שהוקלד חייב להיקרא כמו שהוא נכתב. בשדה בעברית "04465-YZZQ7"
+   מתהפך ל-"YZZQ7-04465": הספרות והאותיות הלטיניות הן קטעים נפרדים,
+   והמקף שביניהן ניטרלי — ולכן הקטעים מסתדרים מימין לשמאל. plaintext
+   קובע את הכיוון לפי התו החזק הראשון בשורה: מספר נקרא משמאל לימין,
+   ושאילתה בעברית נשארת כשהייתה. באפליקציה שמחפשים בה לפי מספרים
+   זו לא קוסמטיקה. */
+.searchbar input{flex:1;border:0;background:none;outline:none;font-size:var(--fs-body);min-width:0;
+  unicode-bidi:plaintext;text-align:start}
 .searchbar input::placeholder{color:var(--muted)}
 /* כפתור אחד ברור בקצה השדה, במקום שני סמלים שנראים כמו אותו דבר */
 .searchgo{
