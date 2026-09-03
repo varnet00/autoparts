@@ -18,6 +18,9 @@ const ICON = {
   plus: o => I('<path d="M12 5v14M5 12h14"/>', o),
   chevron: o => I('<path d="m15 18-6-6 6-6"/>', o),
   back: o => I('<path d="M5 12h14M12 5l7 7-7 7"/>', o),
+  // חץ החזרה יושב בפינה השמאלית העליונה, ולכן הוא מצביע שמאלה —
+  // כיוון החץ וכיוון התנועה חייבים להיות אותו דבר
+  backL: o => I('<path d="M19 12H5M12 19l-7-7 7-7"/>', o),
   close: o => I('<path d="M18 6 6 18M6 6l12 12"/>', o),
   check: o => I('<path d="M20 6 9 17l-5-5"/>', o),
   badge: o => I('<path d="M12 2 14.4 4.6 18 4.2l.4 3.6L22 9l-1.7 3.2L22 15l-3.6 1.2-.4 3.6-3.6-.4L12 22l-2.4-2.6-3.6.4-.4-3.6L2 15l1.7-3.2L2 9l3.6-1.2.4-3.6 3.6.4z"/><path d="m9 12 2 2 4-4"/>', o),
@@ -95,6 +98,11 @@ const S = {
   // המק״ט שהוקלד — ומתחתיה פוזיציות של מנפיקים אחרים שמתאימות לה
   groups: null,
   pos: null, posOffers: [], posCompat: [], posEmpty: 0, compatNote: false,
+  /* איפה כל לשונית נעצרה. מי שהיה בתוצאות חיפוש, קפץ להודעות וחזר,
+     חוזר לתוצאות — ולא למסך בית ריק. בלי זה כל הצצה בלשונית אחרת
+     מוחקת את מה שהמשתמש בנה, וזה הופך את האי התחתון למסוכן. */
+  tabAt: { home: 'home', stock: 'stock', chats: 'chats', profile: 'profile' },
+  scrollAt: {}, restoreScroll: false,
   supOpen: true,
   stock: [],
   stockOems: new Set(),  // אילו כרטיסים פתחו את כל המק״טים המקוריים
@@ -170,12 +178,15 @@ function toast(msg, isError) {
 }
 
 /* ============================ רכיבים משותפים ============================ */
-// בממשק RTL האיבר הראשון יושב מימין. הכפתורים בהתחלה (ימין),
-// הלוגו בסוף — כלומר בפינה השמאלית העליונה.
+/* בממשק RTL האיבר הראשון בשורה יושב מימין והאחרון משמאל.
+
+   חץ החזרה הוא האחרון בקבוצה השמאלית, ולכן הוא בפינה השמאלית
+   העליונה — באותו צד שממנו מחליקים כדי לחזור. הלוגו אינו זז בין
+   מסכים: הוא נשאר במקומו והחץ מתווסף לשמאלו. */
 function topBar(opts) {
   const o = opts || {};
   const nav = o.back
-    ? `<button class="iconbtn" data-act="${esc(o.back)}">${ICON.back()}</button>`
+    ? `<button class="iconbtn" data-act="${esc(o.back)}" aria-label="חזרה">${ICON.backL()}</button>`
     : '';
   const actions = o.actions === undefined
     ? `<span class="row" style="gap: var(--s2)">
@@ -189,8 +200,9 @@ function topBar(opts) {
   // ו-space-between שולח את הלוגו לקצה. שוליים לוגיים לא מתאימים כאן —
   // ל-.brand יש direction:ltr משלו, והם נמדדים לפיו ולא לפי השורה.
   return `<div class="top">
-    <span class="row" style="gap: var(--s2)">${nav}${actions}</span>
-    ${title}${brand}
+    <span class="row" style="gap: var(--s2)">${actions}</span>
+    ${title}
+    <span class="row" style="gap: var(--s2)">${brand}${nav}</span>
   </div>`;
 }
 
@@ -946,8 +958,7 @@ function viewChat() {
 
   return `
     <div class="top" style="padding-bottom: var(--s4);border-bottom:1px solid var(--line)">
-      <button class="iconbtn" data-act="chats">${ICON.back({ s: 18 })}</button>
-      <div class="row" style="flex:1;gap: var(--s3);margin-inline-start:11px">
+      <div class="row" style="flex:1;gap: var(--s3);margin-inline-end:11px">
         <div style="width:40px;height:40px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 var(--fs-sub) var(--mono)">${esc(other && other.name ? other.name.trim()[0] : '?')}</div>
         <div class="stack" style="flex:1;gap: var(--s1);min-width:0">
           <div class="row" style="gap: var(--s2)">
@@ -957,6 +968,7 @@ function viewChat() {
           ${!isSeller() && c.seller ? `<span class="label">${esc(c.seller.city)}</span>` : ''}
         </div>
       </div>
+      <button class="iconbtn" data-act="chats" aria-label="חזרה">${ICON.backL({ s: 18 })}</button>
     </div>
 
     ${p ? `<div class="pad" style="padding-top: var(--s4)">
@@ -1057,16 +1069,32 @@ function viewProfile() {
    מתחלף תוך כדי, ברגע שהעיגול עובר ללשונית אחרת. */
 const TABS = ['home', 'stock', 'chats', 'profile'];
 
+/* לשונית אחרת — חוזרים אליה כמו שהשארנו אותה, כולל הגלילה. בלי זה
+   חיפוש שנבנה בעמל או טופס שמולא למחצה נמחקים בכל הצצה בהודעות.
+
+   לחיצה על הלשונית שאנחנו כבר בתוכה היא הדבר ההפוך: "תחזיר אותי
+   להתחלה". שם — ורק שם — הסינון מתאפס, אחרת לא הייתה שום דרך לחזור
+   למסך בית נקי. */
 function goTab(name) {
-  if (name === 'home') {
-    S.q = ''; S.dept = null; S.category = 'all'; S.sheetCount = null;
-    resetVehicleFilters();
-    go('home');
-    return;
+  const here = tabOf(S.screen) === name;
+  if (here) {
+    S.tabAt[name] = name;
+    if (name === 'home') {
+      S.q = ''; S.dept = null; S.category = 'all'; S.sheetCount = null;
+      S.groups = null;
+      resetVehicleFilters();
+    }
+    S.scrollAt[name] = 0;
+  } else {
+    S.restoreScroll = true;
   }
-  if (name === 'stock') { go('stock'); loadStock(); return; }
-  if (name === 'chats') { go('chats'); loadChats(); return; }
-  if (name === 'profile') { go('profile'); loadMe(); }
+  const at = here ? name : (S.tabAt[name] || name);
+  go(at);
+  // טוענים מחדש רק את שורש הלשונית: מסך פנימי כבר מחזיק את הנתונים שלו
+  if (at === 'stock') loadStock();
+  else if (at === 'chats') loadChats();
+  else if (at === 'profile') loadMe();
+  else if (at === 'search') loadSearch();
 }
 
 let pillDrag = null;
@@ -1155,7 +1183,7 @@ function renderDock() {
   // ציור מחדש היה יוצר אלמנט חדש והתנועה הייתה נבלעת
   const pill = dock.querySelector('.tabpill');
   if (pill) {
-    const cur = ['search', 'position', 'part'].includes(S.screen) ? 'home' : S.screen;
+    const cur = tabOf(S.screen);
     const at = Math.max(0, TABS.indexOf(cur));
     const tabs = [...dock.querySelectorAll('.tab')];
     if (!pillDrag) placePill(pill, tabs, at);           // בזמן גרירה האצבע מובילה
@@ -1171,7 +1199,7 @@ function renderDock() {
     ['chats', ICON.chat({ s: 20 })],
     ['profile', ICON.user({ s: 20 })],
   ];
-  const current = ['search', 'position', 'part'].includes(S.screen) ? 'home' : S.screen;
+  const current = tabOf(S.screen);
   const active = Math.max(0, tabs.findIndex(([k]) => k === current));
   // הסדר בשורה: פילטר בצד אחד, האי באמצע, הוספה בצד השני
   dock.innerHTML = `
@@ -1204,6 +1232,8 @@ function render() {
   const el = $('#screen');
   const keepScroll = el.querySelector('.scroll');
   const y = keepScroll ? keepScroll.scrollTop : 0;
+  // הגלילה של המסך שיוצא נשמרת, כדי שחזרה אליו תיפול לאותו מקום
+  if (S.rendered && keepScroll) S.scrollAt[S.rendered] = y;
 
   el.innerHTML = view();
   // ניקוי שאריות של דפדוף שנקטע באמצע
@@ -1212,8 +1242,15 @@ function render() {
 
   // בשיחה גוללים לסוף; בשאר המסכים שומרים על מיקום הגלילה
   const scroll = el.querySelector('.scroll');
-  if (scroll) scroll.scrollTop = S.screen === 'chat' ? scroll.scrollHeight : (S.keepScroll ? y : 0);
+  if (scroll) {
+    if (S.screen === 'chat') scroll.scrollTop = scroll.scrollHeight;
+    else if (S.keepScroll) scroll.scrollTop = y;
+    // חזרה ללשונית נופלת לאותו מקום; חיפוש חדש או פתיחת מסך מתחילים מלמעלה
+    else scroll.scrollTop = S.restoreScroll ? (S.scrollAt[S.screen] || 0) : 0;
+  }
   S.keepScroll = false;
+  S.restoreScroll = false;
+  S.rendered = S.screen;
 
   // הפאנל נמדד ומוצב מיד אחרי הציור, בלי הנפשה — אחרת כל ציור מחדש
   // היה נראה כאילו הוא נפתח או נסגר מעצמו
@@ -1230,9 +1267,20 @@ function render() {
   }
 }
 
+/* לאיזו לשונית שייך המסך. חיפוש, פוזיציה וכרטיס הם עדיין "בית";
+   טופס הפרסום שייך למלאי, ושיחה — להודעות. */
+const TAB_OF = {
+  home: 'home', search: 'home', position: 'home', part: 'home',
+  stock: 'stock', create: 'stock',
+  chats: 'chats', chat: 'chats',
+  profile: 'profile',
+};
+function tabOf(screen) { return TAB_OF[screen] || screen; }
+
 function go(screen) {
   if (screen !== 'home') S.sheet = false;
   S.screen = screen;
+  S.tabAt[tabOf(screen)] = screen;      // הלשונית זוכרת איפה נעצרה
   render();
 }
 
@@ -1535,8 +1583,17 @@ let swallowClick = false;
 // איפה התחילה הנגיעה: כל מסך הבית מושך את הפאנל למעלה, וכל שטח
 // הפאנל מוריד אותו חזרה. לא צריך לכוון לידית.
 // המסך שהאי מסמן כרגע: חיפוש וכרטיס חלק הם עדיין "בית"
-function dockScreen() {
-  return ['search', 'position', 'part'].includes(S.screen) ? 'home' : S.screen;
+function dockScreen() { return tabOf(S.screen); }
+
+/* לאן חוזרים מהמסך הנוכחי. אותו יעד משמש את חץ החזרה ואת ההחלקה,
+   ולכן אין מצב שהחץ מוביל למקום אחד וההחלקה למקום אחר. */
+function backTarget() {
+  if (S.screen === 'part') return S.partBack || 'search';
+  if (S.screen === 'position') return 'search';
+  if (S.screen === 'search') return 'home';
+  if (S.screen === 'create') return 'stock';
+  if (S.screen === 'chat') return 'chats';
+  return null;
 }
 
 function onDragStart(ev) {
@@ -1548,9 +1605,14 @@ function onDragStart(ev) {
   const onDock = Boolean(ev.target.closest('.dock'));
   // משיכה אנכית פותחת וסוגרת את הפאנל — גם מהאי התחתון
   const canSheet = S.screen === 'home' && (inSheet || onDock || Boolean(ev.target.closest('.home')));
-  // החלקה אופקית מדפדפת בין המסכים של האי, כמו לחיצה עליו
-  const canPage = !S.sheet && !inSheet && !onDock && TABS.includes(dockScreen());
-  if (!canSheet && !canPage) return;
+  /* החלקה משמאל לימין חוזרת אחורה. במסך שיש לו לאן לחזור זו
+     המשמעות שלה, ובשורש לשונית — שאין לו לאן — היא מדפדפת בין
+     הלשוניות כמו לחיצה על האי. שתי המשמעויות לא יכולות לחיות
+     באותו מסך: אחת מהן הייתה גוזלת מהשנייה חצי מהמחוות. */
+  const free = !S.sheet && !inSheet && !onDock;
+  const back = free ? backTarget() : null;
+  const canPage = free && !back && TABS.includes(dockScreen());
+  if (!canSheet && !canPage && !back) return;
 
   const sheet = sheetEl();
   if (canSheet && sheet && !S.sheet) sizeSheet(false);   // מודדים לפני שמתחילים לזוז
@@ -1562,7 +1624,7 @@ function onDragStart(ev) {
   const onControl = Boolean(ev.target.closest('button, a, [data-act]'));
   drag = {
     slop: onControl ? 16 : 8,
-    id: ev.pointerId, canSheet: canSheet && Boolean(sheet), canPage, mode: null,
+    id: ev.pointerId, canSheet: canSheet && Boolean(sheet), canPage, back, mode: null,
     height, x0: ev.clientX, y0: ev.clientY,
     y: S.sheet ? 0 : height, base: S.sheet ? 0 : height,
     lastY: ev.clientY, lastX: ev.clientX, lastT: performance.now(), v: 0, vx: 0,
@@ -1582,7 +1644,9 @@ function onDragMove(ev) {
   if (drag.pending) {
     if (Math.abs(dy) < drag.slop && Math.abs(dx) < drag.slop) return;
     const horizontal = Math.abs(dx) > Math.abs(dy);
-    if (horizontal && drag.canPage) {
+    if (horizontal && drag.back) {
+      drag.mode = 'back';
+    } else if (horizontal && drag.canPage) {
       drag.mode = 'page';
     } else if (!horizontal && drag.canSheet && !drag.inScroller
                && !(ev.target.closest('.sheetscroll') && dy < 0)) {
@@ -1606,6 +1670,15 @@ function onDragMove(ev) {
   }
   drag.lastY = ev.clientY; drag.lastX = ev.clientX; drag.lastT = now;
   drag.moved = true;
+
+  /* חזרה: המסך הולך אחרי האצבע כמעט אחד לאחד. לכיוון ההפוך אין
+     לאן לחזור, ולכן שם יש התנגדות — התנועה נעצרת ומרגישה כמו קיר. */
+  if (drag.mode === 'back') {
+    const raw = ev.clientX - drag.x0;
+    drag.dx = raw > 0 ? raw : raw / 4;
+    paintPage({ transition: 'none', transform: `translateX(${(drag.dx * 0.9).toFixed(1)}px)` });
+    return;
+  }
 
   if (drag.mode === 'page') {
     // התוכן זז מעט אחרי האצבע — מספיק כדי להרגיש שהוא מתחלף, בלי לעוף
@@ -1636,13 +1709,28 @@ function clearDragTraces() {
 
 function onDragEnd() {
   if (!drag) return;
-  const { v, vx, y, height, moved, mode, dx } = drag;
+  const { v, vx, y, height, moved, mode, dx, back } = drag;
   drag = null;
   // בלי תנועה זו לחיצה רגילה. מנקים רק את מה שהמשיכה הספיקה להשאיר,
   // ובשום אופן לא מציירים את המסך מחדש: ציור כזה מוחק את הכפתור
   // שמתחת לאצבע לפני שהלחיצה עליו נשלחת, והיא פשוט נעלמת.
   if (!moved) { clearDragTraces(); return; }
   swallowClick = true;
+
+  if (mode === 'back') {
+    // מהירות מכריעה קודם: תנועה החלטית מסיימת גם באמצע הדרך
+    if (dx > 70 || vx > 0.4) {
+      paintPage({
+        transition: 'transform .26s var(--ease), opacity .26s var(--ease)',
+        transform: 'translateX(56%)', opacity: '0',
+      });
+      // המסך החדש נצבע כשהיוצא כבר כמעט בחוץ, ולכן לא רואים חפיפה
+      setTimeout(() => go(back), 170);
+    } else {
+      paintPage({ transition: 'transform .3s var(--ease)', transform: 'translateX(0px)', opacity: '1' });
+    }
+    return;
+  }
 
   if (mode === 'page') {
     const decisive = Math.abs(dx) > 70 || Math.abs(vx) > 0.4;
