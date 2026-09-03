@@ -721,6 +721,10 @@ function makeOptions(makes, selected) {
    התמצית למעלה עונה על "מה זה בעצם": איזה חלק, באילו מק״טים הוא
    נקרא, על איזה רכב הוא עולה וכמה הוא עולה. רק אחר כך, בגלילה,
    מגיעים המוכרים — כי לפני שיודעים מה זה, אין טעם להשוות מחיר. */
+/* התמצית מכווצת בכוונה. מי שהקליד מק״ט כבר יודע מה זה — מה שהוא
+   רוצה לראות הוא מי מוכר ובכמה. חמש שורות של מטא־דאטה דחפו את
+   רשימת הספקים אל מתחת לקצה המסך, כלומר הסתירו בדיוק את מה שבשבילו
+   נכנסו. נשארו שתי שאלות: מתאים לרכב שלי, וכמה זה עולה. */
 function viewPosition() {
   const c = S.pos;
   if (!c) return `${topBar({ back: 'search' })}${loader()}`;
@@ -734,24 +738,29 @@ function viewPosition() {
           <span class="label">${esc(c.brand)}</span>
           <span class="mono" style="font:600 var(--fs-hero)/1.1 var(--mono);letter-spacing:.5px">${esc(c.number || '')}</span>
           ${c.name ? `<span style="font:400 var(--fs-body)/1.35 var(--sans);color:var(--muted)">${esc(c.name)}</span>` : ''}
+          ${c.aka.length ? `<span class="label">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
         </div>
 
-        <div class="card stack" style="gap:0;padding:0">
-          ${nums.length > 1 ? posRow('מק״טים', `<span class="mono" style="font-size:var(--fs-sub)">${esc(nums.join(' · '))}</span>`) : ''}
-          ${c.fits && c.fits.length ? posRow('מתאים ל', c.fits.map((f) => `<span class="mono" style="font-size:var(--fs-sub)">${esc(f)}</span>`).join('<br>')) : ''}
-          ${c.price ? posRow('מחיר ממוצע',
-            `<span class="row" style="gap: var(--s3);align-items:baseline">
-               <span style="font:600 var(--fs-lead) var(--disp)">${shekel(c.price.avg)}</span>
-               ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-label)">${shekel(c.price.min)}—${shekel(c.price.max)}</span>` : ''}
-             </span>`) : ''}
-          ${kinds.length > 1 ? posRow('לפי מצב', kinds.map((k) =>
-            `<span class="row" style="gap: var(--s2);align-items:baseline">${kindTag(k.kind)}<span style="font:400 var(--fs-sub) var(--sans)">מ־<span class="mono">${shekel(k.min)}</span></span></span>`).join('')) : ''}
-          ${posRow('ספקים', `<span style="font:400 var(--fs-sub) var(--sans)"><span class="mono">${c.offers}</span>${c.in_stock < c.offers ? ` · <span class="mono">${c.in_stock}</span> במלאי` : ''}</span>`)}
+        <div class="card stack" style="gap: var(--s3);padding: var(--s4) 17px">
+          ${c.fits && c.fits.length ? `<div class="row" style="gap: var(--s3);align-items:flex-start">
+            <span class="label" style="flex:none">מתאים ל</span>
+            <span style="text-align:end;flex:1">${c.fits.map((f) => `<span class="mono" style="font-size:var(--fs-sub)">${esc(f)}</span>`).join('<br>')}</span>
+          </div>` : ''}
+          ${c.price ? `<div class="row between" style="align-items:baseline;gap: var(--s3)">
+            <span class="label">מחיר ממוצע</span>
+            <span class="row" style="gap: var(--s3);align-items:baseline">
+              ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-label)">${shekel(c.price.min)}—${shekel(c.price.max)}</span>` : ''}
+              <span style="font:600 var(--fs-lead) var(--disp)">${shekel(c.price.avg)}</span>
+            </span>
+          </div>` : ''}
+          ${kinds.length > 1 ? `<div class="row" style="gap: var(--s3);flex-wrap:wrap;justify-content:flex-end">
+            ${kinds.map((k) => `<span class="row" style="gap: var(--s2);align-items:baseline">${kindTag(k.kind)}<span style="font:400 var(--fs-sub) var(--sans)">מ־<span class="mono">${shekel(k.min)}</span></span></span>`).join('')}
+          </div>` : ''}
         </div>
 
-        <div class="stack" style="gap:2px;padding-top: var(--s2)">
-          <span style="font:500 var(--fs-body) var(--sans)">ספקים</span>
-          <span class="label">אותו מק״ט אצל ספקים שונים · הזול קודם</span>
+        <div class="row between" style="align-items:baseline;padding-top: var(--s1)">
+          <span style="font:500 var(--fs-body) var(--sans)">ספקים · ${c.offers}</span>
+          <span class="label">${c.in_stock < c.offers ? `${c.in_stock} במלאי · ` : ''}הזול קודם</span>
         </div>
       </div>
 
@@ -777,13 +786,6 @@ function moreBtn(shown, total, act, label) {
   if (!total || shown >= total) return '';
   return `<button class="btn ghost" data-act="${act}"${S.loadingMore ? ' disabled' : ''}>
     ${S.loadingMore ? 'טוען…' : `${label} · מוצגים ${shown} מתוך ${total}`}</button>`;
-}
-
-function posRow(label, value) {
-  return `<div class="row between" style="gap: var(--s4);padding: var(--s3) 17px;border-top:1px solid var(--line);align-items:flex-start">
-    <span class="label" style="flex:none">${esc(label)}</span>
-    <span style="text-align:end;min-width:0">${value}</span>
-  </div>`;
 }
 
 /* כרטיס מוכר בתוך פוזיציה. המק״ט אינו חוזר כאן — הוא בכותרת המסך
