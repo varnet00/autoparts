@@ -437,6 +437,9 @@ function suppliersWord(n) { return n === 1 ? 'ספק אחד' : `${n} ספקים`
    הכותרת אומרת "2 תוצאות" מעל מסך שכתוב בו "אין הצעות". */
 function shownCount() {
   if (!S.groups) return S.total;
+  // במדף המספר הנכון הוא הסך הכול ולא מה שכבר נטען: "30 תוצאות"
+  // מעל מדף של 74 זו טעות, ו"עוד" מתחת ממילא אומר כמה נטענו
+  if (S.groups.query && S.groups.query.mode === 'browse') return S.browseTotal;
   return ofKind(S.groups.exact).length + ofKind(S.groups.compatible).length;
 }
 function resultsWord(n) {
@@ -510,7 +513,7 @@ function posCard(c, opts) {
         ${c.matched_number && c.matched_number !== c.number
           ? `<span class="label" style="font-size:var(--fs-micro);color:var(--orange)">חיפשתם <span class="mono">${esc(c.matched_number)}</span> · המק״ט הראשי היום</span>`
           : c.aka.length ? `<span class="label" style="font-size:var(--fs-micro)">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
-        ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(c.fits[0])}</span>` : ''}
+        ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(c.fits[0])}${c.fits.length > 1 ? ` +${c.fits.length - 1}` : ''}</span>` : ''}
         <div class="row" style="gap: var(--s2);flex-wrap:wrap;padding-top:2px">
           ${c.by_kind.map((k) => kindTag(k.kind)).join('')}
           <span class="label">${c.offers === 1 ? 'ספק אחד' : `${c.offers} ספקים`}${c.in_stock ? '' : ' · אין במלאי'}</span>
@@ -777,7 +780,7 @@ function viewPosition() {
           ${c.aka.length ? `<span class="label">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
         </div>
 
-        <div class="card stack" style="gap: var(--s3);padding: var(--s4) 17px">
+        ${(c.fits && c.fits.length) || c.price ? `<div class="card stack" style="gap: var(--s3);padding: var(--s4) 17px">
           ${c.fits && c.fits.length ? `<div class="row" style="gap: var(--s3);align-items:flex-start">
             <span class="label" style="flex:none">מתאים ל</span>
             <span style="text-align:end;flex:1">${c.fits.map((f) => `<span class="mono" style="font-size:var(--fs-sub)">${esc(f)}</span>`).join('<br>')}</span>
@@ -792,12 +795,12 @@ function viewPosition() {
           ${kinds.length > 1 ? `<div class="row" style="gap: var(--s3);flex-wrap:wrap;justify-content:flex-end">
             ${kinds.map((k) => `<span class="row" style="gap: var(--s2);align-items:baseline">${kindTag(k.kind)}<span style="font:400 var(--fs-sub) var(--sans)">מ־<span class="mono">${shekel(k.min)}</span></span></span>`).join('')}
           </div>` : ''}
-        </div>
+        </div>` : ''}
 
-        <div class="row between" style="align-items:baseline;padding-top: var(--s1)">
+        ${c.offers ? `<div class="row between" style="align-items:baseline;padding-top: var(--s1)">
           <span style="font:500 var(--fs-body) var(--sans)">ספקים · ${c.offers}</span>
           <span class="label">${c.in_stock < c.offers ? `${c.in_stock} במלאי · ` : ''}הזול קודם</span>
-        </div>
+        </div>` : ''}
       </div>
 
       <div class="pad stack" style="gap: var(--s3)">

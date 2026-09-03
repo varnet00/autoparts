@@ -360,7 +360,7 @@ function posCard(c) {
         ${c.matched_number && c.matched_number !== c.number
           ? `<span class="label" style="font-size:var(--fs-micro);color:var(--brand)">חיפשתם <span class="mono">${esc(c.matched_number)}</span> · המק״ט הראשי היום</span>`
           : c.aka.length ? `<span class="label" style="font-size:var(--fs-micro)">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
-        ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-micro)">${esc(c.fits[0])}</span>` : ''}
+        ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-micro)">${esc(c.fits[0])}${c.fits.length > 1 ? ` +${c.fits.length - 1}` : ''}</span>` : ''}
         <div class="foot">
           <div class="row" style="gap:6px;flex-wrap:wrap">
             ${c.by_kind.map((k) => kindTag(k.kind)).join('')}
@@ -410,6 +410,8 @@ function deadEnd() {
 function shownCount() {
   const g = S.groups;
   if (!g) return `${S.total} מק״טים`;
+  // במדף סופרים את הסך הכול; "עוד" למטה אומר כמה כבר נטענו
+  if (g.query && g.query.mode === 'browse') return `${S.browseTotal} מק״טים`;
   const pick = (l) => (S.kind === 'all' ? l : l.filter((c) => c.by_kind.some((k) => k.kind === S.kind)));
   const n = pick(g.exact).length + pick(g.compatible).length;
   return n === 0 ? 'אין תוצאות' : n === 1 ? 'מק״ט אחד' : `${n} מק״טים`;
