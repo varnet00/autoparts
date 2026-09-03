@@ -1999,8 +1999,9 @@ S.authTab = 'buyer';
 S.authMode = 'login';
 render();
 
-// רצף הפתיחה נגמר ב-2.2 שניות; יורדים רק אחריו כדי שלא ייקטע באמצע
-const splashFloor = new Promise((resolve) => setTimeout(resolve, 2500));
+// רצף השרטוט נגמר ב-2.28 שניות; מחזיקים עוד רגע כדי שהשרטוט הגמור
+// ייראה ולא ייחתך בדיוק ברגע שהקו האחרון נחת
+const splashFloor = new Promise((resolve) => setTimeout(resolve, 2700));
 Promise.allSettled([loadMe(), loadVehicles(), loadCategories()])
   .then(() => splashFloor)
   .then(hideSplash);
