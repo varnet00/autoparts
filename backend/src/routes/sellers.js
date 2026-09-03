@@ -63,11 +63,41 @@ function ownSeller(row) {
   return rest;
 }
 
+/* איפה ההצעה נחתה בקטלוג. זה לא קישוט למוכר: הצעה שלא התחברה
+   למק״ט מוכר לא תימצא בחיפוש חלופי, כלומר היא כמעט בלתי נראית —
+   והמוכר אינו יכול לדעת את זה בלי שנגיד לו. איכות הקטלוג היא מה
+   שגורם לחיפוש לעבוד, והיא נבנית כאן. */
+const { categoryIdsOf } = require('../categories');
+// מק״ט מקורי קיים רק לחלקי רכב. למגבר, לערכת כלים או לשמן אין
+// מק״ט של יצרן רכב שאפשר להצביע עליו, ואזהרה עליהם היא רעש.
+const CROSSABLE = new Set(categoryIdsOf('parts'));
+
+const catalogStmt = db.prepare(
+  `SELECT p.id, p.brand, p.category,
+          (SELECT number FROM position_numbers WHERE position_id = p.id ORDER BY is_primary DESC, number LIMIT 1) AS number,
+          (SELECT COUNT(*) FROM parts WHERE position_id = p.id) AS offers,
+          (SELECT COUNT(*) FROM oe_refs WHERE position_id = p.id OR anchor_id = p.id) AS links
+   FROM positions p WHERE p.id = ?`
+);
+
 function attachInterchange(parts) {
   const stmt = db.prepare(
     'SELECT id, number, brand, is_oem FROM interchange_numbers WHERE part_id = ? ORDER BY is_oem DESC, id'
   );
-  return parts.map((p) => ({ ...p, interchange_numbers: stmt.all(p.id) }));
+  return parts.map((p) => {
+    const pos = p.position_id ? catalogStmt.get(p.position_id) : null;
+    return {
+      ...p,
+      interchange_numbers: stmt.all(p.id),
+      catalog: pos ? {
+        position_id: pos.id, brand: pos.brand, number: pos.number,
+        offers: pos.offers, others: Math.max(0, pos.offers - 1),
+        // "יתום": חלק רכב שאיש לא מפנה למק״ט שלו ואיש אחר לא מוכר
+        // אותו — כלומר חיפוש חלופי לא יביא אליו אף אחד
+        orphan: CROSSABLE.has(pos.category) && pos.links === 0 && pos.offers <= 1,
+      } : null,
+    };
+  });
 }
 
 /* ---------- ציבורי ---------- */

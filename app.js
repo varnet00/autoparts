@@ -246,6 +246,12 @@ function viewHome() {
           <input name="q" placeholder="שם חלק או מספר מק״ט" value="${esc(S.q)}" autocomplete="off">
           <button class="searchgo" type="submit" aria-label="חיפוש">${ICON.search({ s: 18 })}</button>
         </form>
+        <!-- מי שלא קנה חלקים באינטרנט לא יודע איך מק״ט נראה, ושורת
+             חיפוש ריקה לא מלמדת אותו. דוגמה אחת אמיתית עושה את זה,
+             ולחיצה עליה מריצה את החיפוש — כך רואים מיד מה קורה. -->
+        <button class="label" data-act="try-example" style="text-align:center">
+          לדוגמה <span class="mono">04465-02220</span> · או שם החלק
+        </button>
       </div>
 
 
@@ -390,6 +396,12 @@ function viewSearch() {
     S.vyear || null,
     S.category !== 'all' ? catLabel(S.category) : null,
   ].filter(Boolean);
+  /* חיפוש לפי מק״ט מתעלם מהסינון בכוונה — מספר מדויק לא צריך
+     להיעלם בגלל מסנן שנשאר פתוח מקודם. אבל אז אסור שהמסך ימשיך
+     להציג את המסננים כאילו הם פועלים: זה בדיוק אותו שקר, רק הפוך.
+     אומרים במפורש שהם לא הופעלו. */
+  const byNumber = S.groups && S.groups.query
+    && (S.groups.query.mode === 'exact' || S.groups.query.mode === 'prefix');
   return `
     ${topBar({})}
     <div class="scroll">
@@ -407,7 +419,9 @@ function viewSearch() {
         ${activeFilters.length ? `<button class="label" data-act="clear-filters" style="text-decoration:underline">נקה סינון</button>` : ''}
       </div>
       ${activeFilters.length ? `<div class="pad" style="padding-top: var(--s2)">
-        <span class="label">${esc(activeFilters.join(' · '))}</span>
+        ${byNumber
+          ? `<span class="label">חיפוש לפי מק״ט · הסינון (${esc(activeFilters.join(' · '))}) לא הופעל</span>`
+          : `<span class="label">${esc(activeFilters.join(' · '))}</span>`}
       </div>` : ''}
       <div class="pad stack" style="gap: var(--s3);padding-top: var(--s3)">
         ${S.loading ? loader() : groupResults()}
@@ -657,6 +671,27 @@ function viewStock() {
    מתערבבים איתם. */
 const OEM_SHOWN = 2;
 
+/* איפה ההצעה נחתה בקטלוג — ולמה זה חשוב למוכר.
+
+   הצעה שאיש לא מפנה למק״ט שלה ואיש אחר לא מוכר אותו כמעט בלתי
+   נראית: חיפוש חלופי לא יביא אליה אף אחד. המוכר אינו יכול לדעת
+   את זה לבד, ולכן אומרים לו — ומציעים בדיוק את הפעולה שמתקנת:
+   להוסיף את המק״ט המקורי שהחלק מחליף.
+
+   אזהרה כזאת נכונה רק לחלקי רכב: למגבר או לערכת כלים אין מק״ט של
+   יצרן רכב, והשרת כבר לא מסמן אותם. */
+function catalogNote(p) {
+  const c = p.catalog;
+  if (!c) return '';
+  if (c.orphan) {
+    return `<span class="label" style="color:#a3560f">אינו מקושר למק״ט מקורי · קונים שמחפשים חלופה לא יגיעו אליו</span>`;
+  }
+  if (c.others > 0) {
+    return `<span class="label">במק״ט <span class="mono">${esc(c.number)}</span> · עוד ${suppliersWord(c.others)}</span>`;
+  }
+  return '';
+}
+
 function stockCard(p) {
   const all = p.interchange_numbers || [];
   const oems = all.filter((n) => n.is_oem);
@@ -677,6 +712,7 @@ function stockCard(p) {
         </div>` : ''}
         ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.fits)}</span>` : ''}
         <span>${kindTag(p.kind)}</span>
+        ${catalogNote(p)}
       </div>
       <div class="stack" style="align-items:center;gap: var(--s2);flex:none">
         ${thumb(p, 66)}
@@ -2057,6 +2093,10 @@ document.addEventListener('click', async (ev) => {
   if (act === 'search') { go('search'); return; }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
   if (act === 'position') { go('position'); return; }
+  if (act === 'try-example') {
+    S.q = '04465-02220'; S.kind = 'all';
+    go('search'); loadSearch(); return;
+  }
   if (act === 'more-browse') { loadMoreBrowse(); return; }
   if (act === 'more-offers') { loadMoreOffers(); return; }
   if (act === 'compat-note') { S.compatNote = !S.compatNote; S.keepScroll = true; render(); return; }

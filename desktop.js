@@ -312,6 +312,13 @@ function railFilters() {
     </aside>`;
 }
 
+/* חיפוש לפי מק״ט מתעלם מהסינון בכוונה, ולכן אסור שהפירורים ימשיכו
+   להציג אותו כאילו הוא פועל. */
+function byNumber() {
+  return Boolean(S.groups && S.groups.query
+    && (S.groups.query.mode === 'exact' || S.groups.query.mode === 'prefix'));
+}
+
 function crumbs() {
   const vk = S.vehicles.find((v) => v.id === S.vkind);
   const parts = [
@@ -461,6 +468,7 @@ function viewCatalog() {
             <span class="label">${S.loading ? 'מחפש…' : shownCount()}</span>
           </div>
           ${crumbs()}
+          ${byNumber() ? '<span class="label">חיפוש לפי מק״ט · הסינון לא הופעל</span>' : ''}
         </div>
         ${S.loading ? '<div class="spin"></div>'
           : (S.groups && groupResults()) || (S.items.length
