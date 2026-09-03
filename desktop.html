@@ -49,6 +49,19 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 input,select,textarea{font:inherit;color:inherit}
 a{color:inherit;text-decoration:none}
 .mono{font-family:var(--mono);direction:ltr;unicode-bidi:isolate}
+/* סימן שאלה ליד כותרת. ההסתייגות אינה שורה קבועה מתחת לכותרת —
+   אזהרה שתמיד על המסך מפסיקים לראות אחרי הפעם השלישית. */
+.qmark{
+  width:20px;height:20px;flex:none;border-radius:50%;
+  border:1px solid var(--hair);background:transparent;color:var(--muted);
+  font:600 12px/1 var(--sans);display:grid;place-items:center;cursor:pointer;
+  transition:background .15s var(--ease), color .15s var(--ease);
+}
+.qmark[aria-expanded="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.note{
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding: var(--s3) var(--s4);font:400 var(--fs-label)/1.5 var(--sans);color:var(--muted);
+}
 .muted{color:var(--muted)}
 .label{font:500 var(--fs-label) var(--sans);color:var(--muted)}
 .row{display:flex;align-items:center}

@@ -11,6 +11,7 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
 const shekel = (n) => `${Number(n).toLocaleString('he-IL')} ₪`;
+const NOTE_FIT = 'המידע להתרשמות בלבד. כדי לוודא שהחלק אכן מתאים, צרו קשר עם הספק.';
 const KIND_LABEL = { orig: 'מקורי', copy: 'חלופי', used: 'משומש' };
 const KIND_LIST = [['all', 'הכל'], ['orig', 'מקורי'], ['copy', 'חלופי'], ['used', 'משומש']];
 const YEARS = (() => {
@@ -34,6 +35,7 @@ const S = {
   // שהוקלד — ומתחתיה מנפיקים אחרים שמתאימים לאותו מספר ייחוס
   groups: null,
   pos: null, posOffers: [], posCompat: [], posEmpty: 0, posLoading: false, partBack: 'catalog',
+  compatNote: false,
   convs: [], conv: null, msgs: [],
   stock: [], stats: null,
   draft: null, cutout: true,
@@ -318,7 +320,7 @@ function posCard(c) {
         <div class="foot">
           <div class="row" style="gap:6px;flex-wrap:wrap">
             ${c.by_kind.map((k) => kindTag(k.kind)).join('')}
-            <span class="label">${c.offers} מוכרים</span>
+            <span class="label">${c.offers} ספקים</span>
           </div>
           ${c.price ? `<span class="stack" style="gap:2px;align-items:flex-end">
               <span class="price">${shekel(c.price.avg)}</span>
@@ -330,11 +332,21 @@ function posCard(c) {
 }
 
 /* הכותרת עומדת לפני הרשימה ולא על כל כרטיס: היותן של מנפיקים אחרים
-   היא תכונה של הקבוצה כולה. */
+   היא תכונה של הקבוצה כולה.
+
+   ההסתייגות מאחורי סימן שאלה ולא בשורה שנייה קבועה: אזהרה שתמיד
+   על המסך מפסיקים לראות, ומי שמתלבט לוחץ ומקבל אותה. */
 function compatHead(empty) {
-  return `<div class="stack" style="gap:4px;margin: var(--s6) 0 var(--s4)">
-    <span style="font:600 var(--fs-lead) var(--disp)">עשוי להתאים</span>
-    <span class="label">מנפיקים אחרים לאותו מספר ייחוס${empty ? ` · עוד ${empty} מק״טים מתאימים שאיש אינו מוכר כרגע` : ''}</span>
+  return `<div class="stack" style="gap:8px;margin: var(--s6) 0 var(--s4)">
+    <div class="row between" style="gap: var(--s4)">
+      <span class="row" style="gap:8px">
+        <span style="font:600 var(--fs-lead) var(--disp)">עשוי להתאים</span>
+        <button class="qmark" data-act="compat-note" aria-expanded="${S.compatNote}"
+                aria-controls="compatNote" aria-label="על ההתאמה">?</button>
+      </span>
+      ${empty ? `<span class="label">עוד ${empty} מק״טים · אין במלאי</span>` : ''}
+    </div>
+    ${S.compatNote ? `<div class="note" id="compatNote">${NOTE_FIT}</div>` : ''}
   </div>`;
 }
 
@@ -418,20 +430,20 @@ function viewPosition() {
               ${c.fits && c.fits.length ? posRow('מתאים ל', c.fits.map((f) => `<span class="mono">${esc(f)}</span>`).join('<br>')) : ''}
               ${kinds.length > 1 ? posRow('לפי מצב', kinds.map((k) =>
                 `<span class="row" style="gap:6px;align-items:baseline;justify-content:flex-end">${kindTag(k.kind)}<span>מ־<span class="mono">${shekel(k.min)}</span></span></span>`).join('')) : ''}
-              ${posRow('מוכרים', `<span><span class="mono">${c.offers}</span>${c.in_stock < c.offers ? ` · <span class="mono">${c.in_stock}</span> במלאי` : ''}</span>`)}
+              ${posRow('ספקים', `<span><span class="mono">${c.offers}</span>${c.in_stock < c.offers ? ` · <span class="mono">${c.in_stock}</span> במלאי` : ''}</span>`)}
             </div>
           </div>
 
           <div class="stack" style="gap:4px">
-            <span style="font:600 var(--fs-lead) var(--disp)">מי מוכר</span>
-            <span class="label">אותו מק״ט אצל מוכרים שונים · הזול קודם</span>
+            <span style="font:600 var(--fs-lead) var(--disp)">ספקים</span>
+            <span class="label">אותו מק״ט אצל ספקים שונים · הזול קודם</span>
           </div>
           ${S.posLoading ? '<div class="spin"></div>' : S.posOffers.length
             ? `<div class="card" style="overflow:hidden"><table>
-                 <thead><tr><th>מוכר</th><th>מצב</th><th>יצרן</th><th>מלאי</th><th>מחיר</th></tr></thead>
+                 <thead><tr><th>ספק</th><th>מצב</th><th>יצרן</th><th>מלאי</th><th>מחיר</th></tr></thead>
                  <tbody>${S.posOffers.map(offerRow).join('')}</tbody></table></div>`
             : `<div class="empty"><span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">אין הצעות כרגע</span>
-                 <span>המק״ט מוכר לנו, אבל אף מוכר לא מציע אותו</span></div>`}
+                 <span>המק״ט מוכר לנו, אבל אף ספק לא מציע אותו</span></div>`}
         </section>
 
         <aside class="stack" style="gap: var(--s4)">
@@ -461,7 +473,7 @@ function posRow(label, value) {
 function offerRow(p) {
   const s = p.seller;
   return `<tr data-act="open-offer" data-id="${p.id}" style="cursor:pointer">
-    <td><span style="font-weight:500">${esc((s && s.name) || 'מוכר')}</span>
+    <td><span style="font-weight:500">${esc((s && s.name) || 'ספק')}</span>
         <span class="label" style="display:block">${esc((s && s.city) || '')}${s && s.verified ? ' · מאומת' : ''}</span></td>
     <td>${kindTag(p.kind)}${p.kind === 'used' && p.condition_pct ? ` <span class="label">מצב <span class="mono">${p.condition_pct}%</span></span>` : ''}</td>
     <td class="mono muted">${esc(p.maker || '—')}</td>
@@ -932,6 +944,7 @@ document.addEventListener('click', async (ev) => {
   if (act === 'open-part') { openPart(Number(el.dataset.id)); return; }
   if (act === 'open-offer') { openPart(Number(el.dataset.id), 'position'); return; }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
+  if (act === 'compat-note') { S.compatNote = !S.compatNote; render(); return; }
 
   // מסננים
   if (act === 'dept') {

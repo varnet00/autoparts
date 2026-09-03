@@ -40,6 +40,7 @@ const $ = (sel, root) => (root || document).querySelector(sel);
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const shekel = (n) => `₪ ${Number(n).toLocaleString('he-IL')}`;
 
+const NOTE_FIT = 'המידע להתרשמות בלבד. כדי לוודא שהחלק אכן מתאים, צרו קשר עם הספק.';
 const KIND_LABEL = { orig: 'מקורי', copy: 'חלופי', used: 'משומש' };
 // מבנה המדפים (מחלקות וקטגוריות) מגיע מהשרת — אותו מקור שמאמת
 // כל פוזיציה, כדי שהרשימות לא ייפרדו זו מזו.
@@ -93,7 +94,7 @@ const S = {
   // תוצאות החיפוש הן רשימה של רשימות: פוזיציה אחת למעלה — זו של
   // המק״ט שהוקלד — ומתחתיה פוזיציות של מנפיקים אחרים שמתאימות לה
   groups: null,
-  pos: null, posOffers: [], posCompat: [], posEmpty: 0,
+  pos: null, posOffers: [], posCompat: [], posEmpty: 0, compatNote: false,
   supOpen: true,
   stock: [],
   stockOems: new Set(),  // אילו כרטיסים פתחו את כל המק״טים המקוריים
@@ -451,7 +452,7 @@ function posCard(c, opts) {
         ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(c.fits[0])}</span>` : ''}
         <div class="row" style="gap: var(--s2);flex-wrap:wrap;padding-top:2px">
           ${c.by_kind.map((k) => kindTag(k.kind)).join('')}
-          <span class="label">${c.offers} מוכרים${c.in_stock ? '' : ' · אזל'}</span>
+          <span class="label">${c.offers} ספקים${c.in_stock ? '' : ' · אין במלאי'}</span>
         </div>
       </div>
       ${price}
@@ -460,11 +461,22 @@ function posCard(c, opts) {
 }
 
 /* כותרת "עשוי להתאים" עומדת לפני הרשימה ולא על כל כרטיס: הפוזיציות
-   שמתחתיה הן של מנפיקים אחרים, וזו תכונה של הקבוצה כולה. */
+   שמתחתיה הן של מנפיקים אחרים, וזו תכונה של הקבוצה כולה.
+
+   ההסתייגות יושבת מאחורי סימן שאלה ולא בשורה שנייה קבועה: מי שכבר
+   הבין את הכותרת אינו צריך לקרוא אותה שוב בכל חיפוש, ומי שמתלבט
+   לוחץ ומקבל אותה. אזהרה שתמיד על המסך מפסיקים לראות. */
 function compatHead(empty) {
-  return `<div class="stack" style="gap:2px;padding-top: var(--s4)">
-    <span style="font:500 var(--fs-body) var(--sans)">עשוי להתאים</span>
-    <span class="label">מנפיקים אחרים לאותו מספר ייחוס${empty ? ` · עוד ${empty} מק״טים מתאימים שאיש אינו מוכר כרגע` : ''}</span>
+  return `<div class="stack" style="gap: var(--s2);padding-top: var(--s4)">
+    <div class="row between" style="gap: var(--s3)">
+      <span class="row" style="gap: var(--s2)">
+        <span style="font:500 var(--fs-body) var(--sans)">עשוי להתאים</span>
+        <button class="qmark" data-act="compat-note" aria-expanded="${S.compatNote}"
+                aria-controls="compatNote" aria-label="על ההתאמה">?</button>
+      </span>
+      ${empty ? `<span class="label">עוד ${empty} מק״טים · אין במלאי</span>` : ''}
+    </div>
+    ${S.compatNote ? `<div class="note" id="compatNote">${NOTE_FIT}</div>` : ''}
   </div>`;
 }
 
@@ -724,12 +736,12 @@ function viewPosition() {
              </span>`) : ''}
           ${kinds.length > 1 ? posRow('לפי מצב', kinds.map((k) =>
             `<span class="row" style="gap: var(--s2);align-items:baseline">${kindTag(k.kind)}<span style="font:400 var(--fs-sub) var(--sans)">מ־<span class="mono">${shekel(k.min)}</span></span></span>`).join('')) : ''}
-          ${posRow('מוכרים', `<span style="font:400 var(--fs-sub) var(--sans)"><span class="mono">${c.offers}</span>${c.in_stock < c.offers ? ` · <span class="mono">${c.in_stock}</span> במלאי` : ''}</span>`)}
+          ${posRow('ספקים', `<span style="font:400 var(--fs-sub) var(--sans)"><span class="mono">${c.offers}</span>${c.in_stock < c.offers ? ` · <span class="mono">${c.in_stock}</span> במלאי` : ''}</span>`)}
         </div>
 
         <div class="stack" style="gap:2px;padding-top: var(--s2)">
-          <span style="font:500 var(--fs-body) var(--sans)">מי מוכר</span>
-          <span class="label">אותו מק״ט אצל מוכרים שונים · הזול קודם</span>
+          <span style="font:500 var(--fs-body) var(--sans)">ספקים</span>
+          <span class="label">אותו מק״ט אצל ספקים שונים · הזול קודם</span>
         </div>
       </div>
 
@@ -737,7 +749,7 @@ function viewPosition() {
         ${S.posLoading ? loader()
           : S.posOffers.length
             ? S.posOffers.map(offerCard).join('')
-            : emptyState(ICON.search({ s: 30 }), 'אין הצעות כרגע', 'המק״ט מוכר לנו, אבל אף מוכר לא מציע אותו')}
+            : emptyState(ICON.search({ s: 30 }), 'אין הצעות כרגע', 'המק״ט מוכר לנו, אבל אף ספק לא מציע אותו')}
       </div>
 
       ${S.posCompat.length ? `<div class="pad stack" style="gap: var(--s3)">
@@ -761,7 +773,7 @@ function offerCard(p) {
   const out = p.stock !== 'in' || !p.qty;
   return `<div class="card row" style="align-items:flex-start;gap: var(--s4);padding: var(--s4) 17px;cursor:pointer" data-act="open-offer" data-id="${p.id}">
     <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
-      <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc((p.seller && p.seller.name) || 'מוכר')}</span>
+      <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc((p.seller && p.seller.name) || 'ספק')}</span>
       <span class="label">${esc((p.seller && p.seller.city) || '')}${p.seller && p.seller.verified ? ' · מאומת' : ''}</span>
       <div class="row" style="gap: var(--s2);flex-wrap:wrap;padding-top:2px">
         ${kindTag(p.kind)}
@@ -1914,6 +1926,7 @@ document.addEventListener('click', async (ev) => {
   if (act === 'search') { go('search'); return; }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
   if (act === 'position') { go('position'); return; }
+  if (act === 'compat-note') { S.compatNote = !S.compatNote; S.keepScroll = true; render(); return; }
 
   if (act === 'create') {
     if (!authed() || !isSeller()) { toast('התחברו כמוכר כדי להוסיף פוזיציה', true); go('profile'); return; }
