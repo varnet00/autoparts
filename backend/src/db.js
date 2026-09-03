@@ -109,6 +109,11 @@ const newPartColumns = [
   ['vehicle_model', 'TEXT'],                   // Corolla E210
   ['year_from', 'INTEGER'],
   ['year_to', 'INTEGER'],
+  // הפוזיציה בקטלוג שההצעה הזאת שייכת אליה
+  ['position_id', 'INTEGER'],
+  // מצב בפרוצנטים — רק לחלק משומש. אצל חלק חדש הערך חסר משמעות,
+  // ולכן הוא נשאר NULL ולא 100: "חדש" זה kind, לא אחוז.
+  ['condition_pct', 'INTEGER'],
 ];
 for (const [name, type] of newPartColumns) {
   if (!partColumns.has(name)) {
@@ -206,6 +211,35 @@ const { CATEGORY_IDS, LEGACY_CATEGORY_MAP } = require('./categories');
 // אינדקסים לסינון לפי רכב — נוצרים אחרי המיגרציה, כשהעמודות כבר קיימות
 db.exec(`
   CREATE INDEX IF NOT EXISTS idx_parts_vehicle ON parts(vehicle_kind, vehicle_make);
+  CREATE INDEX IF NOT EXISTS idx_parts_position ON parts(position_id);
 `);
+
+// --- שכבת הקטלוג ---
+// עד כאן שורה ב-parts הייתה גם הצעה של מוכר, גם רשומת קטלוג וגם
+// טבלת מספרים חופפים, ולכן לא היה אפשר להבדיל בין מק״ט מעודכן של
+// אותו מנפיק לבין יצרן אחר שמתאים. הטבלאות האלה מפרידות את השניים.
+const { SCHEMA, rebuildCatalog } = require('./catalog');
+db.exec(SCHEMA);
+
+// --- מיגרציה: שדה maker תיאר לפעמים מצב ולא יצרן ---
+// "USED · 60%" אינו מנפיק מק״טים. האחוז עובר לשדה שנועד לו,
+// והיצרן מתרוקן — עדיף ריק מאשר ערך שקרי שייצור פוזיציית זבל.
+{
+  const rows = db.prepare("SELECT id, maker, kind FROM parts WHERE INSTR(maker, '%') > 0").all();
+  const fix = db.prepare('UPDATE parts SET maker = NULL, condition_pct = ? WHERE id = ?');
+  const move = db.transaction(() => {
+    for (const r of rows) {
+      const m = String(r.maker).match(/(\d{1,3})\s*%/);
+      fix.run(r.kind === 'used' && m ? Math.min(100, Math.max(10, +m[1])) : null, r.id);
+    }
+  });
+  if (rows.length) move();
+  // אחוז מצב על חלק שאינו משומש הוא סתירה — מוחקים ולא "מתקנים"
+  db.prepare("UPDATE parts SET condition_pct = NULL WHERE kind != 'used'").run();
+}
+
+// הקטלוג נגזר מההצעות והמספרים החופפים, ולכן מסד קיים ומסד טרי
+// מהזרעים מגיעים לאותה תוצאה בדיוק. הבנייה זולה ורצה בעלייה.
+rebuildCatalog(db);
 
 module.exports = db;

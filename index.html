@@ -264,6 +264,34 @@ input[type=checkbox]{accent-color:var(--ink);width:18px;height:18px}
 }
 .field input:focus,.field select:focus,.field textarea:focus{box-shadow:0 0 0 2px var(--hair)}
 .field .mono{font:500 var(--fs-sub) var(--mono);text-align:right}
+/* מצב החלק באחוזים — רק לחלק משומש. הפס עצמו הוא המידע: החלק
+   הצבוע הוא מה שנשאר מהחלק, ולכן אפשר לקרוא אותו במבט אחד בלי
+   להסתכל על הספרה.
+   הצביעה נעשית ברקע המסילה לפי משתנה --p, ולא דרך range-progress
+   שקיים רק בפיירפוקס — בכרום המסילה הייתה נשארת אפורה לגמרי. */
+.field input[type=range].cond{
+  -webkit-appearance:none;appearance:none;width:100%;height:26px;
+  background:transparent;border:0;padding:0;box-shadow:none;
+}
+.field input[type=range].cond::-webkit-slider-runnable-track{
+  height:6px;border-radius:999px;border:1px solid var(--line);
+  background:linear-gradient(to left, var(--orange) calc(var(--p, 67) * 1%), var(--chip) 0);
+}
+.field input[type=range].cond::-moz-range-track{
+  height:6px;border-radius:999px;border:1px solid var(--line);
+  background:linear-gradient(to left, var(--orange) calc(var(--p, 67) * 1%), var(--chip) 0);
+}
+.field input[type=range].cond::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:24px;height:24px;margin-top:-10px;
+  border-radius:50%;background:var(--card);border:2px solid var(--orange);
+  box-shadow:0 1px 4px rgba(22,20,15,.22);cursor:pointer;
+}
+.field input[type=range].cond::-moz-range-thumb{
+  width:22px;height:22px;border-radius:50%;background:var(--card);
+  border:2px solid var(--orange);box-shadow:0 1px 4px rgba(22,20,15,.22);cursor:pointer;
+}
+.field input[type=range].cond:focus-visible{outline:none}
+.field input[type=range].cond:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--hair)}
 
 /* תמונת המוצר בטופס: ריבוע שמראה את התמונה עצמה על רקע שקוף */
 .photo{

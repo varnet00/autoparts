@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { conditionOf, rebuildCatalog } = require('../catalog');
 const { requireSellerAuth } = require('../middleware/sellerAuth');
 const { asyncHandler } = require('../asyncHandler');
 const { isKind, isMakeOfKind } = require('../vehicles');
@@ -213,7 +214,7 @@ router.get('/me/stats', requireSellerAuth, (req, res) => {
 // POST /api/sellers/me/parts — יצירת כרטיס מוצר חדש
 router.post('/me/parts', requireSellerAuth, (req, res) => {
   const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers,
-          vehicle_kind, vehicle_make, vehicle_model, year_from, year_to } = req.body || {};
+          condition_pct, vehicle_kind, vehicle_make, vehicle_model, year_from, year_to } = req.body || {};
 
   if (!name || !category || !part_no || price === undefined) {
     return res.status(400).json({ error: 'נא למלא שם, קטגוריה, מק״ט ומחיר' });
@@ -245,9 +246,9 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
     const result = db
       .prepare(
         `INSERT INTO parts (name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, seller_id,
-                            vehicle_kind, vehicle_make, vehicle_model, year_from, year_to)
+                            condition_pct, vehicle_kind, vehicle_make, vehicle_model, year_from, year_to)
          VALUES (@name, @sub, @category, @part_no, @price, @kind, @maker, @fits, @qty, @image_url, @icon, @seller_id,
-                 @vehicle_kind, @vehicle_make, @vehicle_model, @year_from, @year_to)`
+                 @condition_pct, @vehicle_kind, @vehicle_make, @vehicle_model, @year_from, @year_to)`
       )
       .run({
         name,
@@ -257,6 +258,8 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
         price,
         kind: kind || 'copy',
         maker: maker || null,
+        // אחוז מצב שייך לחלק משומש בלבד — ראה conditionOf
+        condition_pct: conditionOf(kind || 'copy', condition_pct),
         fits: fits || null,
         qty: qty === undefined ? 0 : qty,
         image_url: image_url || null,
@@ -282,10 +285,18 @@ router.post('/me/parts', requireSellerAuth, (req, res) => {
   });
 
   const partId = createPart();
+  refreshCatalog();
   const [part] = attachInterchange([db.prepare('SELECT * FROM parts WHERE id = ?').get(partId)]);
 
   res.status(201).json({ part });
 });
+
+/* הקטלוג נגזר מההצעות והמספרים החופפים, ולכן כל כתיבה מרעננת אותו.
+   בנייה מחדש שלמה ולא נקודתית, כי הצעה חדשה יכולה לאחד שתי פוזיציות
+   שהיו נפרדות: מוכר שמוסיף מק״ט שמחבר ביניהן משנה את שתיהן. המזהים
+   נשמרים בבנייה מחדש, ולכן כרטיס שפתוח אצל קונה אינו מתחלף.
+   בקטלוג גדול זה יהיה כבד מדי, ואז המקום הזה עובר לעדכון נקודתי. */
+function refreshCatalog() { rebuildCatalog(db); }
 
 // PATCH /api/sellers/me/parts/:id — עדכון כרטיס מוצר קיים (רק של הספק עצמו)
 router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
@@ -297,7 +308,7 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
   }
 
   const { name, sub, category, part_no, price, kind, maker, fits, qty, image_url, icon, interchange_numbers,
-          vehicle_kind, vehicle_make, vehicle_model, year_from, year_to } = req.body || {};
+          condition_pct, vehicle_kind, vehicle_make, vehicle_model, year_from, year_to } = req.body || {};
 
   if (price !== undefined && (typeof price !== 'number' || price < 0)) {
     return res.status(400).json({ error: 'המחיר חייב להיות מספר חיובי' });
@@ -324,6 +335,7 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
   db.prepare(
     `UPDATE parts SET name=@name, sub=@sub, category=@category, part_no=@part_no, price=@price,
             kind=@kind, maker=@maker, fits=@fits, qty=@qty, image_url=@image_url, icon=@icon,
+            condition_pct=@condition_pct,
             vehicle_kind=@vehicle_kind, vehicle_make=@vehicle_make, vehicle_model=@vehicle_model,
             year_from=@year_from, year_to=@year_to
      WHERE id=@id`
@@ -335,6 +347,8 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
     price: price ?? current.price,
     kind: kind ?? current.kind,
     maker: maker ?? current.maker,
+    condition_pct: conditionOf(kind ?? current.kind,
+      condition_pct !== undefined ? condition_pct : current.condition_pct),
     fits: fits ?? current.fits,
     qty: qty ?? current.qty,
     image_url: image_url ?? current.image_url,
@@ -359,6 +373,7 @@ router.patch('/me/parts/:id', requireSellerAuth, (req, res) => {
     replaceAlts();
   }
 
+  refreshCatalog();
   const [part] = attachInterchange([db.prepare('SELECT * FROM parts WHERE id = ?').get(partId)]);
   res.json({ part });
 });
@@ -373,6 +388,7 @@ router.delete('/me/parts/:id', requireSellerAuth, (req, res) => {
   }
 
   db.prepare('DELETE FROM parts WHERE id = ?').run(partId);
+  refreshCatalog();
   res.json({ success: true });
 });
 

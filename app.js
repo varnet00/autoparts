@@ -90,6 +90,10 @@ const S = {
   openPart: null,       // איזה כרטיס פתוח ברשימה
   part: null,
   analogs: [],
+  // תוצאות החיפוש הן רשימה של רשימות: פוזיציה אחת למעלה — זו של
+  // המק״ט שהוקלד — ומתחתיה פוזיציות של מנפיקים אחרים שמתאימות לה
+  groups: null,
+  pos: null, posOffers: [], posCompat: [], posEmpty: 0,
   supOpen: true,
   stock: [],
   stockOems: new Set(),  // אילו כרטיסים פתחו את כל המק״טים המקוריים
@@ -391,12 +395,77 @@ function viewSearch() {
         <span class="label">${esc(activeFilters.join(' · '))}</span>
       </div>` : ''}
       <div class="pad stack" style="gap: var(--s3);padding-top: var(--s3)">
-        ${S.loading ? loader()
-          : S.items.length
+        ${S.loading ? loader() : S.groups ? groupResults() : S.items.length
             ? S.items.map(resultCard).join('')
             : emptyState(ICON.search({ s: 30 }), 'לא נמצאו חלקים', 'נסו מק״ט אחר או נקו את הסינון')}
       </div>
     </div>`;
+}
+
+
+/* סינון המצב פועל על הפוזיציות שיש בהן הצעה כזאת: המצב הוא תכונה
+   של ההצעה, ולכן פוזיציה נשארת אם מישהו מוכר אותה במצב המבוקש. */
+function ofKind(list) {
+  if (S.kind === 'all') return list;
+  return list.filter((c) => c.by_kind.some((k) => k.kind === S.kind));
+}
+
+function groupResults() {
+  const g = S.groups;
+  const exact = ofKind(g.exact);
+  const compat = ofKind(g.compatible);
+  if (!exact.length && !compat.length) {
+    return emptyState(ICON.search({ s: 30 }), 'לא נמצאו חלקים', 'נסו מק״ט אחר או נקו את הסינון');
+  }
+  return `
+    ${exact.map((c) => posCard(c)).join('')}
+    ${compat.length ? compatHead(g.compatible_without_offers) + compat.map((c) => posCard(c)).join('') : ''}`;
+}
+
+/* ============ כרטיס פוזיציה ============
+   בתוצאות מופיעות פוזיציות ולא הצעות. חיפוש של 04465-02220 היה
+   מחזיר ארבעה כרטיסים שהם חלק אחד אצל ארבעה מוכרים; עכשיו זה
+   כרטיס אחד, וההשוואה בין המוכרים נמצאת בתוכו.
+
+   המחיר הממוצע יושב בראש הכרטיס, כי זו השאלה הראשונה. לצידו הטווח:
+   ממוצע לבדו על חדש מקורי ועל פירוק נותן מחיר שאיש אינו מוכר בו. */
+function posCard(c, opts) {
+  const o = opts || {};
+  const price = c.price
+    ? `<div class="stack" style="gap:2px;align-items:flex-end">
+         <span class="price">${shekel(c.price.avg)}</span>
+         ${c.price.min !== c.price.max
+           ? `<span class="mono muted" style="font-size:var(--fs-micro)">${shekel(c.price.min)}—${shekel(c.price.max)}</span>`
+           : `<span class="mono muted" style="font-size:var(--fs-micro)">מחיר יחיד</span>`}
+       </div>`
+    : `<span class="label">אין הצעות</span>`;
+  return `<div class="card" data-act="open-pos" data-id="${c.id}" style="cursor:pointer">
+    <div class="row" style="align-items:flex-start;gap: var(--s4);padding: var(--s4) 17px">
+      <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
+        <div class="row" style="gap: var(--s2);align-items:baseline;flex-wrap:wrap">
+          <span class="mono" style="font-weight:600;font-size:var(--fs-body);letter-spacing:.4px">${esc(c.number || '')}</span>
+          <span class="label">${esc(c.brand)}</span>
+        </div>
+        ${c.name ? `<span style="font:400 var(--fs-sub)/1.3 var(--sans);color:var(--muted)">${esc(c.name)}</span>` : ''}
+        ${c.aka.length ? `<span class="label" style="font-size:var(--fs-micro)">ידוע גם כ <span class="mono">${esc(c.aka.join(' · '))}</span></span>` : ''}
+        ${c.fits && c.fits.length ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(c.fits[0])}</span>` : ''}
+        <div class="row" style="gap: var(--s2);flex-wrap:wrap;padding-top:2px">
+          ${c.by_kind.map((k) => kindTag(k.kind)).join('')}
+          <span class="label">${c.offers} מוכרים${c.in_stock ? '' : ' · אזל'}</span>
+        </div>
+      </div>
+      ${price}
+    </div>
+  </div>`;
+}
+
+/* כותרת "עשוי להתאים" עומדת לפני הרשימה ולא על כל כרטיס: הפוזיציות
+   שמתחתיה הן של מנפיקים אחרים, וזו תכונה של הקבוצה כולה. */
+function compatHead(empty) {
+  return `<div class="stack" style="gap:2px;padding-top: var(--s4)">
+    <span style="font:500 var(--fs-body) var(--sans)">עשוי להתאים</span>
+    <span class="label">מנפיקים אחרים לאותו מספר ייחוס${empty ? ` · עוד ${empty} מק״טים מתאימים שאיש אינו מוכר כרגע` : ''}</span>
+  </div>`;
 }
 
 /* הכרטיס ברשימה עונה על שאלה אחת: זה החלק שלי ובכמה. השאר —
@@ -434,14 +503,14 @@ function resultCard(p) {
 /* ============================ מסך: כרטיס חלק ============================ */
 function viewPart() {
   const p = S.part;
-  if (!p) return `${topBar({ back: 'search' })}${loader()}`;
+  if (!p) return `${topBar({ back: S.partBack || 'search' })}${loader()}`;
   const s = p.seller;
   const all = p.interchange_numbers || [];
   const oems = all.filter((n) => n.is_oem);
   const nums = all.filter((n) => !n.is_oem);
 
   return `
-    ${topBar({ back: 'search', actions: '' })}
+    ${topBar({ back: S.partBack || 'search', actions: '' })}
     <div class="scroll">
       <div class="pad row" style="align-items:flex-start;gap: var(--s4);padding-top: var(--s5)">
         <div class="stack" style="flex:1;gap: var(--s3);min-width:0">
@@ -625,6 +694,86 @@ function makeOptions(makes, selected) {
     `<option value="other" ${selected && !known ? 'selected' : ''}>אחר…</option>`;
 }
 
+
+/* ============================ מסך: פוזיציה ============================
+   התמצית למעלה עונה על "מה זה בעצם": איזה חלק, באילו מק״טים הוא
+   נקרא, על איזה רכב הוא עולה וכמה הוא עולה. רק אחר כך, בגלילה,
+   מגיעים המוכרים — כי לפני שיודעים מה זה, אין טעם להשוות מחיר. */
+function viewPosition() {
+  const c = S.pos;
+  if (!c) return `${topBar({ back: 'search' })}${loader()}`;
+  const nums = [c.number, ...c.aka].filter(Boolean);
+  const kinds = c.by_kind.filter((k) => k.offers);
+  return `
+    ${topBar({ back: 'search', actions: '' })}
+    <div class="scroll">
+      <div class="pad stack" style="gap: var(--s4);padding-top: var(--s5)">
+        <div class="stack" style="gap: var(--s2)">
+          <span class="label">${esc(c.brand)}</span>
+          <span class="mono" style="font:600 var(--fs-hero)/1.1 var(--mono);letter-spacing:.5px">${esc(c.number || '')}</span>
+          ${c.name ? `<span style="font:400 var(--fs-body)/1.35 var(--sans);color:var(--muted)">${esc(c.name)}</span>` : ''}
+        </div>
+
+        <div class="card stack" style="gap:0;padding:0">
+          ${nums.length > 1 ? posRow('מק״טים', `<span class="mono" style="font-size:var(--fs-sub)">${esc(nums.join(' · '))}</span>`) : ''}
+          ${c.fits && c.fits.length ? posRow('מתאים ל', c.fits.map((f) => `<span class="mono" style="font-size:var(--fs-sub)">${esc(f)}</span>`).join('<br>')) : ''}
+          ${c.price ? posRow('מחיר ממוצע',
+            `<span class="row" style="gap: var(--s3);align-items:baseline">
+               <span style="font:600 var(--fs-lead) var(--disp)">${shekel(c.price.avg)}</span>
+               ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-label)">${shekel(c.price.min)}—${shekel(c.price.max)}</span>` : ''}
+             </span>`) : ''}
+          ${kinds.length > 1 ? posRow('לפי מצב', kinds.map((k) =>
+            `<span class="row" style="gap: var(--s2);align-items:baseline">${kindTag(k.kind)}<span style="font:400 var(--fs-sub) var(--sans)">מ־<span class="mono">${shekel(k.min)}</span></span></span>`).join('')) : ''}
+          ${posRow('מוכרים', `<span style="font:400 var(--fs-sub) var(--sans)"><span class="mono">${c.offers}</span>${c.in_stock < c.offers ? ` · <span class="mono">${c.in_stock}</span> במלאי` : ''}</span>`)}
+        </div>
+
+        <div class="stack" style="gap:2px;padding-top: var(--s2)">
+          <span style="font:500 var(--fs-body) var(--sans)">מי מוכר</span>
+          <span class="label">אותו מק״ט אצל מוכרים שונים · הזול קודם</span>
+        </div>
+      </div>
+
+      <div class="pad stack" style="gap: var(--s3)">
+        ${S.posLoading ? loader()
+          : S.posOffers.length
+            ? S.posOffers.map(offerCard).join('')
+            : emptyState(ICON.search({ s: 30 }), 'אין הצעות כרגע', 'המק״ט מוכר לנו, אבל אף מוכר לא מציע אותו')}
+      </div>
+
+      ${S.posCompat.length ? `<div class="pad stack" style="gap: var(--s3)">
+        ${compatHead(S.posEmpty)}
+        ${S.posCompat.map((x) => posCard(x)).join('')}
+      </div>` : ''}
+      <div style="height:calc(var(--dock-h) + var(--s8))"></div>
+    </div>`;
+}
+
+function posRow(label, value) {
+  return `<div class="row between" style="gap: var(--s4);padding: var(--s3) 17px;border-top:1px solid var(--line);align-items:flex-start">
+    <span class="label" style="flex:none">${esc(label)}</span>
+    <span style="text-align:end;min-width:0">${value}</span>
+  </div>`;
+}
+
+/* כרטיס מוכר בתוך פוזיציה. המק״ט אינו חוזר כאן — הוא בכותרת המסך
+   וזהה לכולם; מה שמבדיל בין המוכרים הוא מחיר, מצב ומלאי. */
+function offerCard(p) {
+  const out = p.stock !== 'in' || !p.qty;
+  return `<div class="card row" style="align-items:flex-start;gap: var(--s4);padding: var(--s4) 17px;cursor:pointer" data-act="open-offer" data-id="${p.id}">
+    <div class="stack" style="flex:1;gap: var(--s2);min-width:0">
+      <span style="font:500 var(--fs-body)/1.25 var(--sans)">${esc((p.seller && p.seller.name) || 'מוכר')}</span>
+      <span class="label">${esc((p.seller && p.seller.city) || '')}${p.seller && p.seller.verified ? ' · מאומת' : ''}</span>
+      <div class="row" style="gap: var(--s2);flex-wrap:wrap;padding-top:2px">
+        ${kindTag(p.kind)}
+        ${p.maker ? `<span class="mono muted" style="font-size:var(--fs-label)">${esc(p.maker)}</span>` : ''}
+        ${p.kind === 'used' && p.condition_pct ? `<span class="label">מצב <span class="mono">${p.condition_pct}%</span></span>` : ''}
+        ${out ? `<span class="label" style="color:#a3560f">אזל</span>` : ''}
+      </div>
+    </div>
+    <span class="price">${shekel(p.price)}</span>
+  </div>`;
+}
+
 /* ============================ מסך: פוזיציה חדשה ============================ */
 function viewCreate() {
   const d = S.draft || {};
@@ -635,6 +784,9 @@ function viewCreate() {
   // חלק חלופי או משומש נמצא לפי המק״ט המקורי שהוא מחליף, ולכן השדה
   // הזה נפתח בדיוק כשהמצב אינו "מקורי"
   const needsOem = (d.kind || 'copy') !== 'orig';
+  // אחוז מצב הוא תכונה של חלק משומש בלבד: חלק חדש "במצב 80%" הוא
+  // סתירה, ולכן השדה כלל אינו קיים אצלו ולא רק מוסתר
+  const cond = d.condition_pct == null ? 70 : d.condition_pct;
   const vKind = d.vehicle_kind || '';
   const vMakes = (S.vehicles.find((v) => v.id === vKind) || {}).makes || [];
   // יצרן שאינו ברשימה נשמר כמו שהוקלד, והטופס חוזר אליו במצב "אחר"
@@ -694,6 +846,15 @@ function viewCreate() {
             </div>
           </div>
         </div>
+        ${(d.kind || 'copy') === 'used' ? `<div class="field">
+          <div class="row between">
+            <span class="label">מצב החלק</span>
+            <span class="mono" id="condOut" style="font:600 var(--fs-body) var(--mono)">${cond}%</span>
+          </div>
+          <input class="cond" type="range" name="condition_pct" min="10" max="100" step="5"
+                 value="${cond}" style="--p:${Math.round((cond - 10) / 0.9)}" aria-label="מצב החלק באחוזים">
+          <div class="row between"><span class="label">שחוק</span><span class="label">כמעט חדש</span></div>
+        </div>` : ''}
         <div class="row" style="gap: var(--s3)">
           <div class="field" style="flex:1">
             <span class="label">מחלקה</span>
@@ -982,7 +1143,7 @@ function renderDock() {
   // ציור מחדש היה יוצר אלמנט חדש והתנועה הייתה נבלעת
   const pill = dock.querySelector('.tabpill');
   if (pill) {
-    const cur = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
+    const cur = ['search', 'position', 'part'].includes(S.screen) ? 'home' : S.screen;
     const at = Math.max(0, TABS.indexOf(cur));
     const tabs = [...dock.querySelectorAll('.tab')];
     if (!pillDrag) placePill(pill, tabs, at);           // בזמן גרירה האצבע מובילה
@@ -998,7 +1159,7 @@ function renderDock() {
     ['chats', ICON.chat({ s: 20 })],
     ['profile', ICON.user({ s: 20 })],
   ];
-  const current = S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
+  const current = ['search', 'position', 'part'].includes(S.screen) ? 'home' : S.screen;
   const active = Math.max(0, tabs.findIndex(([k]) => k === current));
   // הסדר בשורה: פילטר בצד אחד, האי באמצע, הוספה בצד השני
   dock.innerHTML = `
@@ -1022,7 +1183,7 @@ function renderDock() {
 
 /* ============================ ציור ============================ */
 const VIEWS = {
-  home: viewHome, search: viewSearch, part: viewPart, stock: viewStock,
+  home: viewHome, search: viewSearch, position: viewPosition, part: viewPart, stock: viewStock,
   create: viewCreate, chats: viewChats, chat: viewChat, profile: viewProfile,
 };
 
@@ -1115,20 +1276,53 @@ async function fillFormModels(kind, make) {
   if (list) list.innerHTML = models.map((m) => `<option value="${esc(m)}"></option>`).join('');
 }
 
+/* חיפוש לפי מק״ט או שם מחזיר פוזיציות; דפדוף לפי מדף ומסננים
+   נשאר רשימת הצעות שטוחה. אלה שתי שאלות שונות: "מי מוכר את החלק
+   הזה" מול "מה יש במדף", וכל אחת רוצה תשובה במבנה אחר. */
 async function loadSearch() {
   S.loading = true; render();
+  const q = (S.q || '').trim();
   try {
-    const data = await api(`/parts?${filterParams({ limit: 50 })}`);
-    S.items = data.items;
-    S.total = data.pagination.total;
+    if (q) {
+      // המסננים נשלחים, אבל בשרת הם פועלים רק בחיפוש לפי שם:
+      // מק״ט מדויק לא ייעלם בגלל מסנן שנשאר פתוח מקודם
+      const data = await api(`/search?${filterParams()}`);
+      S.groups = data;
+      S.items = [];
+      S.total = data.exact.length + data.compatible.length;
+    } else {
+      const data = await api(`/parts?${filterParams({ limit: 50 })}`);
+      S.groups = null;
+      S.items = data.items;
+      S.total = data.pagination.total;
+    }
   } catch (e) {
-    toast(e.message, true); S.items = []; S.total = 0;
+    toast(e.message, true); S.items = []; S.groups = null; S.total = 0;
   }
   S.loading = false; render();
 }
 
-async function loadPart(id) {
+/* התמצית והמוכרים נטענים בנפרד: ראש המסך נצבע מיד, ורשימת המוכרים
+   מגיעה אחריו. אצל פוזיציה מבוקשת יש הרבה מוכרים, ואין סיבה
+   שהכותרת תחכה להם. */
+async function loadPosition(id) {
+  S.pos = null; S.posOffers = []; S.posCompat = []; S.posEmpty = 0; S.posLoading = true;
+  go('position');
+  try {
+    const data = await api(`/positions/${id}`);
+    S.pos = data.position; S.posCompat = data.compatible; S.posEmpty = data.compatible_without_offers;
+    render();
+    const { offers } = await api(`/positions/${id}/offers`);
+    S.posOffers = offers;
+  } catch (e) { toast(e.message, true); }
+  S.posLoading = false; render();
+}
+
+/* מאיפה הגיעו לכרטיס: מהחיפוש או מתוך פוזיציה. בלי זה "חזרה" היה
+   מחזיר תמיד לחיפוש, ומי שהשווה מוכרים בתוך פוזיציה היה מאבד אותה. */
+async function loadPart(id, from) {
   S.part = null; S.analogs = []; S.supOpen = true;
+  S.partBack = from || 'search';
   go('part');
   try {
     const [{ part }, { analogs }] = await Promise.all([api(`/parts/${id}`), api(`/parts/${id}/analogs`)]);
@@ -1198,6 +1392,8 @@ function syncDraft() {
   const qty = text('qty');
   S.draft.price = price === '' ? null : Number(price);
   S.draft.qty = qty === '' ? 0 : Number(qty);
+  const cond = text('condition_pct');
+  if (cond !== '') S.draft.condition_pct = Number(cond);
 }
 
 // בחירת סוג רכב מחליפה את רשימת היצרנים. מעדכנים את ה-select במקום
@@ -1206,6 +1402,16 @@ function syncDraft() {
 // אחרת הפוקוס היה קופץ מהשדה בכל תו.
 document.addEventListener('input', (ev) => {
   const el = ev.target;
+  /* המחוון מדווח ב-input ולא ב-change: change נורה רק בשחרור, והספרה
+     הייתה קופאת בזמן הגרירה. הכתיבה ישירה ולא דרך ציור מחדש — ציור
+     מחדש היה מחליף את הפקד והאצבע הייתה מאבדת אותו באמצע התנועה. */
+  if (el.matches && el.matches('input[name="condition_pct"]')) {
+    const out = $('#condOut');
+    if (out) out.textContent = `${el.value}%`;
+    el.style.setProperty('--p', Math.round((Number(el.value) - 10) / 0.9));
+    if (S.draft) S.draft.condition_pct = Number(el.value);
+    return;
+  }
   if (!el.matches || !el.matches('.sheetwrap [data-field]')) return;
   syncSheetInputs();
   refreshCount();
@@ -1318,7 +1524,7 @@ let swallowClick = false;
 // הפאנל מוריד אותו חזרה. לא צריך לכוון לידית.
 // המסך שהאי מסמן כרגע: חיפוש וכרטיס חלק הם עדיין "בית"
 function dockScreen() {
-  return S.screen === 'search' || S.screen === 'part' ? 'home' : S.screen;
+  return ['search', 'position', 'part'].includes(S.screen) ? 'home' : S.screen;
 }
 
 function onDragStart(ev) {
@@ -1706,6 +1912,8 @@ document.addEventListener('click', async (ev) => {
   // ניווט
   if (TABS.includes(act)) { goTab(act); return; }
   if (act === 'search') { go('search'); return; }
+  if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
+  if (act === 'position') { go('position'); return; }
 
   if (act === 'create') {
     if (!authed() || !isSeller()) { toast('התחברו כמוכר כדי להוסיף פוזיציה', true); go('profile'); return; }
@@ -1789,6 +1997,7 @@ document.addEventListener('click', async (ev) => {
   if (act === 'kind') { S.kind = el.dataset.kind; loadSearch(); return; }
   if (act === 'toggle') { S.openPart = S.openPart === Number(el.dataset.id) ? null : Number(el.dataset.id); S.keepScroll = true; render(); return; }
   if (act === 'open-part') { loadPart(el.dataset.id); return; }
+  if (act === 'open-offer') { loadPart(el.dataset.id, 'position'); return; }
   if (act === 'toggle-sup') { S.supOpen = !S.supOpen; S.keepScroll = true; render(); return; }
   if (act === 'toggle-oems') {
     const id = Number(el.dataset.id);
@@ -1914,6 +2123,7 @@ document.addEventListener('submit', async (ev) => {
       category: fd.get('category'),
       maker: (fd.get('maker') || '').toString().trim() || null,
       kind: d.kind || 'copy',
+      condition_pct: (d.kind || 'copy') === 'used' ? num('condition_pct') : null,
       vehicle_kind: vehicleKind,
       vehicle_make: vehicleKind ? vehicleMake : null,
       vehicle_make_custom: makeCustom,

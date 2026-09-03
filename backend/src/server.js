@@ -5,6 +5,8 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth');
 const partsRoutes = require('./routes/parts');
+const searchRoutes = require('./routes/search');
+const positionsRoutes = require('./routes/positions');
 const categoriesRoutes = require('./routes/categories');
 const sellersRoutes = require('./routes/sellers');
 const conversationsRoutes = require('./routes/conversations');
@@ -67,6 +69,8 @@ app.get('/cabinet.html', (req, res) => res.redirect(302, '/'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/parts', partsRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/positions', positionsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/sellers', sellersRoutes);
 app.use('/api/conversations', conversationsRoutes);

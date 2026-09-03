@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { isKind } = require('../vehicles');
 const { isCategory, isDepartment, categoryIdsOf } = require('../categories');
+const { compatibleIds } = require('../position-view');
 
 const router = express.Router();
 
@@ -121,30 +122,26 @@ router.get('/:id', (req, res) => {
   res.json({ part });
 });
 
-// GET /api/parts/:id/analogs — הצעות מקבילות: אותו מק״ט אצל מוכר אחר,
-// או חלק שחולק לפחות מספר חלופי אחד. זה מה שמאפשר להשוות מחיר.
+// GET /api/parts/:id/analogs — הצעות מקבילות לאותו חלק.
+// נשען עכשיו על הקטלוג: אותה פוזיציה אצל מוכרים אחרים, ואחריה
+// הפוזיציות שמפנות לאותו מספר ייחוס. הוא נשאר בחיים בשביל מסך
+// החלק הישן; המסך החדש קורא ל-/api/positions/:id/offers.
 router.get('/:id/analogs', (req, res) => {
   const id = parseInt(req.params.id);
   if (Number.isNaN(id)) return res.status(400).json({ error: 'מזהה לא תקין' });
 
   const part = db.prepare('SELECT * FROM parts WHERE id = ?').get(id);
   if (!part) return res.status(404).json({ error: 'החלק לא נמצא' });
+  if (!part.position_id) return res.json({ analogs: [] });
 
+  const ids = [part.position_id, ...compatibleIds(part.position_id)];
   const rows = db
     .prepare(
       `SELECT * FROM parts
-       WHERE id != @id
-         AND (
-           part_no = @part_no
-           OR id IN (
-             SELECT part_id FROM interchange_numbers
-             WHERE number IN (SELECT number FROM interchange_numbers WHERE part_id = @id)
-                OR number = @part_no
-           )
-         )
-       ORDER BY price ASC`
+       WHERE id != ? AND position_id IN (${ids.map(() => '?').join(', ')})
+       ORDER BY position_id = ? DESC, price ASC`
     )
-    .all({ id, part_no: part.part_no });
+    .all(id, ...ids, part.position_id);
 
   res.json({ analogs: attachSellerAndInterchange(rows) });
 });
