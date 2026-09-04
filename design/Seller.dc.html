@@ -1,0 +1,230 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&family=Heebo:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #a3560f; } a:hover { color: #dd6612; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; height: 900px; background: #efece8; color: #16140f; direction: rtl; font-family: Heebo, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+
+  <header style="height: 64px; flex: none; background: #f7f5f2; border-bottom: 1px solid #e4dfd8; display: flex; align-items: center; gap: 28px; padding: 0 24px">
+    <div style="display: flex; align-items: center; gap: 10px; direction: ltr">
+      <svg width="38" height="26" viewBox="70 173 502 345" aria-hidden="true">
+        <path fill="#dd6612" fill-rule="evenodd" d="M 76 179 L 566 179 L 516 462 Q 509 512 459 512 L 181 512 Q 131 512 124 462 Z M 99 203 L 223 203 L 139 418 Z M 541 203 L 417 203 L 501 418 Z M 320 249 L 383 447 L 257 447 Z"/>
+      </svg>
+      <span style="font: 600 13px/1 'IBM Plex Mono', monospace; letter-spacing: 1.7px">AUTOPARTS</span>
+    </div>
+    <nav style="display: flex; align-items: center; gap: 4px">
+      <span style="padding: 8px 14px; border-radius: 999px; background: #16140f; color: #fff; font: 500 13px Heebo, sans-serif">המלאי שלי</span>
+      <span style="padding: 8px 14px; border-radius: 999px; font: 400 13px Heebo, sans-serif; color: #5d574f">בקשות</span>
+      <span style="padding: 8px 14px; border-radius: 999px; font: 400 13px Heebo, sans-serif; color: #5d574f">ייבוא מחירון</span>
+      <span style="padding: 8px 14px; border-radius: 999px; font: 400 13px Heebo, sans-serif; color: #5d574f">דוחות</span>
+    </nav>
+    <div style="flex: 1; display: flex; justify-content: center">
+      <div style="width: 420px; background: #efece8; border: 1px solid #e4dfd8; border-radius: 999px; padding: 9px 16px; display: flex; align-items: center; gap: 10px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b847b" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <span style="flex: 1; font: 400 13px Heebo, sans-serif; color: #8b847b">חיפוש במלאי שלי</span>
+        <span style="font: 500 10.5px 'IBM Plex Mono', monospace; color: #a9a29a; background: #ece8e2; border-radius: 5px; padding: 3px 7px">/</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 9px">
+      <div style="width: 30px; height: 30px; border-radius: 999px; background: #16140f; color: #fff; display: flex; align-items: center; justify-content: center; font: 600 11px 'IBM Plex Mono', monospace">ח</div>
+      <div style="display: flex; flex-direction: column; gap: 1px">
+        <span style="font: 500 12.5px Heebo, sans-serif">חלקי צפון בע״מ</span>
+        <span style="font: 400 10px Heebo, sans-serif; color: #3c6a31">ספק מאומת</span>
+      </div>
+    </div>
+  </header>
+
+  <div style="flex: 1; display: flex; min-height: 0">
+
+    <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 22px 24px; gap: 16px; overflow: hidden">
+
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; flex: none">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <span style="font: 600 22px Rubik, sans-serif">המלאי שלי</span>
+          <span style="font: 400 12px Heebo, sans-serif; color: #8b847b">147 יחידות ב-10 פוזיציות · עודכן היום 09:42</span>
+        </div>
+        <div style="display: flex; gap: 9px">
+          <div style="display: flex; align-items: center; gap: 8px; border: 1px solid #d6cfc5; border-radius: 999px; padding: 10px 16px; font: 500 12.5px Heebo, sans-serif">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16140f" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>
+            ייצוא CSV
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; background: #16140f; color: #fff; border-radius: 999px; padding: 10px 18px; font: 500 12.5px Heebo, sans-serif">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+            פוזיציה חדשה
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; flex: none">
+        <div style="flex: 1; background: #16140f; color: #fff; border-radius: 16px; padding: 15px 18px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font: 600 24px 'IBM Plex Mono', monospace">147</span>
+          <span style="font: 400 10.5px Heebo, sans-serif; color: rgba(255,255,255,.6)">יחידות במלאי</span>
+        </div>
+        <div style="flex: 1; background: #f7f5f2; border-radius: 16px; padding: 15px 18px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font: 600 24px 'IBM Plex Mono', monospace">10</span>
+          <span style="font: 400 10.5px Heebo, sans-serif; color: #8b847b">פוזיציות</span>
+        </div>
+        <div style="flex: 1; background: #f7f5f2; border-radius: 16px; padding: 15px 18px; display: flex; flex-direction: column; gap: 4px; border-inline-start: 3px solid #d1791f">
+          <span style="font: 600 24px 'IBM Plex Mono', monospace">1</span>
+          <span style="font: 400 10.5px Heebo, sans-serif; color: #8b847b">אזל מהמלאי</span>
+        </div>
+        <div style="flex: 1; background: #f7f5f2; border-radius: 16px; padding: 15px 18px; display: flex; flex-direction: column; gap: 4px">
+          <span style="font: 600 24px 'IBM Plex Mono', monospace">7</span>
+          <span style="font: 400 10.5px Heebo, sans-serif; color: #8b847b">בקשות ממתינות</span>
+        </div>
+      </div>
+
+      <section style="background: #f7f5f2; border-radius: 20px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column">
+        <div style="display: grid; grid-template-columns: 1.5fr 2fr 0.9fr 1.4fr 0.9fr 0.8fr 92px; gap: 20px; padding: 12px 20px; border-bottom: 1px solid #e4dfd8; font: 500 10.5px Heebo, sans-serif; color: #8b847b">
+          <span>מק״ט</span><span>שם החלק</span><span>מצב</span><span>התאמה</span><span>מחיר</span><span>כמות</span><span></span>
+        </div>
+
+        <!-- שורה במצב עריכה: התאים עצמם הופכים לשדות, בלי חלון קופץ -->
+        <div style="display: grid; grid-template-columns: 1.5fr 2fr 0.9fr 1.4fr 0.9fr 0.8fr 92px; gap: 20px; align-items: center; padding: 10px 20px; border-bottom: 1px solid #e4dfd8; background: #efece8; box-shadow: inset 3px 0 0 #16140f">
+          <span style="font: 600 12.5px 'IBM Plex Mono', monospace; direction: ltr">04465-02220</span>
+          <span style="font: 400 13px Heebo, sans-serif">רפידות בלימה קדמיות</span>
+          <span><span style="padding: 5px 10px; border-radius: 999px; background: #e2ecda; color: #3c6a31; font: 500 10.5px Heebo, sans-serif">מקורי</span></span>
+          <span style="font: 400 11px 'IBM Plex Mono', monospace; color: #8b847b; direction: ltr">COROLLA E210</span>
+          <span style="background: #fff; border: 1.5px solid #16140f; border-radius: 9px; padding: 7px 10px; font: 600 13px 'IBM Plex Mono', monospace; direction: ltr; text-align: left">210</span>
+          <span style="background: #fff; border: 1.5px solid #16140f; border-radius: 9px; padding: 7px 10px; font: 600 13px 'IBM Plex Mono', monospace; direction: ltr; text-align: left">6</span>
+          <span style="display: flex; gap: 6px">
+            <span style="width: 30px; height: 30px; border-radius: 999px; background: #16140f; color: #fff; display: flex; align-items: center; justify-content: center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <span style="width: 30px; height: 30px; border-radius: 999px; background: #ece8e2; display: flex; align-items: center; justify-content: center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5d574f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </span>
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 2fr 0.9fr 1.4fr 0.9fr 0.8fr 92px; gap: 20px; align-items: center; padding: 13px 20px; border-bottom: 1px solid #e4dfd8">
+          <span style="font: 600 12.5px 'IBM Plex Mono', monospace; direction: ltr">90915-YZZD2</span>
+          <span style="font: 400 13px Heebo, sans-serif">מסנן שמן</span>
+          <span><span style="padding: 5px 10px; border-radius: 999px; background: #e2ecda; color: #3c6a31; font: 500 10.5px Heebo, sans-serif">מקורי</span></span>
+          <span style="font: 400 11px 'IBM Plex Mono', monospace; color: #8b847b; direction: ltr">TOYOTA / LEXUS</span>
+          <span style="font: 600 13px 'IBM Plex Mono', monospace; direction: ltr">₪ 38</span>
+          <span style="font: 500 13px 'IBM Plex Mono', monospace">60</span>
+          <span style="display: flex; gap: 6px; color: #b8b0a6">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 2fr 0.9fr 1.4fr 0.9fr 0.8fr 92px; gap: 20px; align-items: center; padding: 13px 20px; border-bottom: 1px solid #e4dfd8">
+          <span style="font: 600 12.5px 'IBM Plex Mono', monospace; direction: ltr">LGT-0087</span>
+          <span style="font: 400 13px Heebo, sans-serif">נורת איתות אחורית</span>
+          <span><span style="padding: 5px 10px; border-radius: 999px; background: #eae6df; color: #5d574f; font: 500 10.5px Heebo, sans-serif">חלופי</span></span>
+          <span style="font: 400 11px Heebo, sans-serif; color: #8b847b">אוניברסלי</span>
+          <span style="font: 600 13px 'IBM Plex Mono', monospace; direction: ltr">₪ 34</span>
+          <span style="font: 500 13px 'IBM Plex Mono', monospace">40</span>
+          <span style="display: flex; gap: 6px; color: #b8b0a6">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 2fr 0.9fr 1.4fr 0.9fr 0.8fr 92px; gap: 20px; align-items: center; padding: 13px 20px; border-bottom: 1px solid #e4dfd8">
+          <span style="font: 600 12.5px 'IBM Plex Mono', monospace; direction: ltr">SUS-3390</span>
+          <span style="font: 400 13px Heebo, sans-serif">זרוע היגוי תחתונה</span>
+          <span><span style="padding: 5px 10px; border-radius: 999px; background: #eae6df; color: #5d574f; font: 500 10.5px Heebo, sans-serif">חלופי</span></span>
+          <span style="font: 400 11px 'IBM Plex Mono', monospace; color: #8b847b; direction: ltr">FORD FOCUS</span>
+          <span style="font: 600 13px 'IBM Plex Mono', monospace; direction: ltr">₪ 225</span>
+          <span style="font: 500 13px 'IBM Plex Mono', monospace">4</span>
+          <span style="display: flex; gap: 6px; color: #b8b0a6">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 2fr 0.9fr 1.4fr 0.9fr 0.8fr 92px; gap: 20px; align-items: center; padding: 13px 20px; border-bottom: 1px solid #e4dfd8; background: rgba(251,228,207,.4)">
+          <span style="font: 600 12.5px 'IBM Plex Mono', monospace; direction: ltr">48815-02200</span>
+          <span style="font: 400 13px Heebo, sans-serif">גומיות מייצב</span>
+          <span><span style="padding: 5px 10px; border-radius: 999px; background: #eae6df; color: #5d574f; font: 500 10.5px Heebo, sans-serif">חלופי</span></span>
+          <span style="font: 400 11px 'IBM Plex Mono', monospace; color: #8b847b; direction: ltr">COROLLA E210</span>
+          <span style="font: 600 13px 'IBM Plex Mono', monospace; direction: ltr">₪ 45</span>
+          <span style="display: flex; align-items: center; gap: 6px">
+            <span style="font: 600 13px 'IBM Plex Mono', monospace; color: #a3560f">0</span>
+            <span style="font: 400 10px Heebo, sans-serif; color: #a3560f">אזל</span>
+          </span>
+          <span style="display: flex; gap: 6px; color: #b8b0a6">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.5fr 2fr 0.9fr 1.4fr 0.9fr 0.8fr 92px; gap: 20px; align-items: center; padding: 13px 20px">
+          <span style="font: 600 12.5px 'IBM Plex Mono', monospace; direction: ltr">16571-0T030</span>
+          <span style="font: 400 13px Heebo, sans-serif">צינור מים עליון</span>
+          <span><span style="padding: 5px 10px; border-radius: 999px; background: #eae6df; color: #5d574f; font: 500 10.5px Heebo, sans-serif">חלופי</span></span>
+          <span style="font: 400 11px 'IBM Plex Mono', monospace; color: #8b847b; direction: ltr">COROLLA 2014—2019</span>
+          <span style="font: 600 13px 'IBM Plex Mono', monospace; direction: ltr">₪ 95</span>
+          <span style="font: 500 13px 'IBM Plex Mono', monospace">2</span>
+          <span style="display: flex; gap: 6px; color: #b8b0a6">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+          </span>
+        </div>
+
+        <div style="flex: 1"></div>
+        <div style="border-top: 1px solid #e4dfd8; padding: 11px 20px; display: flex; align-items: center; gap: 16px; font: 400 11px Heebo, sans-serif; color: #8b847b">
+          <span><span style="font-family: 'IBM Plex Mono', monospace; background: #ece8e2; border-radius: 4px; padding: 2px 6px; color: #5d574f">↵</span> עריכה</span>
+          <span><span style="font-family: 'IBM Plex Mono', monospace; background: #ece8e2; border-radius: 4px; padding: 2px 6px; color: #5d574f">Tab</span> לתא הבא</span>
+          <span><span style="font-family: 'IBM Plex Mono', monospace; background: #ece8e2; border-radius: 4px; padding: 2px 6px; color: #5d574f">Esc</span> ביטול</span>
+        </div>
+      </section>
+    </main>
+
+    <aside style="width: 340px; flex: none; border-inline-start: 1px solid #e4dfd8; background: #f7f5f2; display: flex; flex-direction: column; overflow: hidden">
+      <div style="padding: 22px 20px 16px; border-bottom: 1px solid #e4dfd8; display: flex; align-items: baseline; justify-content: space-between; flex: none">
+        <span style="font: 600 15px Rubik, sans-serif">בקשות נכנסות</span>
+        <span style="padding: 4px 9px; border-radius: 999px; background: #16140f; color: #fff; font: 600 10.5px 'IBM Plex Mono', monospace">7</span>
+      </div>
+
+      <div style="flex: 1; overflow: hidden; padding: 16px 20px; display: flex; flex-direction: column; gap: 11px">
+        <div style="background: #efece8; border-radius: 16px; padding: 14px 15px; display: flex; flex-direction: column; gap: 11px">
+          <div style="display: flex; align-items: center; gap: 9px">
+            <div style="width: 26px; height: 26px; border-radius: 999px; background: #16140f; color: #fff; display: flex; align-items: center; justify-content: center; font: 600 10px 'IBM Plex Mono', monospace">ד</div>
+            <span style="flex: 1; font: 500 12.5px Heebo, sans-serif">מוסך דוד</span>
+            <span style="font: 400 10px 'IBM Plex Mono', monospace; color: #b0a9a0">09:34</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <div style="display: flex; justify-content: space-between"><span style="font: 400 11.5px Heebo, sans-serif; color: #8b847b">מק״ט</span><span style="font: 500 11.5px 'IBM Plex Mono', monospace; direction: ltr">04465-02220</span></div>
+            <div style="display: flex; justify-content: space-between"><span style="font: 400 11.5px Heebo, sans-serif; color: #8b847b">כמות</span><span style="font: 500 11.5px 'IBM Plex Mono', monospace">2</span></div>
+            <div style="display: flex; justify-content: space-between"><span style="font: 400 11.5px Heebo, sans-serif; color: #8b847b">רכב</span><span style="font: 500 11.5px 'IBM Plex Mono', monospace; direction: ltr">COROLLA E210 · 2018</span></div>
+          </div>
+          <div style="display: flex; gap: 7px">
+            <div style="flex: 1; background: #16140f; color: #fff; border-radius: 999px; padding: 10px; text-align: center; font: 500 12px Heebo, sans-serif">אשר</div>
+            <div style="padding: 10px 15px; border-radius: 999px; background: #ece8e2; font: 500 12px Heebo, sans-serif">דחה</div>
+          </div>
+        </div>
+
+        <div style="background: #efece8; border-radius: 16px; padding: 14px 15px; display: flex; flex-direction: column; gap: 9px">
+          <div style="display: flex; align-items: center; gap: 9px">
+            <div style="width: 26px; height: 26px; border-radius: 999px; background: #16140f; color: #fff; display: flex; align-items: center; justify-content: center; font: 600 10px 'IBM Plex Mono', monospace">מ</div>
+            <span style="flex: 1; font: 500 12.5px Heebo, sans-serif">מוסך המרכז</span>
+            <span style="font: 400 10px 'IBM Plex Mono', monospace; color: #b0a9a0">08:12</span>
+          </div>
+          <div style="display: flex; justify-content: space-between"><span style="font: 500 11.5px 'IBM Plex Mono', monospace; direction: ltr">90915-YZZD2</span><span style="font: 400 11.5px Heebo, sans-serif; color: #8b847b">×10</span></div>
+        </div>
+
+        <div style="background: #efece8; border-radius: 16px; padding: 14px 15px; display: flex; flex-direction: column; gap: 9px; opacity: .62">
+          <div style="display: flex; align-items: center; gap: 9px">
+            <div style="width: 26px; height: 26px; border-radius: 999px; background: #16140f; color: #fff; display: flex; align-items: center; justify-content: center; font: 600 10px 'IBM Plex Mono', monospace">ר</div>
+            <span style="flex: 1; font: 500 12.5px Heebo, sans-serif">רכב+ ראשון</span>
+            <span style="padding: 3px 8px; border-radius: 999px; background: #e2ecda; color: #3c6a31; font: 500 10px Heebo, sans-serif">אושרה</span>
+          </div>
+          <div style="display: flex; justify-content: space-between"><span style="font: 500 11.5px 'IBM Plex Mono', monospace; direction: ltr">SUS-3390</span><span style="font: 400 11.5px Heebo, sans-serif; color: #8b847b">×1</span></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
