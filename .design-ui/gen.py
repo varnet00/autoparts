@@ -92,7 +92,8 @@ def chip(text, on=False, count=None):
             f'{text}{tail}</span>')
 
 def offer_row(name, city, price, kind, extra_line='', stock=True, best=False):
-    stripe = ORANGE if best else (ORIG_FG if stock else HAIR)
+    # то же правило: помечаем самое дешёвое, остальное молчит
+    stripe = ORANGE if best else 'transparent'
     badge = (f'<span style="display:inline-block; padding:3px 8px; border-radius:999px; background:{ORANGE}; '
              f'color:#fff; font:600 10px/1.4 {SANS}">הזול</span>' if best else '')
     return (f'<div style="display:flex; background:{CARD}; border-radius:20px; overflow:hidden">'
@@ -254,7 +255,9 @@ print('Stock — מלאי')
 # 5. Cards — גיליון הרכיב שחוזר בכל רשימה
 # ============================================================
 def pos_card(numb, brand, name, fits, kinds, suppliers, low, avg=None, stock=True, aka=None, matched=None):
-    stripe = ORIG_FG if stock else HAIR
+    # кромкой помечаем только исключение — «никто не продаёт». Зелёная
+    # полоса на каждой карточке была бы просто фоном
+    stripe = 'transparent' if stock else USED_FG
     tags = ''.join(tag(k) for k in kinds)
     note = ''
     if matched:
@@ -275,7 +278,11 @@ def pos_card(numb, brand, name, fits, kinds, suppliers, low, avg=None, stock=Tru
             f'{tags}{label(suppliers)}</div></div>'
             f'<div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end; flex:none">'
             f'<span style="font:600 17px/1 {MONO}; direction:ltr">{low}</span>'
-            + (f'{label("ממוצע " + avg, MUTED, 10)}' if avg else f'{label("אין במלאי", MUTED, 10)}')
+            # второй строкой — среднее как контекст. У одного поставщика
+            # сравнивать не с чем, и строка молчит; «нет в наличии» — только
+            # когда действительно нет
+            + (f'{label("ממוצע " + avg, MUTED, 10)}' if avg
+               else (f'{label("אין במלאי", MUTED, 10)}' if not stock else ''))
             + '</div></div></div>')
 
 cards = screen(
