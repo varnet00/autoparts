@@ -118,6 +118,13 @@ router.get('/:id', (req, res) => {
   const q = String(req.query.q || '').trim();
   const where = ['seller_id = @id'];
   const params = { id, limit, offset: (page - 1) * limit };
+  // מערכת אחת מתוך המדף שלו. הספירות לכל המערכות נשלחות ב-stats,
+  // ולכן המסך יודע מראש מה יש ולא מציע מסנן שמוביל לריק
+  if (req.query.category && req.query.category !== 'all') {
+    if (!isCategory(req.query.category)) return res.status(400).json({ error: 'קטגוריה לא תקינה' });
+    where.push('category = @category');
+    params.category = req.query.category;
+  }
   if (q) {
     // INSTR ולא LIKE — אחרת "%" הוא תו חיפוש ומחזיר את כל המדף
     where.push('(INSTR(UPPER(name), UPPER(@q)) > 0 OR INSTR(UPPER(part_no), UPPER(@q)) > 0'

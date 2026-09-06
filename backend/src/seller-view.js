@@ -30,9 +30,13 @@ const statsStmt = db.prepare(
           MIN(price) AS min_price
    FROM parts WHERE seller_id = ?`
 );
+/* המדף של הספק לפי מערכות. אצל ספק עם מאות פריטים "מה עוד יש לו"
+   בלי חלוקה הוא גלילה, לא תשובה: הקונה חושב במערכות — בלמים, מתלים,
+   חשמל — ורוצה לבחור אחת ולראות מה יש בה. הספירה נשלחת יחד עם
+   השמות, כי מסנן שמוביל לרשימה ריקה הוא הבטחה שבורה. */
 const catsStmt = db.prepare(
   `SELECT category, COUNT(*) AS n FROM parts WHERE seller_id = ?
-   GROUP BY category ORDER BY n DESC, category LIMIT 3`
+   GROUP BY category ORDER BY n DESC, category`
 );
 const kindsStmt = db.prepare(
   `SELECT kind, COUNT(*) AS n FROM parts WHERE seller_id = ? GROUP BY kind ORDER BY n DESC`
@@ -45,7 +49,7 @@ function sellerStats(id) {
     positions: s.positions || 0,
     in_stock: s.in_stock || 0,
     min_price: s.min_price === null || s.min_price === undefined ? null : Math.round(s.min_price),
-    categories: catsStmt.all(id).map((c) => c.category),
+    categories: catsStmt.all(id).map((c) => ({ id: c.category, n: c.n })),
     kinds: kindsStmt.all(id).map((k) => k.kind),
   };
 }

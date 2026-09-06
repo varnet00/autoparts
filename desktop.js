@@ -43,6 +43,7 @@ const S = {
   stock: [], stats: null,
   // עמוד הספק: מי הוא, ומה עוד יש אצלו
   sup: null, supStats: null, supParts: [], supTotal: 0, supPage: 1, supBack: 'catalog', supLoading: false,
+  supCat: 'all',   // איזו מערכת נבחרה במדף של הספק
   draft: null, cutout: true,
   auth: { open: false, tab: 'buyer', mode: 'login' },
 };
@@ -195,7 +196,7 @@ async function loadMoreOffers() {
    מאיפה הגיעו נשמר — נכנסים לכאן מתוצאות החיפוש ומכרטיס הצעה. */
 async function loadSeller(id, from) {
   S.sup = null; S.supStats = null; S.supParts = []; S.supTotal = 0; S.supPage = 1;
-  S.supLoading = true; S.supBack = from || 'catalog';
+  S.supLoading = true; S.supCat = 'all'; S.supBack = from || 'catalog';
   go('seller');
   try {
     const data = await api(`/sellers/${id}`);
@@ -205,15 +206,35 @@ async function loadSeller(id, from) {
   S.supLoading = false; render();
 }
 
+// המערכת שנבחרה נשלחת גם ב"עוד": בלעדיה העמוד השני היה מחזיר את כל
+// המדף ומערבב פנימה פריטים ממערכות אחרות
+function supQuery(extra) {
+  const qs = new URLSearchParams(extra || {});
+  if (S.supCat !== 'all') qs.set('category', S.supCat);
+  return qs.toString();
+}
+
 async function loadMoreSup() {
   if (S.loadingMore || !S.sup) return;
   S.loadingMore = true; render();
   try {
-    const data = await api(`/sellers/${S.sup.id}?page=${S.supPage + 1}`);
+    const data = await api(`/sellers/${S.sup.id}?${supQuery({ page: S.supPage + 1 })}`);
     S.supPage += 1;
     S.supParts = [...S.supParts, ...data.parts];
   } catch (e) { toast(e.message, true); }
   S.loadingMore = false; render();
+}
+
+/* בחירת מערכת טוענת מחדש רק את המדף — הפרופיל והספירות אינם תלויים
+   במסנן, ואין סיבה שהמסך כולו יהבהב. */
+async function loadSupCat(cat) {
+  if (!S.sup || S.supCat === cat) return;
+  S.supCat = cat; S.supPage = 1; S.supLoading = true; render();
+  try {
+    const data = await api(`/sellers/${S.sup.id}?${supQuery()}`);
+    S.supParts = data.parts; S.supTotal = data.pagination.total;
+  } catch (e) { toast(e.message, true); }
+  S.supLoading = false; render();
 }
 
 async function loadPosition(id) {
@@ -394,8 +415,8 @@ function posCard(c) {
             <span class="label">${c.offers === 1 ? 'ספק אחד' : `${c.offers} ספקים`}</span>
           </div>
           ${c.price ? `<span class="stack" style="gap:2px;align-items:flex-end">
-              <span class="price">${c.price.min !== c.price.max
-                ? `<span style="font:400 var(--fs-label) var(--sans);color:var(--muted)">מ־</span>` : ''}${shekel(c.price.min)}</span>
+              ${c.price.min !== c.price.max ? '<span class="label" style="font-size:var(--fs-micro)">החל מ</span>' : ''}
+              <span class="price">${shekel(c.price.min)}</span>
               ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-micro)">ממוצע ${shekel(c.price.avg)}</span>` : ''}
             </span>` : '<span class="label">אין הצעות</span>'}
         </div>
@@ -444,8 +465,8 @@ function shownCount() {
   const n = pick(g.exact).length + pick(g.compatible).length;
   const sup = (g.sellers || []).length;
   // ספק שנמצא בשם הוא תוצאה: "אין תוצאות" מעל כרטיס ספק הוא שקר
-  const supWord = sup ? (n ? ` · ${sup === 1 ? 'ספק אחד' : `${sup} ספקים`}` : (sup === 1 ? 'ספק אחד' : `${sup} ספקים`)) : '';
-  if (!n) return supWord || 'אין תוצאות';
+  const supWord = sup ? ` · ${sup === 1 ? 'ספק אחד' : `${sup} ספקים`}` : '';
+  if (!n) return sup ? `אין מק״טים${supWord}` : 'אין תוצאות';
   return (n === 1 ? 'מק״ט אחד' : `${n} מק״טים`) + supWord;
 }
 
@@ -480,7 +501,6 @@ function supCard(s) {
         ${s.supplies ? `<h3 style="font-weight:400;color:var(--muted)">${esc(s.supplies)}</h3>` : ''}
         <div class="foot">
           <span class="label">${shelfLine(st)}</span>
-          ${st.min_price ? `<span class="price"><span style="font:400 var(--fs-label) var(--sans);color:var(--muted)">מ־</span>${shekel(st.min_price)}</span>` : ''}
         </div>
       </div>
     </article>`;
@@ -504,8 +524,9 @@ function groupResults() {
   const exact = pick(g.exact); const compat = pick(g.compatible);
   const sup = supResults();
   if (!exact.length && !compat.length) {
-    // בקטלוג לא נמצא כלום, אבל ספק בשם הזה כן — וזו תשובה, לא כישלון
-    return sup ? `<span class="label">לא נמצא מק״ט בשם הזה, אבל נמצאו ספקים</span>${sup}` : null;
+    // בקטלוג לא נמצא כלום, אבל ספק בשם הזה כן — וזו תשובה, לא כישלון.
+    // המונה שבראש המסך כבר אומר "אין מק״טים · ספק אחד"
+    return sup || null;
   }
   return `
     <div class="results">${exact.map(posCard).join('')}</div>
@@ -580,8 +601,8 @@ function viewPosition() {
 
         <aside class="stack" style="gap: var(--s4)">
           ${c.price ? `<div class="card stack" style="gap:6px;padding: var(--s5)">
-            <span class="label">מחיר</span>
-            <span class="price" style="font-size:30px">${c.price.min !== c.price.max ? 'מ־' : ''}${shekel(c.price.min)}</span>
+            <span class="label">${c.price.min !== c.price.max ? 'מחיר החל מ' : 'מחיר'}</span>
+            <span class="price" style="font-size:30px">${shekel(c.price.min)}</span>
             ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-label)">ממוצע ${shekel(c.price.avg)} · עד ${shekel(c.price.max)}</span>` : ''}
           </div>` : ''}
           ${S.posCompat.length ? `<div class="stack" style="gap: var(--s3)">
@@ -668,23 +689,22 @@ function viewPart() {
                data-act="open-pos" data-id="${p.position_id}">
             <div class="stack" style="gap:4px">
               <span style="font:600 var(--fs-lead) var(--disp)">כל הספקים של המק״ט הזה</span>
-              <span class="label">להשוות מחיר, מצב ומלאי במקום אחד</span>
+              <span class="label">${p.catalog && p.catalog.others > 0
+                ? `עוד ${p.catalog.others === 1 ? 'ספק אחד' : `${p.catalog.others} ספקים`} · להשוות מחיר, מצב ומלאי`
+                : 'להשוות מחיר, מצב ומלאי במקום אחד'}</span>
             </div>
-            <span class="mono" style="font-weight:600;font-size:var(--fs-lead)">${esc(p.part_no)}</span>
+            ${p.catalog && numKey(p.catalog.number) !== self
+              ? `<span class="mono" style="font-weight:600;font-size:var(--fs-lead)">${esc(p.catalog.number)}</span>` : ICON.back}
           </div>` : ''}
         </section>
 
         <aside class="stack" style="gap: var(--s4);position:sticky;top:calc(var(--head) + var(--s6))">
           <div class="card pad stack" style="gap: var(--s4)">
-            <div class="row" style="gap: var(--s3)">
-              <div style="width:40px;height:40px;border-radius:999px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font:600 var(--fs-sub) var(--mono)">${esc(s && s.name ? s.name.trim()[0] : '?')}</div>
-              <div class="stack" style="gap:2px;min-width:0">
-                <span style="font:500 var(--fs-body) var(--sans)">${esc(s ? s.name : 'לא ידוע')}</span>
-                <span class="label">${esc(s ? s.city : '')}${s && s.verified ? ' · מאומת' : ''}</span>
-              </div>
+            <div class="stack" style="gap:2px;min-width:0">
+              <span style="font:500 var(--fs-body) var(--sans)">${esc(s ? s.name : 'לא ידוע')}</span>
+              <span class="label">${esc(s ? s.city : '')}${s && s.verified ? ' · מאומת' : ''}${s ? ` · דירוג <span class="mono">${s.rating}</span> (${s.reviews_count})` : ''}</span>
             </div>
             <div class="stack" style="gap: var(--s2)">
-              <div class="row" style="justify-content:space-between"><span class="label">דירוג</span><span class="mono" style="font-size:var(--fs-sub)">${s ? s.rating : '—'} · ${s ? s.reviews_count : 0}</span></div>
               <div class="row" style="justify-content:space-between"><span class="label">טלפון</span><span class="mono" style="font-size:var(--fs-sub)">${esc(s ? s.phone : '—')}</span></div>
               ${s && s.address ? `<div class="row" style="justify-content:space-between;gap: var(--s4)"><span class="label">כתובת</span><span style="font-size:var(--fs-sub);text-align:end">${esc(s.address)}</span></div>` : ''}
               ${s && s.hours ? `<div class="row" style="justify-content:space-between;gap: var(--s4)"><span class="label">שעות</span><span style="font-size:var(--fs-sub);text-align:end">${esc(s.hours)}</span></div>` : ''}
@@ -828,13 +848,15 @@ function viewSeller() {
             <span style="font:600 var(--fs-lead) var(--disp)">מה שהוא מוכר</span>
             <span class="label">אותם כרטיסים, עם המחיר שהוא נקב · במלאי קודם</span>
           </div>
+          ${supCatBar(st)}
           ${S.supLoading ? '<div class="spin"></div>' : S.supParts.length
             ? `<div class="card" style="overflow:hidden"><table>
                  <thead><tr><th style="width:34%">החלק</th><th>מק״ט</th><th>מצב</th><th>מלאי</th><th>מחיר</th></tr></thead>
                  <tbody>${S.supParts.map(supPartRow).join('')}</tbody></table></div>
                ${moreBtn(S.supParts.length, S.supTotal, 'more-sup', 'עוד פריטים')}`
-            : `<div class="empty"><span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">אין פריטים כרגע</span>
-                 <span>הספק עדיין לא פרסם מלאי</span></div>`}
+            : `<div class="empty"><span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">${
+                 S.supCat === 'all' ? 'אין פריטים כרגע' : 'אין פריטים במערכת הזאת'}</span>
+                 <span>${S.supCat === 'all' ? 'הספק עדיין לא פרסם מלאי' : 'בחרו מערכת אחרת או "הכל"'}</span></div>`}
         </section>
 
         <aside class="stack" style="gap: var(--s4);position:sticky;top:calc(var(--head) + var(--s6))">
@@ -846,6 +868,20 @@ function viewSeller() {
         </aside>
       </div>
     </div>`;
+}
+
+/* המדף של הספק לפי מערכות. הקונה חושב במערכות — בלמים, מתלים,
+   חשמל — ו"מה עוד יש לו" בלי חלוקה זה גלילה, לא תשובה. הספירה על כל
+   לשונית מגיעה מהשרת, ולכן אין כאן מסנן שמוביל למסך ריק. */
+function supCatBar(st) {
+  const cats = (st && st.categories) || [];
+  if (cats.length < 2) return '';
+  const chip = (id, label, n) => `<button class="chip" data-act="sup-cat" data-cat="${esc(id)}"
+    aria-pressed="${S.supCat === id}">${esc(label)}${n ? ` · <span class="mono">${n}</span>` : ''}</button>`;
+  return `<div class="chips">
+    ${chip('all', 'הכל', st.offers)}
+    ${cats.map((c) => chip(c.id, catLabel(c.id), c.n)).join('')}
+  </div>`;
 }
 
 /* פריט במדף של הספק. המק״ט המוצג הוא זה שבקטלוג ולא זה שהמוכר
@@ -864,34 +900,49 @@ function supPartRow(p) {
 
 /* מה שהספק מספר על עצמו. זה אינו טופס הגדרות אלא חלון הראווה של
    העסק: בדיוק המילים האלה מופיעות בעמוד הספק ולצד כל הצעה שלו,
-   ולכן יש כאן קישור לראות את התוצאה בעיניים של הקונה. */
+   ולכן יש כאן קישור לראות את התוצאה בעיניים של הקונה.
+
+   השדות מחולקים לשתיים — איך פונים אליכם, ומה הקונה קורא. שמונה
+   שדות זהים ברצף הם רשימה שצריך לפענח; שתי קבוצות עם כותרת נקראות
+   בהצצה. */
 function sellerProfileCard() {
   const me = S.me || {};
   const f = (name, label, value, hint) =>
     `<div class="field"><span>${esc(label)}</span><input name="${name}" value="${esc(value || '')}" placeholder="${esc(hint || '')}"></div>`;
+  const group = (title, sub, body) => `
+    <div class="stack" style="gap: var(--s3)">
+      <div class="stack" style="gap:2px">
+        <span style="font:500 var(--fs-body) var(--sans)">${esc(title)}</span>
+        <span class="label">${esc(sub)}</span>
+      </div>
+      ${body}
+    </div>`;
+
   return `
-    <form class="card pad stack" style="gap: var(--s4);margin-bottom: var(--s6)" data-act="save-profile">
+    <form class="card pad stack" style="gap: var(--s5);margin-bottom: var(--s6)" data-act="save-profile">
       <div class="row between" style="align-items:baseline">
-        <div class="stack" style="gap:4px">
-          <span style="font:600 var(--fs-lead) var(--disp)">העסק שלי</span>
-          <span class="label">המידע הזה מופיע בעמוד הספק ולצד כל הצעה שלכם</span>
-        </div>
+        <span style="font:600 var(--fs-lead) var(--disp)">העסק שלי</span>
         ${me.id ? `<button type="button" class="link" data-act="open-sup" data-id="${me.id}">איך זה נראה לקונה</button>` : ''}
       </div>
-      <div class="row" style="gap: var(--s4);flex-wrap:wrap">
-        <div style="flex:1;min-width:180px">${f('name', 'שם העסק', me.name)}</div>
-        <div style="flex:1;min-width:140px">${f('city', 'עיר', me.city)}</div>
-        <div style="flex:1;min-width:140px">${f('phone', 'טלפון', me.phone)}</div>
-        <div style="flex:1;min-width:140px">${f('whatsapp', 'וואטסאפ', me.whatsapp, '9725…')}</div>
-      </div>
-      <div class="row" style="gap: var(--s4);flex-wrap:wrap">
-        <div style="flex:1;min-width:220px">${f('address', 'כתובת', me.address, 'רחוב, מספר, אזור')}</div>
-        <div style="flex:1;min-width:220px">${f('hours', 'שעות פעילות', me.hours, 'א׳—ה׳ 08:00—17:00')}</div>
-      </div>
-      ${f('supplies', 'מה אנחנו מספקים', me.supplies, 'מותגים, מערכות, סוגי רכב')}
-      <div class="field"><span>על העסק</span>
-        <textarea name="about" rows="3" placeholder="מי אתם, כמה שנים, איך אתם עובדים">${esc(me.about || '')}</textarea>
-      </div>
+
+      ${group('איך פונים אליכם', 'מופיע בכל הצעה שלכם ובעמוד הספק', `
+        <div class="row" style="gap: var(--s4);flex-wrap:wrap">
+          <div style="flex:2;min-width:220px">${f('name', 'שם העסק', me.name)}</div>
+          <div style="flex:1;min-width:140px">${f('city', 'עיר', me.city)}</div>
+          <div style="flex:1;min-width:150px">${f('phone', 'טלפון', me.phone)}</div>
+          <div style="flex:1;min-width:150px">${f('whatsapp', 'וואטסאפ', me.whatsapp, '9725…')}</div>
+        </div>
+        <div class="row" style="gap: var(--s4);flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">${f('address', 'כתובת', me.address, 'רחוב, מספר, אזור')}</div>
+          <div style="flex:1;min-width:220px">${f('hours', 'שעות פעילות', me.hours, 'א׳—ה׳ 08:00—17:00')}</div>
+        </div>`)}
+
+      ${group('מה הקונה קורא עליכם', 'זה מה שמבדיל אתכם מספק אחר באותו מק״ט', `
+        ${f('supplies', 'מה אנחנו מספקים', me.supplies, 'מותגים, מערכות, סוגי רכב')}
+        <div class="field"><span>על העסק</span>
+          <textarea name="about" rows="3" placeholder="מי אתם, כמה שנים, איך אתם עובדים">${esc(me.about || '')}</textarea>
+        </div>`)}
+
       <div class="row" style="justify-content:flex-start"><button class="btn" type="submit">שמירה</button></div>
     </form>`;
 }
@@ -1195,6 +1246,7 @@ document.addEventListener('click', async (ev) => {
   if (act === 'more-browse') { loadMoreBrowse(); return; }
   if (act === 'more-offers') { loadMoreOffers(); return; }
   if (act === 'more-sup') { loadMoreSup(); return; }
+  if (act === 'sup-cat') { loadSupCat(el.dataset.cat); return; }
   if (act === 'compat-note') { S.compatNote = !S.compatNote; render(); return; }
 
   // מסננים

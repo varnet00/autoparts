@@ -133,6 +133,20 @@ input[type=checkbox]{accent-color:var(--ink);width:18px;height:18px}
 
 /* ---------- чипы ---------- */
 .chips{display:flex;gap: var(--s2);flex-wrap:wrap}
+/* שורת מסננים אחת שנגללת הצידה. שבע מערכות שנשברות לשלוש שורות
+   דוחפות את המדף עצמו מתחת לקפל — ובשביל המדף נכנסו לעמוד */
+.chips.oneline{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chips.oneline::-webkit-scrollbar{display:none}
+.chips.oneline > *{flex:none}
+
+/* פס השמירה בקבינט. כל עוד לא נגעו בטופס הוא כפתור רגיל בסוף —
+   ואינו מכסה כלום; ברגע שמשהו שונה הוא נדבק לתחתית המסך, כדי שמי
+   שתיקן את השדה הראשון לא יצטרך לגלול על פני השאר רק כדי לשמור. */
+.savebar{padding-top: var(--s2)}
+.savebar.on{
+  position:sticky;bottom:0;z-index:2;padding: var(--s3) 0 var(--s4);
+  background:linear-gradient(180deg,rgba(239,236,232,0) 0%,var(--bg) 26%);
+}
 /* סימן שאלה ליד כותרת. ההסתייגות אינה שורה קבועה מתחת לכותרת —
    אזהרה שתמיד על המסך מפסיקים לראות אחרי הפעם השלישית. */
 .qmark{
