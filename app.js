@@ -604,11 +604,19 @@ function compatHead(empty) {
 }
 
 /* ============================ מסך: כרטיס חלק ============================ */
+/* מק״ט מנוקה מסימנים, להשוואה בלבד: "04465-02220" ו-"0446502220"
+   הם אותו מספר, ומי שהקליד אותם פעמיים לא התכוון לשני חלקים. */
+const numKey = (v) => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
 function viewPart() {
   const p = S.part;
   if (!p) return `${topBar({ back: S.partBack || 'search' })}${loader()}`;
   const s = p.seller;
-  const all = p.interchange_numbers || [];
+  /* המספר של הכרטיס עצמו יורד מהרשימות. מוכר שמוכר את החלק המקורי
+     רושם את המק״ט שלו גם כמספר מקורי — וזה נכון מבחינתו, אבל על
+     המסך זה נקרא "החלק שזה מחליף: את עצמו". */
+  const self = numKey(p.part_no);
+  const all = (p.interchange_numbers || []).filter((n) => numKey(n.number) !== self);
   const oems = all.filter((n) => n.is_oem);
   const nums = all.filter((n) => !n.is_oem);
 
@@ -758,7 +766,9 @@ function catalogNote(p) {
 }
 
 function stockCard(p) {
-  const all = p.interchange_numbers || [];
+  // המספר של הכרטיס עצמו אינו "מק״ט מקורי שהוא מחליף" — ראה viewPart
+  const self = numKey(p.part_no);
+  const all = (p.interchange_numbers || []).filter((n) => numKey(n.number) !== self);
   const oems = all.filter((n) => n.is_oem);
   const alts = all.filter((n) => !n.is_oem);
   const open = S.stockOems.has(p.id);

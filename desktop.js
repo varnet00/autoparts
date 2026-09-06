@@ -614,10 +614,16 @@ function offerRow(p) {
   </tr>`;
 }
 
+/* מק״ט מנוקה מסימנים, להשוואה בלבד */
+const numKey = (v) => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
 function viewPart() {
   const p = S.part;
   if (!p) return '<div class="wrap"><div class="spin"></div></div>';
-  const all = p.interchange_numbers || [];
+  /* המספר של הכרטיס עצמו יורד מהרשימות: מוכר של החלק המקורי רושם
+     את המק״ט שלו גם כמספר מקורי, ואז המסך אומר שהחלק מחליף את עצמו */
+  const self = numKey(p.part_no);
+  const all = (p.interchange_numbers || []).filter((n) => numKey(n.number) !== self);
   const oems = all.filter((n) => n.is_oem);
   const nums = all.filter((n) => !n.is_oem);
   const s = p.seller;
