@@ -12,19 +12,42 @@ function like(value) {
   return String(value).replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
+/* כרטיס החלק מציג הצעה של ספק מסוים, ולכן הוא נושא גם את דרכי
+   הפנייה אליו: טלפון וואטסאפ כדי לפנות, כתובת ושעות כדי להחליט
+   אם לנסוע. אימייל אינו כאן — הוא שם המשתמש לקבינט. */
 const sellerStmt = db.prepare(
-  'SELECT id, name, city, phone, whatsapp, rating, reviews_count, verified FROM sellers WHERE id = ?'
+  `SELECT id, name, city, phone, whatsapp, address, hours, supplies,
+          rating, reviews_count, verified
+   FROM sellers WHERE id = ?`
 );
 const interchangeStmt = db.prepare(
   'SELECT id, number, brand, is_oem FROM interchange_numbers WHERE part_id = ? ORDER BY is_oem DESC, id'
 );
 
+/* לאיזה מק״ט בקטלוג ההצעה הזאת שייכת, וכמה עוד מוכרים אותו.
+   המוכר רשם אצלו "GDB3426", אבל המק״ט שכולם משווים לפיו הוא
+   04465-02220 — ובלעדיו הקישור "כל הספקים" היה מוביל למסך שכתוב
+   בראשו מספר אחר מזה שעליו לחצו. */
+const posStmt = db.prepare(
+  `SELECT p.id, p.brand,
+          (SELECT number FROM position_numbers WHERE position_id = p.id ORDER BY is_primary DESC, number LIMIT 1) AS number,
+          (SELECT COUNT(*) FROM parts WHERE position_id = p.id) AS offers
+   FROM positions p WHERE p.id = ?`
+);
+
 function attachSellerAndInterchange(parts) {
-  return parts.map((part) => ({
-    ...part,
-    seller: part.seller_id ? sellerStmt.get(part.seller_id) : null,
-    interchange_numbers: interchangeStmt.all(part.id),
-  }));
+  return parts.map((part) => {
+    const pos = part.position_id ? posStmt.get(part.position_id) : null;
+    return {
+      ...part,
+      seller: part.seller_id ? sellerStmt.get(part.seller_id) : null,
+      interchange_numbers: interchangeStmt.all(part.id),
+      catalog: pos ? {
+        position_id: pos.id, brand: pos.brand, number: pos.number,
+        offers: pos.offers, others: Math.max(0, pos.offers - 1),
+      } : null,
+    };
+  });
 }
 
 // GET /api/parts?category=brakes&kind=orig&q=בלם&page=1&limit=20

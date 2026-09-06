@@ -135,6 +135,7 @@ main{padding:var(--s7) 0 var(--s8)}
 .field{display:flex;flex-direction:column;gap:6px}
 .field > span{font:500 var(--fs-label) var(--sans);color:var(--muted)}
 .field input,.field select,.field textarea{
+  resize:vertical;
   background:var(--card);border:1px solid var(--line);border-radius:10px;
   padding:9px 12px;outline:none;width:100%;font-size:var(--fs-sub);
   transition:border-color .18s var(--ease), box-shadow .18s var(--ease);
@@ -151,7 +152,7 @@ main{padding:var(--s7) 0 var(--s8)}
 .btn:active{transform:scale(.985)}
 .btn.wide{width:100%}
 .btn.ghost{background:var(--chip);color:var(--ink)}
-.btn.line{background:none;border:1px solid var(--line)}
+.btn.line{background:none;border:1px solid var(--line);color:var(--ink)}
 .btn.brand{background:var(--brand)}
 .link{color:var(--muted);font:500 var(--fs-label) var(--sans);text-decoration:underline;text-underline-offset:3px}
 .link:hover{color:var(--ink)}

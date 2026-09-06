@@ -5,10 +5,22 @@ const db = require('./db');
 const DEMO_PASSWORD = 'demo1234';
 
 const sellers = [
-  { name: 'חלקי צפון בע״מ', city: 'חיפה', phone: '04-812-4410', whatsapp: '972481244100', email: 'hertzel@example.com', rating: 4.9, reviews_count: 812, verified: 1 },
-  { name: 'אוטו-לינק סחר', city: 'ראשון לציון', phone: '03-954-7720', whatsapp: '972395477200', email: 'autolink@example.com', rating: 4.8, reviews_count: 1204, verified: 1 },
-  { name: 'מרכז חלקים תל אביב', city: 'תל אביב', phone: '03-611-8080', whatsapp: '972361180800', email: 'merkaz@example.com', rating: 4.7, reviews_count: 3190, verified: 1 },
-  { name: 'פירוקים אשדוד', city: 'אשדוד', phone: '08-852-3311', whatsapp: '972885233110', email: 'ashdod@example.com', rating: 4.4, reviews_count: 640, verified: 0 },
+  { name: 'חלקי צפון בע״מ', city: 'חיפה', phone: '04-812-4410', whatsapp: '972481244100', email: 'hertzel@example.com', rating: 4.9, reviews_count: 812, verified: 1,
+    about: 'יבואן ישיר של חלקי מנוע ומערכות בלימה, פועל מחיפה משנת 1998. עובדים מול מוסכים ומול לקוחות פרטיים, משלוח יומי לכל הצפון.',
+    supplies: 'טויוטה · לקסוס · פורד — בלמים, מערכת דלק, מצננים, מצברים',
+    address: 'רח׳ המסילה 12, מפרץ חיפה', hours: 'א׳—ה׳ 08:00—17:00 · ו׳ 08:00—13:00' },
+  { name: 'אוטו-לינק סחר', city: 'ראשון לציון', phone: '03-954-7720', whatsapp: '972395477200', email: 'autolink@example.com', rating: 4.8, reviews_count: 1204, verified: 1,
+    about: 'מחסן חלקים חלופיים של מותגי אירופה. כל פריט נבדק מול המק״ט המקורי לפני שהוא נכנס למלאי.',
+    supplies: 'TRW · Mann-Filter · Castrol — בלמים, מסננים, שמנים',
+    address: 'אזור התעשייה, רח׳ הפלדה 4, ראשון לציון', hours: 'א׳—ה׳ 08:30—18:00' },
+  { name: 'מרכז חלקים תל אביב', city: 'תל אביב', phone: '03-611-8080', whatsapp: '972361180800', email: 'merkaz@example.com', rating: 4.7, reviews_count: 3190, verified: 1,
+    about: 'חלקים מקוריים מהיבואן בלבד. מלאי גדול על המדף, איסוף עצמי תוך שעה.',
+    supplies: 'מקורי טויוטה · יונדאי · הונדה · סקודה — בלמים, מתלים, תאורה',
+    address: 'רח׳ הרכב 27, תל אביב', hours: 'א׳—ה׳ 08:00—19:00 · ו׳ 08:00—14:00' },
+  { name: 'פירוקים אשדוד', city: 'אשדוד', phone: '08-852-3311', whatsapp: '972885233110', email: 'ashdod@example.com', rating: 4.4, reviews_count: 640, verified: 0,
+    about: 'מגרש פירוק. כל חלק מצולם ונבדק, ואחוז המצב נרשם על הכרטיס — מה שרואים זה מה שמגיע.',
+    supplies: 'משומש מכל היצרנים — מנוע, מתלים, חשמל, שמנים',
+    address: 'אזור התעשייה הצפוני, אשדוד', hours: 'א׳—ה׳ 08:00—16:00' },
 ];
 
 // אותו חלק מוצע על ידי כמה מוכרים — מספרים חופפים הופכים אותם לאנלוגים זה של זה.
@@ -98,8 +110,10 @@ const seed = db.transaction(() => {
 
   const hash = bcrypt.hashSync(DEMO_PASSWORD, 10);
   const insSeller = db.prepare(
-    `INSERT INTO sellers (name, city, phone, whatsapp, email, password_hash, rating, reviews_count, verified)
-     VALUES (@name, @city, @phone, @whatsapp, @email, @password_hash, @rating, @reviews_count, @verified)`
+    `INSERT INTO sellers (name, city, phone, whatsapp, email, password_hash, rating, reviews_count, verified,
+                          about, supplies, address, hours)
+     VALUES (@name, @city, @phone, @whatsapp, @email, @password_hash, @rating, @reviews_count, @verified,
+             @about, @supplies, @address, @hours)`
   );
   const sellerIds = sellers.map((s) => insSeller.run({ ...s, password_hash: hash }).lastInsertRowid);
 

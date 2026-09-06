@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { norm } = require('../catalog');
 const { card, compatibleCards, filterSql } = require('../position-view');
+const { searchSellers } = require('../seller-view');
 
 const router = express.Router();
 
@@ -75,6 +76,12 @@ router.get('/', (req, res) => {
   }
   const found = [...byId.values()].map((r) => card(r, r.matched || null));
 
+  /* בחיפוש יש שני סוגי תשובה: מק״טים וספקים. מי שהקליד "פירוקים
+     אשדוד" חיפש עסק, ועד היום קיבל "לא נמצא" כי חיפשנו רק בקטלוג.
+     הספקים נשלחים תמיד וממילא נשארים ריקים על מק״ט — מספר אינו שם
+     של עסק — ולכן אין צורך לנחש מראש מה חיפשו. */
+  const sellers = searchSellers(raw);
+
   /* "עשוי להתאים" נמדד תמיד ביחס למק״ט אחד. בחיפוש לפי שם אין מק״ט
      כזה, ולכן אין למה למדוד: חיפוש "TRW" היה מחזיר רפידות לטויוטה
      ודיסק להיונדאי תחת אותה כותרת, ומי שקורא אותה שואל בצדק —
@@ -82,7 +89,7 @@ router.get('/', (req, res) => {
   if (mode === 'text') {
     return res.json({
       query: { raw, norm: nn, mode, numberish: numberish(raw) },
-      exact: found, compatible: [], compatible_without_offers: 0,
+      exact: found, compatible: [], compatible_without_offers: 0, sellers,
     });
   }
 
@@ -93,7 +100,7 @@ router.get('/', (req, res) => {
   if (found.length !== 1) {
     return res.json({
       query: { raw, norm: nn, mode, numberish: numberish(raw) },
-      exact: found, compatible: [], compatible_without_offers: 0,
+      exact: found, compatible: [], compatible_without_offers: 0, sellers,
     });
   }
 
@@ -111,6 +118,7 @@ router.get('/', (req, res) => {
     exact: found,
     compatible,
     compatible_without_offers: emptyCount,
+    sellers,
   });
 });
 

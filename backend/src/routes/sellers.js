@@ -7,6 +7,7 @@ const { requireSellerAuth } = require('../middleware/sellerAuth');
 const { asyncHandler } = require('../asyncHandler');
 const { isKind, isMakeOfKind } = require('../vehicles');
 const { isCategory } = require('../categories');
+const { publicSeller, ownSeller, sellerCard, sellerStats } = require('../seller-view');
 
 const router = express.Router();
 
@@ -48,21 +49,6 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// כרטיס ספק כפי שהוא נחשף לכל העולם — בלי הסיסמה ובלי האימייל,
-// שהוא גם שם המשתמש להתחברות לקבינט.
-function publicSeller(row) {
-  if (!row) return null;
-  const { password_hash, email, ...rest } = row;
-  return rest;
-}
-
-// כרטיס ספק כפי שהוא מוצג לספק עצמו בקבינט — האימייל שלו נשאר.
-function ownSeller(row) {
-  if (!row) return null;
-  const { password_hash, ...rest } = row;
-  return rest;
-}
-
 /* איפה ההצעה נחתה בקטלוג. זה לא קישוט למוכר: הצעה שלא התחברה
    למק״ט מוכר לא תימצא בחיפוש חלופי, כלומר היא כמעט בלתי נראית —
    והמוכר אינו יכול לדעת את זה בלי שנגיד לו. איכות הקטלוג היא מה
@@ -80,7 +66,8 @@ const catalogStmt = db.prepare(
    FROM positions p WHERE p.id = ?`
 );
 
-function attachInterchange(parts) {
+function attachInterchange(parts, opts) {
+  const own = !opts || opts.own !== false;
   const stmt = db.prepare(
     'SELECT id, number, brand, is_oem FROM interchange_numbers WHERE part_id = ? ORDER BY is_oem DESC, id'
   );
@@ -92,9 +79,11 @@ function attachInterchange(parts) {
       catalog: pos ? {
         position_id: pos.id, brand: pos.brand, number: pos.number,
         offers: pos.offers, others: Math.max(0, pos.offers - 1),
-        // "יתום": חלק רכב שאיש לא מפנה למק״ט שלו ואיש אחר לא מוכר
-        // אותו — כלומר חיפוש חלופי לא יביא אליו אף אחד
-        orphan: CROSSABLE.has(pos.category) && pos.links === 0 && pos.offers <= 1,
+        // "יתום" היא הערה לספק על איכות הכרטיס שלו, ולכן היא נשארת
+        // בקבינט: לקונה שמסתכל על המדף היא רק רעש
+        ...(own ? {
+          orphan: CROSSABLE.has(pos.category) && pos.links === 0 && pos.offers <= 1,
+        } : {}),
       } : null,
     };
   });
@@ -102,13 +91,21 @@ function attachInterchange(parts) {
 
 /* ---------- ציבורי ---------- */
 
-// GET /api/sellers — רשימת כל הספקים
+// GET /api/sellers — רשימת הספקים, כל אחד עם מה שהוא מספק
 router.get('/', (req, res) => {
-  const sellers = db.prepare('SELECT * FROM sellers ORDER BY rating DESC').all();
-  res.json({ sellers: sellers.map(publicSeller) });
+  const sellers = db.prepare('SELECT * FROM sellers ORDER BY verified DESC, rating DESC').all();
+  res.json({ sellers: sellers.map(sellerCard) });
 });
 
-// GET /api/sellers/:id — כרטיס ספק ציבורי + החלקים שהוא מציע
+/* GET /api/sellers/:id — עמוד הספק.
+
+   הקונה הגיע לכאן מהצעה אחת, והשאלה הבאה שלו היא "מה עוד יש לו".
+   לכן העמוד אינו כרטיס ביקור אלא מדף: מי העסק ואיך פונים אליו
+   למעלה, וכל מה שהוא מוכר מתחת — עם המק״ט של כל פריט, כדי שאפשר
+   יהיה לקפוץ ממנו להשוואה מול שאר הספקים.
+
+   ?q מחפש בתוך המדף של הספק הזה. אצל ספק עם מאות פריטים "מה עוד
+   יש לו" בלי חיפוש הוא גלילה, לא תשובה. */
 router.get('/:id', (req, res) => {
   const id = parseInt(req.params.id);
   if (Number.isNaN(id)) return res.status(400).json({ error: 'מזהה לא תקין' });
@@ -116,11 +113,31 @@ router.get('/:id', (req, res) => {
   const seller = db.prepare('SELECT * FROM sellers WHERE id = ?').get(id);
   if (!seller) return res.status(404).json({ error: 'הספק לא נמצא' });
 
-  const parts = attachInterchange(
-    db.prepare('SELECT * FROM parts WHERE seller_id = ? ORDER BY id DESC').all(id)
-  );
+  const page = Math.max(parseInt(req.query.page) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit) || 20, 1), 100);
+  const q = String(req.query.q || '').trim();
+  const where = ['seller_id = @id'];
+  const params = { id, limit, offset: (page - 1) * limit };
+  if (q) {
+    where.push("(name LIKE '%' || @q || '%' OR part_no LIKE '%' || @q || '%' OR maker LIKE '%' || @q || '%')");
+    params.q = q;
+  }
+  const clause = `WHERE ${where.join(' AND ')}`;
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM parts ${clause}`).get(params).n;
+  // קודם מה שיש במלאי: פריט שאזל אינו נעלם מהמדף, אבל הוא גם לא
+  // מה שמראים ראשון למי שבא לקנות
+  const rows = db
+    .prepare(`SELECT * FROM parts ${clause}
+              ORDER BY (stock = 'in' AND qty > 0) DESC, id DESC
+              LIMIT @limit OFFSET @offset`)
+    .all(params);
 
-  res.json({ seller: publicSeller(seller), parts });
+  res.json({
+    seller: publicSeller(seller),
+    stats: sellerStats(id),
+    parts: attachInterchange(rows, { own: false }),
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
 });
 
 /* ---------- הרשמה / התחברות ---------- */
@@ -196,17 +213,32 @@ router.get('/me/profile', requireSellerAuth, (req, res) => {
 
 // PATCH /api/sellers/me/profile — עדכון פרטי הספק
 router.patch('/me/profile', requireSellerAuth, (req, res) => {
-  const { name, city, phone, whatsapp } = req.body || {};
+  const { name, city, phone, whatsapp, about, supplies, address, hours } = req.body || {};
   const current = db.prepare('SELECT * FROM sellers WHERE id = ?').get(req.seller.id);
   if (!current) return res.status(404).json({ error: 'הספק לא נמצא' });
 
+  // שדות החובה נשמרים על ערכם כשמגיע ריק — עסק בלי שם או בלי טלפון
+  // אינו ניתן ליצירת קשר. שדות ה"על עצמנו" הם ההפך: ריק שם הוא בקשה
+  // למחוק, ולכן שם בודקים undefined ולא ערך אמת.
+  const text = (v, cur, max) => {
+    if (v === undefined) return cur;
+    const t = String(v == null ? '' : v).trim();
+    return t ? t.slice(0, max) : null;
+  };
+
   db.prepare(
-    `UPDATE sellers SET name = @name, city = @city, phone = @phone, whatsapp = @whatsapp WHERE id = @id`
+    `UPDATE sellers SET name = @name, city = @city, phone = @phone, whatsapp = @whatsapp,
+            about = @about, supplies = @supplies, address = @address, hours = @hours
+     WHERE id = @id`
   ).run({
     name: name || current.name,
     city: city || current.city,
     phone: phone || current.phone,
     whatsapp: whatsapp !== undefined ? whatsapp : current.whatsapp,
+    about: text(about, current.about, 600),
+    supplies: text(supplies, current.supplies, 300),
+    address: text(address, current.address, 200),
+    hours: text(hours, current.hours, 120),
     id: req.seller.id,
   });
 

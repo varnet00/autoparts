@@ -41,6 +41,8 @@ const S = {
   posTotal: 0, posPage: 1, browseTotal: 0, browsePage: 1, loadingMore: false,
   convs: [], conv: null, msgs: [],
   stock: [], stats: null,
+  // עמוד הספק: מי הוא, ומה עוד יש אצלו
+  sup: null, supStats: null, supParts: [], supTotal: 0, supPage: 1, supBack: 'catalog', supLoading: false,
   draft: null, cutout: true,
   auth: { open: false, tab: 'buyer', mode: 'login' },
 };
@@ -185,6 +187,31 @@ async function loadMoreOffers() {
     const { offers } = await api(`/positions/${S.pos.id}/offers?page=${S.posPage + 1}`);
     S.posPage += 1;
     S.posOffers = [...S.posOffers, ...offers];
+  } catch (e) { toast(e.message, true); }
+  S.loadingMore = false; render();
+}
+
+/* עמוד הספק נטען בבקשה אחת: פרופיל, מספרים והעמוד הראשון של המדף.
+   מאיפה הגיעו נשמר — נכנסים לכאן מתוצאות החיפוש ומכרטיס הצעה. */
+async function loadSeller(id, from) {
+  S.sup = null; S.supStats = null; S.supParts = []; S.supTotal = 0; S.supPage = 1;
+  S.supLoading = true; S.supBack = from || 'catalog';
+  go('seller');
+  try {
+    const data = await api(`/sellers/${id}`);
+    S.sup = data.seller; S.supStats = data.stats;
+    S.supParts = data.parts; S.supTotal = data.pagination.total;
+  } catch (e) { toast(e.message, true); }
+  S.supLoading = false; render();
+}
+
+async function loadMoreSup() {
+  if (S.loadingMore || !S.sup) return;
+  S.loadingMore = true; render();
+  try {
+    const data = await api(`/sellers/${S.sup.id}?page=${S.supPage + 1}`);
+    S.supPage += 1;
+    S.supParts = [...S.supParts, ...data.parts];
   } catch (e) { toast(e.message, true); }
   S.loadingMore = false; render();
 }
@@ -345,9 +372,9 @@ function crumbs() {
    בתוצאות מופיעות פוזיציות ולא הצעות: חיפוש של 04465-02220 היה
    מחזיר ארבעה כרטיסים שהם חלק אחד אצל ארבעה מוכרים.
 
-   המחיר הממוצע בראש הכרטיס עונה על השאלה הראשונה, והטווח לצידו
-   אומר מה שהממוצע לבדו מסתיר: חדש מקורי ופירוק באותו ממוצע נותנים
-   מחיר שאיש אינו מוכר בו. */
+   בראש הכרטיס המחיר הנמוך ביותר ולא הממוצע: את הממוצע אי אפשר
+   לקנות. הממוצע נשאר מתחתיו כהקשר — כדי ש-120 של חלק פירוק לא
+   ייקרא כמחיר של חדש מקורי. */
 function posCard(c) {
   return `
     <article class="item" data-act="open-pos" data-id="${c.id}">
@@ -367,8 +394,9 @@ function posCard(c) {
             <span class="label">${c.offers === 1 ? 'ספק אחד' : `${c.offers} ספקים`}</span>
           </div>
           ${c.price ? `<span class="stack" style="gap:2px;align-items:flex-end">
-              <span class="price">${shekel(c.price.avg)}</span>
-              ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-micro)">${shekel(c.price.min)}—${shekel(c.price.max)}</span>` : ''}
+              <span class="price">${c.price.min !== c.price.max
+                ? `<span style="font:400 var(--fs-label) var(--sans);color:var(--muted)">מ־</span>` : ''}${shekel(c.price.min)}</span>
+              ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-micro)">ממוצע ${shekel(c.price.avg)}</span>` : ''}
             </span>` : '<span class="label">אין הצעות</span>'}
         </div>
       </div>
@@ -414,7 +442,11 @@ function shownCount() {
   if (g.query && g.query.mode === 'browse') return `${S.browseTotal} מק״טים`;
   const pick = (l) => (S.kind === 'all' ? l : l.filter((c) => c.by_kind.some((k) => k.kind === S.kind)));
   const n = pick(g.exact).length + pick(g.compatible).length;
-  return n === 0 ? 'אין תוצאות' : n === 1 ? 'מק״ט אחד' : `${n} מק״טים`;
+  const sup = (g.sellers || []).length;
+  // ספק שנמצא בשם הוא תוצאה: "אין תוצאות" מעל כרטיס ספק הוא שקר
+  const supWord = sup ? (n ? ` · ${sup === 1 ? 'ספק אחד' : `${sup} ספקים`}` : (sup === 1 ? 'ספק אחד' : `${sup} ספקים`)) : '';
+  if (!n) return supWord || 'אין תוצאות';
+  return (n === 1 ? 'מק״ט אחד' : `${n} מק״טים`) + supWord;
 }
 
 /* "עוד" רק כשנשאר עוד, ותמיד עם המספרים — אחרת השאלה "נגמר או שיש
@@ -426,17 +458,53 @@ function moreBtn(shown, total, act, label) {
       ${S.loadingMore ? 'טוען…' : `${label} · מוצגים ${shown} מתוך ${total}`}</button></div>`;
 }
 
+/* כרטיס ספק בתוצאות. לחיפוש יש שתי תשובות אפשריות — מק״ט או ספק —
+   ו"פירוקים אשדוד" הוא שם של עסק, לא מספר. הספקים הם רשימה נפרדת
+   עם כותרת משלה: שני דברים שונים שעונים על שתי שאלות שונות. */
+function supCard(s) {
+  const st = s.stats || {};
+  return `
+    <article class="item" data-act="open-sup" data-id="${s.id}">
+      <div class="body">
+        <div class="row" style="gap:8px;align-items:baseline;flex-wrap:wrap">
+          <span style="font:600 var(--fs-lead) var(--disp)">${esc(s.name)}</span>
+          <span class="label">${esc(s.city || '')}${s.verified ? ' · מאומת' : ''}</span>
+        </div>
+        ${s.supplies ? `<h3 style="font-weight:400;color:var(--muted)">${esc(s.supplies)}</h3>` : ''}
+        <div class="foot">
+          <span class="label">${(st.positions || 0) === 1 ? 'מק״ט אחד' : `${st.positions || 0} מק״טים`}${st.in_stock ? '' : ' · אין במלאי'}</span>
+          ${st.min_price ? `<span class="price"><span style="font:400 var(--fs-label) var(--sans);color:var(--muted)">מ־</span>${shekel(st.min_price)}</span>` : ''}
+        </div>
+      </div>
+    </article>`;
+}
+
+function supResults() {
+  const sellers = (S.groups && S.groups.sellers) || [];
+  if (!sellers.length) return '';
+  return `<div class="stack" style="gap:8px;margin: var(--s6) 0 var(--s4)">
+      <span style="font:600 var(--fs-lead) var(--disp)">ספקים</span>
+      <span class="label">עסקים שהשם או התחום שלהם מתאים לחיפוש</span>
+    </div>
+    <div class="results">${sellers.map(supCard).join('')}</div>`;
+}
+
 function groupResults() {
   const g = S.groups;
   // סינון המצב פועל על הפוזיציות שיש בהן הצעה כזאת — המצב הוא תכונה
   // של ההצעה, לא של המק״ט
   const pick = (list) => (S.kind === 'all' ? list : list.filter((c) => c.by_kind.some((k) => k.kind === S.kind)));
   const exact = pick(g.exact); const compat = pick(g.compatible);
-  if (!exact.length && !compat.length) return null;
+  const sup = supResults();
+  if (!exact.length && !compat.length) {
+    // בקטלוג לא נמצא כלום, אבל ספק בשם הזה כן — וזו תשובה, לא כישלון
+    return sup ? `<span class="label">לא נמצא מק״ט בשם הזה, אבל נמצאו ספקים</span>${sup}` : null;
+  }
   return `
     <div class="results">${exact.map(posCard).join('')}</div>
     ${g.query && g.query.mode === 'browse' ? moreBtn(exact.length, S.browseTotal, 'more-browse', 'עוד מק״טים') : ''}
-    ${compat.length ? compatHead(g.compatible_without_offers) + `<div class="results">${compat.map(posCard).join('')}</div>` : ''}`;
+    ${compat.length ? compatHead(g.compatible_without_offers) + `<div class="results">${compat.map(posCard).join('')}</div>` : ''}
+    ${sup}`;
 }
 
 function itemCard(p) {
@@ -526,9 +594,9 @@ function viewPosition() {
 
         <aside class="stack" style="gap: var(--s4)">
           ${c.price ? `<div class="card stack" style="gap:6px;padding: var(--s5)">
-            <span class="label">מחיר ממוצע</span>
-            <span class="price" style="font-size:30px">${shekel(c.price.avg)}</span>
-            ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-label)">${shekel(c.price.min)}—${shekel(c.price.max)}</span>` : ''}
+            <span class="label">מחיר</span>
+            <span class="price" style="font-size:30px">${c.price.min !== c.price.max ? 'מ־' : ''}${shekel(c.price.min)}</span>
+            ${c.price.min !== c.price.max ? `<span class="mono muted" style="font-size:var(--fs-label)">ממוצע ${shekel(c.price.avg)} · עד ${shekel(c.price.max)}</span>` : ''}
           </div>` : ''}
           ${S.posCompat.length ? `<div class="stack" style="gap: var(--s3)">
             ${compatHead(S.posEmpty)}
@@ -570,7 +638,8 @@ function viewPart() {
 
   return `
     <div class="wrap">
-      <button class="link row" data-act="back" style="gap:6px;margin-bottom: var(--s5)">${ICON.back} ${S.partBack === 'position' ? 'חזרה למק״ט' : 'חזרה לקטלוג'}</button>
+      <button class="link row" data-act="back" style="gap:6px;margin-bottom: var(--s5)">${ICON.back} ${
+        S.partBack === 'position' ? 'חזרה למק״ט' : S.partBack === 'seller' ? 'חזרה לספק' : 'חזרה לקטלוג'}</button>
 
       <div class="cols" style="grid-template-columns:1fr 380px">
         <section class="stack" style="gap: var(--s5)">
@@ -626,9 +695,12 @@ function viewPart() {
             <div class="stack" style="gap: var(--s2)">
               <div class="row" style="justify-content:space-between"><span class="label">דירוג</span><span class="mono" style="font-size:var(--fs-sub)">${s ? s.rating : '—'} · ${s ? s.reviews_count : 0}</span></div>
               <div class="row" style="justify-content:space-between"><span class="label">טלפון</span><span class="mono" style="font-size:var(--fs-sub)">${esc(s ? s.phone : '—')}</span></div>
+              ${s && s.address ? `<div class="row" style="justify-content:space-between;gap: var(--s4)"><span class="label">כתובת</span><span style="font-size:var(--fs-sub);text-align:end">${esc(s.address)}</span></div>` : ''}
+              ${s && s.hours ? `<div class="row" style="justify-content:space-between;gap: var(--s4)"><span class="label">שעות</span><span style="font-size:var(--fs-sub);text-align:end">${esc(s.hours)}</span></div>` : ''}
             </div>
             <button class="btn wide" data-act="ask" data-id="${p.id}" data-seller="${s ? s.id : ''}">שליחת הודעה למוכר</button>
             ${s && s.whatsapp ? `<a class="btn line wide" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">וואטסאפ</a>` : ''}
+            ${s ? `<button class="btn ghost wide" data-act="open-sup" data-id="${s.id}">לעמוד הספק · כל מה שהוא מוכר</button>` : ''}
           </div>
         </aside>
       </div>
@@ -696,6 +768,8 @@ function viewCabinet() {
           </div>`).join('')}
       </div>
 
+      ${sellerProfileCard()}
+
       ${S.loading ? '<div class="spin"></div>' : !S.stock.length
         ? '<div class="empty"><span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">המלאי ריק</span><span>הפוזיציה הראשונה לוקחת דקה</span><button class="btn" data-act="new-part">פוזיציה חדשה</button></div>'
         : `<div class="card" style="overflow:hidden">
@@ -727,6 +801,109 @@ function viewCabinet() {
     </div>`;
 }
 
+/* ============================ מסך: עמוד הספק ============================
+
+   מי שהגיע להצעה של ספק שואל מיד "מי זה, ומה עוד יש לו". עד היום
+   התשובה הייתה שם ועיר בתוך כרטיס חלק, כלומר לא היה מקום לענות בו.
+   כאן העסק מציג את עצמו, ומתחת נפרש המדף שלו — אותם פריטים, עם
+   המחיר שהוא נקב ועם המק״ט שמוביל להשוואה מול כל השאר. */
+function viewSeller() {
+  const s = S.sup;
+  if (!s) return '<div class="wrap"><div class="spin"></div></div>';
+  const st = S.supStats || {};
+  const wa = s.whatsapp ? String(s.whatsapp).replace(/[^0-9]/g, '') : '';
+  const row = (label, value) => (value ? posRow(label, `<span>${esc(value)}</span>`) : '');
+  return `
+    <div class="wrap">
+      <button class="link row" data-act="back" style="gap:6px;margin-bottom: var(--s5)">${ICON.back} חזרה</button>
+      <div class="cols" style="grid-template-columns:1fr 380px">
+        <section class="stack" style="gap: var(--s5)">
+          <div class="card stack" style="gap: var(--s4);padding: var(--s6)">
+            <div class="stack" style="gap:6px">
+              <h1 style="margin:0;font:600 var(--fs-hero)/1.2 var(--disp)">${esc(s.name)}</h1>
+              <span class="label">${esc(s.city || '')}${s.verified ? ' · ספק מאומת' : ''} · דירוג <span class="mono">${s.rating}</span> (${s.reviews_count})</span>
+            </div>
+            ${s.about ? `<p style="margin:0;font:400 var(--fs-body)/1.6 var(--sans)">${esc(s.about)}</p>` : ''}
+            <div class="stack" style="gap:0;border-top:1px solid var(--line)">
+              ${row('מספק', s.supplies)}
+              ${row('כתובת', s.address)}
+              ${row('שעות', s.hours)}
+              ${posRow('מק״טים', `<span><span class="mono">${st.positions || 0}</span>${st.in_stock < st.offers ? ` · <span class="mono">${st.in_stock}</span> במלאי` : ''}</span>`)}
+            </div>
+          </div>
+
+          <div class="stack" style="gap:4px">
+            <span style="font:600 var(--fs-lead) var(--disp)">מה שהוא מוכר</span>
+            <span class="label">אותם כרטיסים, עם המחיר שהוא נקב · במלאי קודם</span>
+          </div>
+          ${S.supLoading ? '<div class="spin"></div>' : S.supParts.length
+            ? `<div class="card" style="overflow:hidden"><table>
+                 <thead><tr><th style="width:34%">החלק</th><th>מק״ט</th><th>מצב</th><th>מלאי</th><th>מחיר</th></tr></thead>
+                 <tbody>${S.supParts.map(supPartRow).join('')}</tbody></table></div>
+               ${moreBtn(S.supParts.length, S.supTotal, 'more-sup', 'עוד פריטים')}`
+            : `<div class="empty"><span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">אין פריטים כרגע</span>
+                 <span>הספק עדיין לא פרסם מלאי</span></div>`}
+        </section>
+
+        <aside class="stack" style="gap: var(--s4);position:sticky;top:calc(var(--head) + var(--s6))">
+          <div class="card pad stack" style="gap: var(--s4)">
+            <div class="row" style="justify-content:space-between"><span class="label">טלפון</span><span class="mono" style="font-size:var(--fs-sub)">${esc(s.phone)}</span></div>
+            <a class="btn wide" href="tel:${esc(s.phone)}" style="text-align:center;text-decoration:none">התקשרות</a>
+            ${wa ? `<a class="btn line wide" href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener">וואטסאפ</a>` : ''}
+          </div>
+        </aside>
+      </div>
+    </div>`;
+}
+
+/* פריט במדף של הספק. המק״ט המוצג הוא זה שבקטלוג ולא זה שהמוכר
+   הקליד — ממנו משווים מחירים, ואליו מוביל המסך הבא. */
+function supPartRow(p) {
+  const num = (p.catalog && p.catalog.number) || p.part_no;
+  return `<tr data-act="open-offer" data-id="${p.id}" data-from="seller" style="cursor:pointer">
+    <td><span style="font-weight:500">${esc(p.name)}</span>
+        <span class="label" style="display:block">${esc(catLabel(p.category))}</span></td>
+    <td><span class="mono" style="font-size:var(--fs-label)">${esc(num)}</span></td>
+    <td>${kindTag(p.kind)}${p.kind === 'used' && p.condition_pct ? ` <span class="label">מצב <span class="mono">${p.condition_pct}%</span></span>` : ''}</td>
+    <td class="label">${p.stock === 'in' && p.qty > 0 ? `${p.qty} במלאי` : 'אזל'}</td>
+    <td><span class="price">${shekel(p.price)}</span></td>
+  </tr>`;
+}
+
+/* מה שהספק מספר על עצמו. זה אינו טופס הגדרות אלא חלון הראווה של
+   העסק: בדיוק המילים האלה מופיעות בעמוד הספק ולצד כל הצעה שלו,
+   ולכן יש כאן קישור לראות את התוצאה בעיניים של הקונה. */
+function sellerProfileCard() {
+  const me = S.me || {};
+  const f = (name, label, value, hint) =>
+    `<div class="field"><span>${esc(label)}</span><input name="${name}" value="${esc(value || '')}" placeholder="${esc(hint || '')}"></div>`;
+  return `
+    <form class="card pad stack" style="gap: var(--s4);margin-bottom: var(--s6)" data-act="save-profile">
+      <div class="row between" style="align-items:baseline">
+        <div class="stack" style="gap:4px">
+          <span style="font:600 var(--fs-lead) var(--disp)">העסק שלי</span>
+          <span class="label">המידע הזה מופיע בעמוד הספק ולצד כל הצעה שלכם</span>
+        </div>
+        <button type="button" class="link" data-act="open-sup" data-id="${me.id}">איך זה נראה לקונה</button>
+      </div>
+      <div class="row" style="gap: var(--s4);flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">${f('name', 'שם העסק', me.name)}</div>
+        <div style="flex:1;min-width:140px">${f('city', 'עיר', me.city)}</div>
+        <div style="flex:1;min-width:140px">${f('phone', 'טלפון', me.phone)}</div>
+        <div style="flex:1;min-width:140px">${f('whatsapp', 'וואטסאפ', me.whatsapp, '9725…')}</div>
+      </div>
+      <div class="row" style="gap: var(--s4);flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">${f('address', 'כתובת', me.address, 'רחוב, מספר, אזור')}</div>
+        <div style="flex:1;min-width:220px">${f('hours', 'שעות פעילות', me.hours, 'א׳—ה׳ 08:00—17:00')}</div>
+      </div>
+      ${f('supplies', 'מה אנחנו מספקים', me.supplies, 'מותגים, מערכות, סוגי רכב')}
+      <div class="field"><span>על העסק</span>
+        <textarea name="about" rows="3" placeholder="מי אתם, כמה שנים, איך אתם עובדים">${esc(me.about || '')}</textarea>
+      </div>
+      <div class="row" style="justify-content:flex-start"><button class="btn" type="submit">שמירה</button></div>
+    </form>`;
+}
+
 function signInWall(text) {
   return `<div class="wrap"><div class="empty">
     <span style="font:600 var(--fs-lead) var(--disp);color:var(--ink)">${esc(text)}</span>
@@ -734,7 +911,7 @@ function signInWall(text) {
   </div></div>`;
 }
 
-const VIEWS = { catalog: viewCatalog, position: viewPosition, part: viewPart, chats: viewChats, cabinet: viewCabinet };
+const VIEWS = { catalog: viewCatalog, position: viewPosition, part: viewPart, seller: viewSeller, chats: viewChats, cabinet: viewCabinet };
 
 /* ---------------------------- שכבות ---------------------------- */
 function partForm() {
@@ -884,7 +1061,10 @@ function authModal() {
 function renderNav() {
   const tabs = [['catalog', 'קטלוג'], ['chats', 'הודעות']];
   if (isSeller()) tabs.push(['cabinet', 'המלאי שלי']);
-  const cur = S.screen === 'part' || S.screen === 'position' ? 'catalog' : S.screen;
+  // עמוד הספק שייך ללשונית שממנה נכנסו אליו — מהקבינט הוא הקבינט
+  const cur = ['part', 'position'].includes(S.screen) ? 'catalog'
+    : S.screen === 'seller' ? (S.supBack === 'cabinet' ? 'cabinet' : 'catalog')
+    : S.screen;
   $('#nav').innerHTML = tabs.map(([k, t]) =>
     `<button data-act="tab" data-tab="${k}" aria-current="${cur === k ? 'page' : 'false'}">${t}</button>`).join('');
 
@@ -1002,12 +1182,18 @@ document.addEventListener('click', async (ev) => {
     return;
   }
   // "חזרה" מכרטיס מוכר מחזיר לפוזיציה שממנה נכנסו, לא לקטלוג
-  if (act === 'back') { go(S.screen === 'part' ? (S.partBack || 'catalog') : 'catalog'); return; }
+  if (act === 'back') {
+    if (S.screen === 'part') { go(S.partBack || 'catalog'); return; }
+    if (S.screen === 'seller') { go(S.supBack || 'catalog'); return; }
+    go('catalog'); return;
+  }
   if (act === 'open-part') { openPart(Number(el.dataset.id)); return; }
-  if (act === 'open-offer') { openPart(Number(el.dataset.id), 'position'); return; }
+  if (act === 'open-offer') { openPart(Number(el.dataset.id), el.dataset.from || 'position'); return; }
+  if (act === 'open-sup') { loadSeller(Number(el.dataset.id), S.screen === 'seller' ? S.supBack : S.screen); return; }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
   if (act === 'more-browse') { loadMoreBrowse(); return; }
   if (act === 'more-offers') { loadMoreOffers(); return; }
+  if (act === 'more-sup') { loadMoreSup(); return; }
   if (act === 'compat-note') { S.compatNote = !S.compatNote; render(); return; }
 
   // מסננים
@@ -1197,6 +1383,18 @@ document.addEventListener('submit', async (ev) => {
   if (act === 'search') {
     S.q = (fd.get('q') || '').toString().trim();
     go('catalog'); loadCatalog(); return;
+  }
+
+  if (act === 'save-profile') {
+    const body = {};
+    for (const k of ['name', 'city', 'phone', 'whatsapp', 'address', 'hours', 'supplies', 'about']) {
+      body[k] = (fd.get(k) || '').toString().trim();
+    }
+    try {
+      const { seller } = await api('/sellers/me/profile', { method: 'PATCH', body });
+      S.me = seller; toast('נשמר'); render();
+    } catch (e) { toast(e.message, true); }
+    return;
   }
 
   if (act === 'send') {
