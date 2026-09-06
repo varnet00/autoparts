@@ -152,17 +152,17 @@ async function loadCatalog() {
       // המסננים נשלחים, אבל בשרת הם פועלים רק בחיפוש לפי שם:
       // מק״ט מדויק לא ייעלם בגלל מסנן שנשאר פתוח מקודם
       const data = await api(`/search?${filterParams()}`);
-      S.groups = data; S.items = [];
+      S.groups = data;
       S.total = data.exact.length + data.compatible.length;
     } else {
       /* גם הדפדוף מחזיר פוזיציות: אותו חלק היה מופיע במדף אצל כל
          מוכר בנפרד, וזו אותה תקלה שהחיפוש תוקן בגללה. */
       const data = await api(`/positions?${filterParams({ limit: 48 })}`);
       S.groups = { query: { mode: 'browse' }, exact: data.items, compatible: [], compatible_without_offers: 0 };
-      S.items = []; S.total = data.pagination.total;
+      S.total = data.pagination.total;
       S.browseTotal = data.pagination.total; S.browsePage = 1;
     }
-  } catch (e) { toast(e.message, true); S.items = []; S.groups = null; S.total = 0; }
+  } catch (e) { toast(e.message, true); S.groups = null; S.total = 0; }
   S.loading = false; render();
 }
 
@@ -458,6 +458,13 @@ function moreBtn(shown, total, act, label) {
       ${S.loadingMore ? 'טוען…' : `${label} · מוצגים ${shown} מתוך ${total}`}</button></div>`;
 }
 
+/* ספק בלי פריטים אינו "0 מק״טים" — הוא פשוט עוד לא פרסם כלום */
+function shelfLine(st) {
+  const s = st || {};
+  if (!s.positions) return 'עדיין לא פרסם מלאי';
+  return `${s.positions === 1 ? 'מק״ט אחד' : `${s.positions} מק״טים`}${s.in_stock ? '' : ' · אין במלאי'}`;
+}
+
 /* כרטיס ספק בתוצאות. לחיפוש יש שתי תשובות אפשריות — מק״ט או ספק —
    ו"פירוקים אשדוד" הוא שם של עסק, לא מספר. הספקים הם רשימה נפרדת
    עם כותרת משלה: שני דברים שונים שעונים על שתי שאלות שונות. */
@@ -472,7 +479,7 @@ function supCard(s) {
         </div>
         ${s.supplies ? `<h3 style="font-weight:400;color:var(--muted)">${esc(s.supplies)}</h3>` : ''}
         <div class="foot">
-          <span class="label">${(st.positions || 0) === 1 ? 'מק״ט אחד' : `${st.positions || 0} מק״טים`}${st.in_stock ? '' : ' · אין במלאי'}</span>
+          <span class="label">${shelfLine(st)}</span>
           ${st.min_price ? `<span class="price"><span style="font:400 var(--fs-label) var(--sans);color:var(--muted)">מ־</span>${shekel(st.min_price)}</span>` : ''}
         </div>
       </div>
@@ -507,26 +514,6 @@ function groupResults() {
     ${sup}`;
 }
 
-function itemCard(p) {
-  const oem = (p.interchange_numbers || []).filter((n) => n.is_oem);
-  return `
-    <article class="item" data-act="open-part" data-id="${p.id}">
-      <div class="pic ${p.image_url ? '' : 'empty'}" ${p.image_url ? `style="background-image:url('${esc(p.image_url)}')"` : ''}>
-        ${p.image_url ? '' : esc(catLabel(p.category))}
-      </div>
-      <div class="body">
-        <h3>${esc(p.name)}</h3>
-        <span class="mono" style="font-weight:600;font-size:var(--fs-sub)">${esc(p.part_no)}</span>
-        ${p.fits ? `<span class="mono muted" style="font-size:var(--fs-micro)">${esc(p.fits)}</span>` : ''}
-        ${oem.length ? `<div class="row" style="gap:5px;flex-wrap:wrap"><span class="label" style="font-size:var(--fs-micro)">מחליף</span>${oem.slice(0, 2).map((n) => `<span class="num oem">${esc(n.number)}</span>`).join('')}</div>` : ''}
-        <div class="foot">
-          ${kindTag(p.kind)}
-          <span class="price">${shekel(p.price)}</span>
-        </div>
-      </div>
-    </article>`;
-}
-
 function viewCatalog() {
   return `
     <div class="wrap cols">
@@ -541,10 +528,9 @@ function viewCatalog() {
           ${byNumber() ? '<span class="label">חיפוש לפי מק״ט · הסינון לא הופעל</span>' : ''}
         </div>
         ${S.loading ? '<div class="spin"></div>'
-          : (S.groups && groupResults()) || (S.items.length
-            ? `<div class="results">${S.items.map(itemCard).join('')}</div>`
-            : `<div class="empty">${deadEnd()}
-                 ${anyFilter() ? '<button class="btn ghost" data-act="clear">נקה סינון</button>' : ''}</div>`)}
+          : (S.groups && groupResults())
+            || `<div class="empty">${deadEnd()}
+                 ${anyFilter() ? '<button class="btn ghost" data-act="clear">נקה סינון</button>' : ''}</div>`}
       </section>
     </div>`;
 }
@@ -680,7 +666,6 @@ function viewPart() {
             </div>
             <span class="mono" style="font-weight:600;font-size:var(--fs-lead)">${esc(p.part_no)}</span>
           </div>` : ''}
-          </div>
         </section>
 
         <aside class="stack" style="gap: var(--s4);position:sticky;top:calc(var(--head) + var(--s6))">
@@ -699,8 +684,8 @@ function viewPart() {
               ${s && s.hours ? `<div class="row" style="justify-content:space-between;gap: var(--s4)"><span class="label">שעות</span><span style="font-size:var(--fs-sub);text-align:end">${esc(s.hours)}</span></div>` : ''}
             </div>
             <button class="btn wide" data-act="ask" data-id="${p.id}" data-seller="${s ? s.id : ''}">שליחת הודעה למוכר</button>
-            ${s && s.whatsapp ? `<a class="btn line wide" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">וואטסאפ</a>` : ''}
-            ${s ? `<button class="btn ghost wide" data-act="open-sup" data-id="${s.id}">לעמוד הספק · כל מה שהוא מוכר</button>` : ''}
+            ${s && s.whatsapp ? `<a class="btn line wide" href="https://wa.me/${esc(String(s.whatsapp).replace(/[^0-9]/g, ''))}" target="_blank" rel="noopener">וואטסאפ</a>` : ''}
+            ${s && s.id ? `<button class="btn ghost wide" data-act="open-sup" data-id="${s.id}">לעמוד הספק · כל מה שהוא מוכר</button>` : ''}
           </div>
         </aside>
       </div>
@@ -828,7 +813,8 @@ function viewSeller() {
               ${row('מספק', s.supplies)}
               ${row('כתובת', s.address)}
               ${row('שעות', s.hours)}
-              ${posRow('מק״טים', `<span><span class="mono">${st.positions || 0}</span>${st.in_stock < st.offers ? ` · <span class="mono">${st.in_stock}</span> במלאי` : ''}</span>`)}
+              ${st.positions ? posRow('מק״טים', `<span><span class="mono">${st.positions}</span>${
+                st.in_stock < st.offers ? ` · <span class="mono">${st.in_stock}</span> במלאי` : ''}</span>`) : ''}
             </div>
           </div>
 
@@ -884,7 +870,7 @@ function sellerProfileCard() {
           <span style="font:600 var(--fs-lead) var(--disp)">העסק שלי</span>
           <span class="label">המידע הזה מופיע בעמוד הספק ולצד כל הצעה שלכם</span>
         </div>
-        <button type="button" class="link" data-act="open-sup" data-id="${me.id}">איך זה נראה לקונה</button>
+        ${me.id ? `<button type="button" class="link" data-act="open-sup" data-id="${me.id}">איך זה נראה לקונה</button>` : ''}
       </div>
       <div class="row" style="gap: var(--s4);flex-wrap:wrap">
         <div style="flex:1;min-width:180px">${f('name', 'שם העסק', me.name)}</div>
@@ -1187,9 +1173,18 @@ document.addEventListener('click', async (ev) => {
     if (S.screen === 'seller') { go(S.supBack || 'catalog'); return; }
     go('catalog'); return;
   }
-  if (act === 'open-part') { openPart(Number(el.dataset.id)); return; }
   if (act === 'open-offer') { openPart(Number(el.dataset.id), el.dataset.from || 'position'); return; }
-  if (act === 'open-sup') { loadSeller(Number(el.dataset.id), S.screen === 'seller' ? S.supBack : S.screen); return; }
+  if (act === 'open-sup') {
+    const supId = Number(el.dataset.id);
+    if (!supId) return;
+    // הגענו להצעה מעמוד הספק ולוחצים על שורת הספק שבתוכה — זו חזרה,
+    // לא כניסה חדשה. אחרת נוצרת לולאה בין ההצעה לספק בלי מוצא
+    if (S.screen === 'part' && S.partBack === 'seller' && S.sup && S.sup.id === supId) {
+      go('seller'); return;
+    }
+    loadSeller(supId, S.screen === 'seller' ? S.supBack : S.screen);
+    return;
+  }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
   if (act === 'more-browse') { loadMoreBrowse(); return; }
   if (act === 'more-offers') { loadMoreOffers(); return; }

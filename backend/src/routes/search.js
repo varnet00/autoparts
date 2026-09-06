@@ -37,7 +37,10 @@ const prefixStmt = db.prepare(
    שביקש. "לא נמצא" על מק״ט שכן קיים הוא התשובה הגרועה ביותר שיש. */
 function textSearch(q, f) {
   const { where, params } = filterSql(f);
-  where.unshift("(p.name LIKE '%' || @q || '%' OR p.brand LIKE '%' || @q || '%')");
+  /* INSTR ולא LIKE: ב-LIKE הסימנים % ו-_ הם תווי חיפוש, ולכן חיפוש
+     של "%" היה מחזיר את כל הקטלוג כאילו זו תשובה. UPPER משאיר את
+     החיפוש חסר-רגישות לאותיות לטיניות, בדיוק כמו ש-LIKE היה. */
+  where.unshift('(INSTR(UPPER(p.name), UPPER(@q)) > 0 OR INSTR(UPPER(p.brand), UPPER(@q)) > 0)');
   params.q = q;
   return db
     .prepare(`SELECT DISTINCT p.* FROM positions p WHERE ${where.join(' AND ')} ORDER BY p.id LIMIT 12`)

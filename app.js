@@ -89,9 +89,7 @@ const S = {
   q: '',
   kind: 'all',
   category: 'all',
-  items: [],
   total: 0,
-  openPart: null,       // איזה כרטיס פתוח ברשימה
   part: null,
   // תוצאות החיפוש הן רשימה של רשימות: פוזיציה אחת למעלה — זו של
   // המק״ט שהוקלד — ומתחתיה פוזיציות של מנפיקים אחרים שמתאימות לה
@@ -107,7 +105,7 @@ const S = {
   scrollAt: {}, restoreScroll: false,
   /* עמוד הספק. הקונה שהגיע להצעה אחת שואל מיד "מי זה, ומה עוד יש
      לו" — ועד היום לא היה לאן ללכת עם השאלה הזאת. */
-  sup: null, supStats: null, supParts: [], supTotal: 0, supPage: 1, supBack: 'search',
+  sup: null, supStats: null, supParts: [], supTotal: 0, supPage: 1, supBack: 'search', supLoading: false,
   stock: [],
   stockOems: new Set(),  // אילו כרטיסים פתחו את כל המק״טים המקוריים
   sellerStats: null,
@@ -436,6 +434,14 @@ function viewSearch() {
 function suppliersWord(n) { return n === 1 ? 'ספק אחד' : `${n} ספקים`; }
 function makatWord(n) { return n === 1 ? 'מק״ט אחד' : `${n} מק״טים`; }
 
+/* מה יש על המדף של הספק, בשורה אחת. ספק בלי פריטים אינו "0 מק״טים" —
+   זה טקסט שנוצר ממכונה; הוא פשוט עוד לא פרסם כלום. */
+function shelfLine(st) {
+  const s = st || {};
+  if (!s.positions) return 'עדיין לא פרסם מלאי';
+  return `${makatWord(s.positions)}${s.in_stock ? '' : ' · אין במלאי'}`;
+}
+
 /* המונה סופר את מה שמצויר על המסך ולא את מה שהשרת החזיר: אחרת
    הכותרת אומרת "2 תוצאות" מעל מסך שכתוב בו "אין הצעות". */
 function shownCount() {
@@ -526,7 +532,7 @@ function supCard(s) {
         <span style="font:500 var(--fs-body) var(--sans)">${esc(s.name)}</span>
         <span class="label">${esc(s.city || '')}${s.verified ? ' · מאומת' : ''}</span>
         ${s.supplies ? `<span style="font:400 var(--fs-sub)/1.35 var(--sans);color:var(--muted)">${esc(s.supplies)}</span>` : ''}
-        <span class="label">${makatWord(st.positions || 0)}${st.in_stock ? '' : ' · אין במלאי'}</span>
+        <span class="label">${shelfLine(st)}</span>
       </div>
       ${st.min_price ? `<div class="stack" style="gap:2px;align-items:flex-end">
         <span class="price" style="font-size:var(--fs-body)"><span style="font:400 var(--fs-label) var(--sans);color:var(--muted)">מ־</span>${shekel(st.min_price)}</span>
@@ -638,14 +644,14 @@ function viewPart() {
 
       <div class="pad" style="padding-top: var(--s4)">
         <div class="card">
-          <div class="row" style="gap: var(--s3);padding: var(--s4) 17px;cursor:pointer"
-               data-act="open-sup" data-id="${s ? s.id : ''}">
+          <div class="row" style="gap: var(--s3);padding: var(--s4) 17px${s ? ';cursor:pointer' : ''}"
+               ${s ? `data-act="open-sup" data-id="${s.id}"` : ''}>
             ${supAvatar(s ? s.name : '?')}
             <div class="stack" style="flex:1;gap: var(--s1);min-width:0">
               <span style="font:500 var(--fs-body) var(--sans)">${esc(s ? s.name : 'לא ידוע')}</span>
               <span class="label">המוכר · ${esc(s ? s.city : '')}${s && s.verified ? ' · מאומת' : ''}</span>
             </div>
-            <span class="label">לעמוד הספק</span>
+            ${s ? '<span class="label">לעמוד הספק</span>' : ''}
           </div>
           ${s ? `<div class="hr stack" style="padding: var(--s4) 17px;gap: var(--s3)">
             <div class="row between"><span class="label">טלפון</span><span class="mono" style="font-size:var(--fs-sub)">${esc(s.phone)}</span></div>
@@ -674,7 +680,6 @@ function viewPart() {
           <span class="mono" style="font-weight:600">${esc((p.catalog && p.catalog.number) || p.part_no)}</span>
         </div>
       </div>` : ''}
-      </div>
     </div>`;
 }
 
@@ -956,7 +961,9 @@ function viewSeller() {
 
       <div class="pad row between" style="align-items:baseline;padding-top: var(--s5)">
         <span style="font:500 var(--fs-body) var(--sans)">מה שהוא מוכר</span>
-        <span class="label">${makatWord(st.positions || 0)}${st.in_stock < st.offers ? ` · ${st.in_stock} במלאי` : ''}</span>
+        <span class="label">${!st.positions ? ''
+          : st.in_stock < st.offers ? `${makatWord(st.positions)} · ${st.in_stock} במלאי`
+          : makatWord(st.positions)}</span>
       </div>
 
       <div class="pad stack" style="gap: var(--s3);padding-top: var(--s3)">
@@ -1230,7 +1237,7 @@ function sellerCabinet() {
     <div class="stack" style="gap: var(--s4)">
       <div class="row between" style="align-items:baseline">
         <span style="font:500 var(--fs-body) var(--sans)">העסק שלי</span>
-        <button class="label" data-act="open-sup" data-id="${me.id}" style="text-decoration:underline">איך זה נראה לקונה</button>
+        ${me.id ? `<button class="label" data-act="open-sup" data-id="${me.id}" style="text-decoration:underline">איך זה נראה לקונה</button>` : ''}
       </div>
       <span class="label">המידע הזה מופיע בעמוד הספק ולצד כל הצעה שלכם</span>
       <form class="stack" style="gap: var(--s3)" data-act="profile-save">
@@ -1586,7 +1593,6 @@ async function loadSearch() {
       // מק״ט מדויק לא ייעלם בגלל מסנן שנשאר פתוח מקודם
       const data = await api(`/search?${filterParams()}`);
       S.groups = data;
-      S.items = [];
       S.total = data.exact.length + data.compatible.length;
     } else {
       /* גם הדפדוף במדפים מחזיר פוזיציות. קודם החיפוש החזיר מק״טים
@@ -1595,12 +1601,11 @@ async function loadSearch() {
          השנייה. עכשיו בכל מקום רואים מק״טים. */
       const data = await api(`/positions?${filterParams({ limit: 30 })}`);
       S.groups = { query: { mode: 'browse' }, exact: data.items, compatible: [], compatible_without_offers: 0 };
-      S.items = [];
       S.total = data.pagination.total;
       S.browseTotal = data.pagination.total; S.browsePage = 1;
     }
   } catch (e) {
-    toast(e.message, true); S.items = []; S.groups = null; S.total = 0;
+    toast(e.message, true); S.groups = null; S.total = 0;
   }
   S.loading = false; render();
 }
@@ -2316,9 +2321,24 @@ document.addEventListener('click', async (ev) => {
   if (TABS.includes(act)) { goTab(act); return; }
   if (act === 'search') { go('search'); return; }
   if (act === 'open-pos') { loadPosition(Number(el.dataset.id)); return; }
-  if (act === 'open-sup') { loadSeller(Number(el.dataset.id), tabOf(S.screen) === 'stock' ? 'stock' : S.screen); return; }
+  if (act === 'open-sup') {
+    const supId = Number(el.dataset.id);
+    if (!supId) return;
+    /* הגענו להצעה מעמוד הספק, ועכשיו לוחצים על שורת הספק שבתוכה:
+       זו חזרה, לא כניסה חדשה. בלי התנאי נוצרת לולאה — "אחורה"
+       מהספק מוביל להצעה ו"אחורה" מההצעה חזרה לספק, בלי מוצא. */
+    if (S.screen === 'part' && S.partBack === 'seller' && S.sup && S.sup.id === supId) {
+      go('seller'); return;
+    }
+    loadSeller(supId, tabOf(S.screen) === 'stock' ? 'stock' : S.screen);
+    return;
+  }
+  /* חזרה למסך שכבר טעון: היעדים האלה מגיעים מ-backTarget, ולכן כל
+     מסך שאפשר לחזור אליו חייב להופיע כאן. כשחסר יעד — החץ פשוט לא
+     עושה כלום, וזה נראה כמו אפליקציה תקועה. */
   if (act === 'seller') { go('seller'); return; }
   if (act === 'position') { go('position'); return; }
+  if (act === 'part') { go('part'); return; }
   if (act === 'try-example') {
     S.q = '04465-02220'; S.kind = 'all';
     go('search'); loadSearch(); return;
@@ -2408,8 +2428,6 @@ document.addEventListener('click', async (ev) => {
     return;
   }
   if (act === 'kind') { S.kind = el.dataset.kind; loadSearch(); return; }
-  if (act === 'toggle') { S.openPart = S.openPart === Number(el.dataset.id) ? null : Number(el.dataset.id); S.keepScroll = true; render(); return; }
-  if (act === 'open-part') { loadPart(el.dataset.id); return; }
   if (act === 'open-offer') { loadPart(el.dataset.id, el.dataset.from || 'position'); return; }
   if (act === 'toggle-oems') {
     const id = Number(el.dataset.id);

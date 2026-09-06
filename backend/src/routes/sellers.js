@@ -119,7 +119,9 @@ router.get('/:id', (req, res) => {
   const where = ['seller_id = @id'];
   const params = { id, limit, offset: (page - 1) * limit };
   if (q) {
-    where.push("(name LIKE '%' || @q || '%' OR part_no LIKE '%' || @q || '%' OR maker LIKE '%' || @q || '%')");
+    // INSTR ולא LIKE — אחרת "%" הוא תו חיפוש ומחזיר את כל המדף
+    where.push('(INSTR(UPPER(name), UPPER(@q)) > 0 OR INSTR(UPPER(part_no), UPPER(@q)) > 0'
+      + ' OR INSTR(UPPER(maker), UPPER(@q)) > 0)');
     params.q = q;
   }
   const clause = `WHERE ${where.join(' AND ')}`;

@@ -128,11 +128,13 @@ function filterSql(f) {
     fit.push('vehicle_kind = @vkind'); params.vkind = f.vehicle_kind;
   }
   if (f.vehicle_make && f.vehicle_make !== 'all') { fit.push('vehicle_make = @vmake'); params.vmake = f.vehicle_make; }
+  // INSTR ולא LIKE: % ו-_ הם תווי חיפוש של LIKE, ו"%" במסנן היה
+  // מתנהג כמו "הכל" במקום כמו טקסט שהוקלד
   if (f.make_q && String(f.make_q).trim()) {
-    fit.push("vehicle_make LIKE '%' || @mq || '%'"); params.mq = String(f.make_q).trim();
+    fit.push('INSTR(UPPER(vehicle_make), UPPER(@mq)) > 0'); params.mq = String(f.make_q).trim();
   }
   if (f.vehicle_model && String(f.vehicle_model).trim()) {
-    fit.push("vehicle_model LIKE '%' || @vmodel || '%'"); params.vmodel = String(f.vehicle_model).trim();
+    fit.push('INSTR(UPPER(vehicle_model), UPPER(@vmodel)) > 0'); params.vmodel = String(f.vehicle_model).trim();
   }
   const y = parseInt(f.year);
   // חלק בלי טווח שנים מתאים לכל השנים, ולכן NULL נחשב פתוח

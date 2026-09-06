@@ -61,10 +61,14 @@ function sellerCard(row) {
    העיר נכללת בכוונה: "אשדוד" היא שאלה לגיטימית של קונה שרוצה לאסוף
    בעצמו. מק״ט לעולם לא ייתפס כאן, ולכן החיפוש הזה יכול לרוץ תמיד
    בלי להרעיש על חיפוש מספרים. */
+/* INSTR ולא LIKE: ב-LIKE הסימנים % ו-_ הם תווי חיפוש, וחיפוש של
+   "%" היה מחזיר את כל הספקים כאילו זו תשובה. */
 const searchStmt = db.prepare(
   `SELECT * FROM sellers
-   WHERE name LIKE '%' || @q || '%' OR city LIKE '%' || @q || '%' OR supplies LIKE '%' || @q || '%'
-   ORDER BY (name LIKE @q || '%') DESC, verified DESC, rating DESC
+   WHERE INSTR(UPPER(name), UPPER(@q)) > 0
+      OR INSTR(UPPER(city), UPPER(@q)) > 0
+      OR INSTR(UPPER(supplies), UPPER(@q)) > 0
+   ORDER BY (INSTR(UPPER(name), UPPER(@q)) = 1) DESC, verified DESC, rating DESC
    LIMIT @limit`
 );
 
