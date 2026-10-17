@@ -40,10 +40,13 @@ const S = {
   // שראה הכול
   posTotal: 0, posPage: 1, browseTotal: 0, browsePage: 1, loadingMore: false,
   convs: [], conv: null, msgs: [],
-  stock: [], stats: null,
+  stock: [], stats: null, reqs: [],
   // עמוד הספק: מי הוא, ומה עוד יש אצלו
   sup: null, supStats: null, supParts: [], supTotal: 0, supPage: 1, supBack: 'catalog', supLoading: false,
   supCat: 'all',   // איזו מערכת נבחרה במדף של הספק
+  /* שאלה קצרה שממתינה לתשובה, ובקשת ההזמנה שנפתחת בצ׳אט. השאלה
+     הייתה confirm() של הדפדפן — חלון מערכת באמצע ממשק עברי. */
+  ask: null, orderOpen: false,
   draft: null, cutout: true,
   auth: { open: false, tab: 'buyer', mode: 'login' },
 };
@@ -280,6 +283,11 @@ async function openConv(id) {
   try {
     const data = await api(`/conversations/${id}`);
     S.conv = data.conversation; S.msgs = data.messages;
+    // בקשות ההזמנה הן חלק מהשיחה, לא מסך נפרד: הן נשלחות בתוכה
+    // ונענות בתוכה. באתר הן פשוט לא נטענו, ולכן הקבינט הראה מונה
+    // "בקשות פתוחות" שאי אפשר היה להזיז ממנו
+    S.reqs = data.order_requests || [];
+    S.orderOpen = false;
     render();
     const box = $('#msgs'); if (box) box.scrollTop = box.scrollHeight;
   } catch (e) { toast(e.message, true); }
@@ -718,6 +726,25 @@ function viewPart() {
     </div>`;
 }
 
+/* בקשת הזמנה בתוך השיחה. אצל המוכר יש עליה שני כפתורים — זו הנקודה
+   שבה "בקשה פתוחה" הופכת לתשובה, ובלעדיהם המונה בקבינט לא זז. */
+function orderCard(r) {
+  const mine = !isSeller();
+  const label = r.status === 'sent' ? 'ממתינה' : r.status === 'accepted' ? 'אושרה' : 'נדחתה';
+  return `<div class="card stack" style="gap: var(--s3);padding: var(--s4) var(--s5);max-width:82%;align-self:${mine ? 'flex-end' : 'flex-start'}">
+    <span class="label">בקשת הזמנה · ${label}</span>
+    <div class="stack" style="gap:6px">
+      <div class="row between" style="gap: var(--s5)"><span class="label">מק״ט</span><span class="mono" style="font-size:var(--fs-sub)">${esc(r.part_no || '—')}</span></div>
+      <div class="row between" style="gap: var(--s5)"><span class="label">כמות</span><span class="mono" style="font-size:var(--fs-sub)">${r.qty}</span></div>
+      ${r.vehicle ? `<div class="row between" style="gap: var(--s5)"><span class="label">רכב</span><span style="font-size:var(--fs-sub)">${esc(r.vehicle)}</span></div>` : ''}
+    </div>
+    ${isSeller() && r.status === 'sent' ? `<div class="row" style="gap: var(--s3)">
+      <button class="btn" data-act="answer" data-id="${r.id}" data-status="accepted" style="flex:1">אישור</button>
+      <button class="btn line" data-act="answer" data-id="${r.id}" data-status="declined">דחייה</button>
+    </div>` : ''}
+  </div>`;
+}
+
 function viewChats() {
   if (!authed()) return signInWall('כדי לפנות למוכרים צריך חשבון');
   const other = (c) => (isSeller() ? (c.buyer && c.buyer.name) : (c.seller && c.seller.name)) || '—';
@@ -745,8 +772,26 @@ function viewChats() {
                 const mine = isSeller() ? m.sender_role === 'seller' : m.sender_role === 'buyer';
                 return `<div class="bubble ${mine ? 'me' : 'them'}">${esc(m.body)}</div>`;
               }).join('')}
+              ${S.reqs.map(orderCard).join('')}
             </div>
+            ${S.orderOpen && !isSeller() && S.conv.part ? `
+            <form class="stack" data-act="order-submit" style="gap: var(--s3);padding: var(--s4) var(--s5);border-top:1px solid var(--line);background:var(--card)">
+              <div class="row between" style="align-items:baseline">
+                <span style="font:500 var(--fs-sub) var(--sans)">בקשת הזמנה</span>
+                <span class="mono muted" style="font-size:var(--fs-label)">${esc(S.conv.part.part_no)}</span>
+              </div>
+              <div class="row" style="gap: var(--s4);align-items:flex-end">
+                <div class="field" style="width:110px"><span>כמות</span>
+                  <input class="mono" name="qty" type="number" min="1" value="1" required></div>
+                <div class="field" style="flex:1"><span>רכב · לא חובה</span>
+                  <input name="vehicle" placeholder="Corolla 2019" autocomplete="off"></div>
+                <button class="btn line" type="button" data-act="order-form">ביטול</button>
+                <button class="btn" type="submit">שליחת הבקשה</button>
+              </div>
+            </form>` : ''}
             <form class="row" data-act="send" style="gap: var(--s3);padding: var(--s4) var(--s5);border-top:1px solid var(--line)">
+              ${!isSeller() && S.conv.part ? `<button class="btn ghost" type="button" data-act="order-form"
+                aria-pressed="${S.orderOpen}">בקשת הזמנה</button>` : ''}
               <input name="body" placeholder="כתבו הודעה" autocomplete="off"
                      style="flex:1;background:var(--chip);border:0;border-radius:10px;padding:10px 14px;outline:none">
               <button class="btn" type="submit">שליחה</button>
@@ -957,6 +1002,44 @@ function signInWall(text) {
 const VIEWS = { catalog: viewCatalog, position: viewPosition, part: viewPart, seller: viewSeller, chats: viewChats, cabinet: viewCabinet };
 
 /* ---------------------------- שכבות ---------------------------- */
+
+/* שאלה שדורשת תשובה, בתוך האפליקציה ולא confirm() של הדפדפן */
+function askBox() {
+  const a = S.ask;
+  if (!a) return '';
+  return `
+    <div class="scrim open" data-act="ask-no" style="z-index:60;display:flex;align-items:center;justify-content:center">
+      <div class="card stack" data-stop style="gap: var(--s4);padding: var(--s6);max-width:380px;width:100%;box-shadow:0 18px 44px rgba(22,20,15,.26)">
+        <div class="stack" style="gap:4px">
+          <span style="font:600 var(--fs-lead) var(--disp)">${esc(a.title)}</span>
+          ${a.text ? `<span class="label">${esc(a.text)}</span>` : ''}
+        </div>
+        <div class="row" style="gap: var(--s3);justify-content:flex-end">
+          <button class="btn line" data-act="ask-no">ביטול</button>
+          <button class="btn" data-act="ask-yes">${esc(a.ok)}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function ask(title, text, ok, run) { S.ask = { title, text, ok, run }; render(); }
+
+/* הוספת מק״ט מתוך שדה בטופס, במקום prompt של הדפדפן. כפילות נבלעת
+   בשקט — אותו מספר פעמיים אינו טעות שצריך להתלונן עליה. */
+function addNumber(field, input) {
+  syncDraft();
+  const el = document.querySelector(`input[name="${input}"]`);
+  const raw = el ? el.value.trim() : '';
+  if (!raw) { if (el) el.focus(); return; }
+  const list = S.draft[field] || (S.draft[field] = []);
+  const key = (v) => String(v).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!list.some((n) => key(n) === key(raw))) list.push(raw);
+  if (el) el.value = '';
+  render();
+  const again = document.querySelector(`input[name="${input}"]`);
+  if (again) again.focus();
+}
+
 function partForm() {
   const d = S.draft || {};
   const dep = deptOf(d.category) || S.depts[0] || { id: '', categories: [] };
@@ -1015,18 +1098,21 @@ function partForm() {
 
           ${needsOem ? `<div class="field">
             <span>מק״ט מקורי · את איזה חלק זה מחליף</span>
-            <div class="chips">
-              ${chipRow(oems, 'rm-oem')}
-              <button type="button" class="chip" data-act="add-oem">${ICON.plus} ${oems.length ? 'עוד מק״ט מקורי' : 'הוסף מק״ט מקורי'}</button>
+            <div class="chips">${chipRow(oems, 'rm-oem')}</div>
+            <div class="row" style="gap: var(--s3)">
+              <input class="mono" name="oem_new" autocomplete="off" style="flex:1"
+                     placeholder="${oems.length ? 'עוד מק״ט מקורי' : 'מק״ט של יצרן הרכב'}">
+              <button type="button" class="btn ghost" data-act="add-oem">הוספה</button>
             </div>
             <span class="label" style="font-size:var(--fs-micro)">${oems.length ? 'הקונים מחפשים לפי המספר הזה' : 'בלי המספר המקורי קשה למצוא את החלק'}</span>
           </div>` : ''}
 
           <div class="field">
             <span>מק״טים מתחלפים · יופיעו בחיפוש</span>
-            <div class="chips">
-              ${chipRow(nums, 'rm-num')}
-              <button type="button" class="chip" data-act="add-num">${ICON.plus} הוסף מק״ט</button>
+            <div class="chips">${chipRow(nums, 'rm-num')}</div>
+            <div class="row" style="gap: var(--s3)">
+              <input class="mono" name="num_new" autocomplete="off" style="flex:1" placeholder="מק״ט נוסף של אותו חלק">
+              <button type="button" class="btn ghost" data-act="add-num">הוספה</button>
             </div>
           </div>
 
@@ -1121,7 +1207,7 @@ function render() {
   renderNav();
   const view = VIEWS[S.screen] || viewCatalog;
   $('#view').innerHTML = view();
-  $('#layer').innerHTML = S.draft ? partForm() : (S.auth.open ? authModal() : '');
+  $('#layer').innerHTML = (S.draft ? partForm() : (S.auth.open ? authModal() : '')) + askBox();
   const box = $('#msgs');
   if (box) box.scrollTop = box.scrollHeight;
 }
@@ -1315,25 +1401,34 @@ document.addEventListener('click', async (ev) => {
     return;
   }
   if (act === 'del-part') {
-    if (!confirm('למחוק את הפוזיציה?')) return;
-    try { await api(`/sellers/me/parts/${el.dataset.id}`, { method: 'DELETE' }); toast('נמחק'); loadCabinet(); }
-    catch (e) { toast(e.message, true); }
+    const id = el.dataset.id;
+    const part = S.stock.find((x) => String(x.id) === String(id));
+    ask('למחוק את הפוזיציה?', part ? `${part.name} · ${part.part_no}` : '', 'מחיקה', async () => {
+      try { await api(`/sellers/me/parts/${id}`, { method: 'DELETE' }); toast('נמחק'); loadCabinet(); }
+      catch (e) { toast(e.message, true); }
+    });
+    return;
+  }
+  if (act === 'order-form') { S.orderOpen = !S.orderOpen; render(); return; }
+  if (act === 'answer') {
+    try {
+      await api(`/conversations/${S.conv.id}/order-requests/${el.dataset.id}`, { method: 'PATCH', body: { status: el.dataset.status } });
+      openConv(S.conv.id);
+      loadCabinet();
+    } catch (e) { toast(e.message, true); }
+    return;
+  }
+  if (act === 'ask-no') { S.ask = null; render(); return; }
+  if (act === 'ask-yes') {
+    const run = S.ask && S.ask.run;
+    S.ask = null; render();
+    if (run) await run();
     return;
   }
   if (act === 'set-kind') { syncDraft(); S.draft.kind = el.dataset.kind; render(); return; }
-  if (act === 'add-num') {
-    syncDraft();
-    const n = prompt('מק״ט מתחלף');
-    if (n && n.trim()) { S.draft.nums = [...(S.draft.nums || []), n.trim()]; render(); }
-    return;
-  }
+  if (act === 'add-num') { addNumber('nums', 'num_new'); return; }
   if (act === 'rm-num') { syncDraft(); S.draft.nums.splice(Number(el.dataset.i), 1); render(); return; }
-  if (act === 'add-oem') {
-    syncDraft();
-    const n = prompt('מק״ט מקורי — המספר של היצרן');
-    if (n && n.trim()) { S.draft.oems = [...(S.draft.oems || []), n.trim()]; render(); }
-    return;
-  }
+  if (act === 'add-oem') { addNumber('oems', 'oem_new'); return; }
   if (act === 'rm-oem') { syncDraft(); S.draft.oems.splice(Number(el.dataset.i), 1); render(); return; }
   if (act === 'drop-photo') { ev.preventDefault(); syncDraft(); S.draft.image_url = null; render(); return; }
 
@@ -1450,6 +1545,17 @@ document.addEventListener('submit', async (ev) => {
     return;
   }
 
+  if (act === 'order-submit') {
+    const n = Number((fd.get('qty') || '').toString());
+    if (!Number.isInteger(n) || n < 1) { toast('כמות חייבת להיות מספר שלם חיובי', true); return; }
+    const vehicle = (fd.get('vehicle') || '').toString().trim() || null;
+    try {
+      await api(`/conversations/${S.conv.id}/order-request`, { method: 'POST', body: { qty: n, vehicle } });
+      openConv(S.conv.id);
+    } catch (e) { toast(e.message, true); }
+    return;
+  }
+
   if (act === 'send') {
     const body = (fd.get('body') || '').toString().trim();
     if (!body || !S.conv) return;
@@ -1531,10 +1637,17 @@ document.addEventListener('submit', async (ev) => {
 
 // "/" מציב את הסמן בחיפוש, Esc סוגר שכבה
 document.addEventListener('keydown', (ev) => {
+  // Enter בשדה מק״ט מוסיף מספר ואינו שולח את הטופס
+  if (ev.key === 'Enter' && ev.target.matches && ev.target.matches('input[name="num_new"], input[name="oem_new"]')) {
+    ev.preventDefault();
+    addNumber(ev.target.name === 'oem_new' ? 'oems' : 'nums', ev.target.name);
+    return;
+  }
   if (ev.key === '/' && !/input|select|textarea/i.test(document.activeElement.tagName)) {
     ev.preventDefault();
     $('#q').focus();
   }
+  if (ev.key === 'Escape' && S.ask) { S.ask = null; render(); return; }
   if (ev.key === 'Escape' && (S.draft || S.auth.open)) { S.draft = null; S.auth.open = false; render(); }
 });
 

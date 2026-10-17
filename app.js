@@ -128,6 +128,11 @@ const S = {
   models: [],     // הצעות דגמים ליצרן שנבחר
   sheetCount: null, // כמה תוצאות מחכות מאחורי המסננים שנבחרו
   cutout: true,   // להסיר רקע מתמונת מוצר חדשה
+  /* שאלה קצרה שממתינה לתשובה ("למחוק?"), ובקשת ההזמנה שנפתחת בצ׳אט.
+     שתיהן היו קודם חלונות של הדפדפן — prompt ו-confirm — ואלה לא
+     מוצגים באפליקציה שהותקנה למסך הבית: הלחיצה פשוט לא עשתה כלום. */
+  ask: null,       // { title, text, ok, run }
+  orderOpen: false,
 };
 
 const isSeller = () => S.role === 'seller';
@@ -230,6 +235,30 @@ function emptyState(icon, title, sub) {
 
 function loader() {
   return `<div class="center"><div class="spin"></div></div>`;
+}
+
+/* שאלה שדורשת תשובה, בתוך האפליקציה. מחליפה את confirm() של
+   הדפדפן: חלון מערכת הוא טקסט בכיוון הפוך באמצע ממשק עברי, ובאפליקציה
+   מותקנת הוא לפעמים לא מופיע בכלל — ואז המחיקה "לא עובדת". */
+function askBox() {
+  const a = S.ask;
+  if (!a) return '';
+  return `
+    <div class="scrim open" data-act="ask-no" style="z-index:45"></div>
+    <div class="askbox" role="dialog" aria-modal="true">
+      <span style="font:600 var(--fs-body) var(--sans)">${esc(a.title)}</span>
+      ${a.text ? `<span class="label">${esc(a.text)}</span>` : ''}
+      <div class="row" style="gap: var(--s2);padding-top: var(--s2)">
+        <button class="btn line" data-act="ask-no" style="flex:1">ביטול</button>
+        <button class="btn" data-act="ask-yes" style="flex:1${a.danger ? ';background:#8c2f14' : ''}">${esc(a.ok)}</button>
+      </div>
+    </div>`;
+}
+
+// שאלה נשאלת פעם אחת ומחזיקה את הפעולה שתרוץ על "כן"
+function ask(title, text, ok, run, danger) {
+  S.ask = { title, text, ok, run, danger };
+  render();
 }
 
 /* ============================ מסך: בית ============================ */
@@ -1090,7 +1119,11 @@ function viewCreate() {
           <span class="label">מק״ט מקורי · את איזה חלק זה מחליף</span>
           <div class="chips">
             ${oems.map((n, i) => `<span class="num oem" style="display:flex;align-items:center;gap: var(--s2);padding: var(--s2) 12px;font-size:var(--fs-label)">${esc(n)}<button type="button" data-act="rm-oem" data-i="${i}" aria-label="הסר">${ICON.close({ s: 11 })}</button></span>`).join('')}
-            <button type="button" class="row" data-act="add-oem" style="gap: var(--s2);padding: var(--s2) 12px;border-radius:999px;border:1px dashed #c9c2b8;font:500 var(--fs-label) var(--sans);color:var(--muted)">${ICON.plus({ s: 12 })}${oems.length ? 'עוד מק״ט מקורי' : 'הוסף מק״ט מקורי'}</button>
+          </div>
+          <div class="row" style="gap: var(--s2)">
+            <input class="mono" name="oem_new" placeholder="${oems.length ? 'עוד מק״ט מקורי' : 'מק״ט של יצרן הרכב'}"
+                   autocomplete="off" style="flex:1;background:var(--card);border-radius:14px;padding: var(--s3) 14px;border:0;outline:none;font-size:var(--fs-sub)">
+            <button type="button" class="btn ghost" data-act="add-oem" style="padding: var(--s3) 16px;font-size:var(--fs-sub)">הוספה</button>
           </div>
           <span class="label" style="font-size:var(--fs-label)">${oems.length ? 'הקונים מחפשים לפי המספר הזה' : 'בלי המספר המקורי קשה למצוא את החלק'}</span>
         </div>` : ''}
@@ -1099,7 +1132,11 @@ function viewCreate() {
           <span class="label">מק״טים מתחלפים · יופיעו בחיפוש</span>
           <div class="chips" id="numsBox">
             ${nums.map((n, i) => `<span class="num" style="display:flex;align-items:center;gap: var(--s2);padding: var(--s2) 12px;font-size:var(--fs-label);color:var(--ink)">${esc(n)}<button type="button" data-act="rm-num" data-i="${i}" aria-label="הסר">${ICON.close({ s: 11 })}</button></span>`).join('')}
-            <button type="button" class="row" data-act="add-num" style="gap: var(--s2);padding: var(--s2) 12px;border-radius:999px;border:1px dashed #c9c2b8;font:500 var(--fs-label) var(--sans);color:var(--muted)">${ICON.plus({ s: 12 })}הוסף מק״ט</button>
+          </div>
+          <div class="row" style="gap: var(--s2)">
+            <input class="mono" name="num_new" placeholder="מק״ט נוסף של אותו חלק" autocomplete="off"
+                   style="flex:1;background:var(--card);border-radius:14px;padding: var(--s3) 14px;border:0;outline:none;font-size:var(--fs-sub)">
+            <button type="button" class="btn ghost" data-act="add-num" style="padding: var(--s3) 16px;font-size:var(--fs-sub)">הוספה</button>
           </div>
         </div>
         <div class="row" style="gap: var(--s3);align-items:flex-start">
@@ -1247,8 +1284,31 @@ function viewChat() {
       </div>
     </div>
 
+    ${S.orderOpen && !isSeller() && p ? `<div class="pad" style="padding-bottom: var(--s3)">
+      <form class="card stack" data-act="order-submit" style="gap: var(--s3);padding: var(--s4) 16px">
+        <div class="row between" style="align-items:baseline">
+          <span style="font:500 var(--fs-sub) var(--sans)">בקשת הזמנה</span>
+          <span class="mono muted" style="font-size:var(--fs-label)">${esc(p.part_no)}</span>
+        </div>
+        <div class="row" style="gap: var(--s3)">
+          <div class="field" style="width:96px">
+            <span class="label">כמות</span>
+            <input class="mono" name="qty" type="number" inputmode="numeric" min="1" value="1" required>
+          </div>
+          <div class="field" style="flex:1">
+            <span class="label">רכב · לא חובה</span>
+            <input name="vehicle" placeholder="Corolla 2019" autocomplete="off">
+          </div>
+        </div>
+        <div class="row" style="gap: var(--s2)">
+          <button class="btn line" type="button" data-act="order-form" style="flex:none;padding: var(--s3) 16px">ביטול</button>
+          <button class="btn" type="submit" style="flex:1">שליחת הבקשה</button>
+        </div>
+      </form>
+    </div>` : ''}
+
     <div class="row" style="padding: var(--s3) 18px calc(24px + env(safe-area-inset-bottom));gap: var(--s3);flex:none">
-      ${!isSeller() && p ? `<button class="iconbtn" data-act="order-form" style="border-radius:999px;width:46px;height:46px">${ICON.plus({ s: 18 })}</button>` : ''}
+      ${!isSeller() && p ? `<button class="iconbtn" data-act="order-form" aria-pressed="${S.orderOpen}" aria-label="בקשת הזמנה" style="border-radius:999px;width:46px;height:46px${S.orderOpen ? ';background:var(--ink);color:#fff' : ''}">${ICON.plus({ s: 18 })}</button>` : ''}
       <form class="row" data-act="send-msg" style="flex:1;gap: var(--s3)">
         <input name="body" placeholder="כתוב הודעה…" autocomplete="off"
                style="flex:1;background:var(--card);border-radius:999px;padding: var(--s4) 18px;border:0;outline:none;font-size:var(--fs-body);min-width:0">
@@ -1533,7 +1593,7 @@ function render() {
   // הגלילה של המסך שיוצא נשמרת, כדי שחזרה אליו תיפול לאותו מקום
   if (S.rendered && keepScroll) S.scrollAt[S.rendered] = y;
 
-  el.innerHTML = view();
+  el.innerHTML = view() + askBox();
   // ניקוי שאריות של דפדוף שנקטע באמצע
   if (!drag) { el.style.transform = ''; el.style.opacity = ''; el.style.transition = ''; }
   renderDock();
@@ -1798,7 +1858,7 @@ async function loadChats() {
 }
 
 async function loadChat(id) {
-  S.conv = null; S.messages = []; S.requests = [];
+  S.conv = null; S.messages = []; S.requests = []; S.orderOpen = false;
   go('chat');
   try {
     const data = await api(`/conversations/${id}`);
@@ -1813,6 +1873,25 @@ async function loadMe() {
     S.me = isSeller() ? (await api('/sellers/me/profile')).seller : (await api('/auth/me')).user;
   } catch (e) { /* טוקן שפג כבר נוקה ב-api */ }
   render();
+}
+
+/* הוספת מק״ט מתוך שדה בטופס, במקום prompt של הדפדפן. המספר נכתב
+   באותו מקום שבו רואים את השאר, הכתיב נשמר כמו שהוקלד, והשדה נשאר
+   ממוקד — אפשר להקליד כמה מספרים ברצף בלי לחפש את הכפתור בכל פעם.
+
+   כפילות נבלעת בשקט: אותו מספר פעמיים אינו טעות שצריך להתלונן עליה. */
+function addNumber(field, input) {
+  syncDraft();
+  const el = document.querySelector(`input[name="${input}"]`);
+  const raw = el ? el.value.trim() : '';
+  if (!raw) { if (el) el.focus(); return; }
+  const list = S.draft[field] || (S.draft[field] = []);
+  const key = (v) => String(v).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!list.some((n) => key(n) === key(raw))) list.push(raw);
+  if (el) el.value = '';
+  S.keepScroll = true; render();
+  const again = document.querySelector(`input[name="${input}"]`);
+  if (again) again.focus();
 }
 
 /* טופס הפוזיציה מצויר מחדש בכל שינוי מצב (בחירת מצב, הוספת מק״ט),
@@ -2531,6 +2610,13 @@ document.addEventListener('click', async (ev) => {
     return;
   }
   if (act === 'open-chat') { loadChat(el.dataset.id); return; }
+  if (act === 'ask-no') { S.ask = null; S.keepScroll = true; render(); return; }
+  if (act === 'ask-yes') {
+    const run = S.ask && S.ask.run;
+    S.ask = null; S.keepScroll = true; render();
+    if (run) await run();
+    return;
+  }
   if (act === 'answer') {
     try {
       await api(`/conversations/${S.conv.id}/order-requests/${el.dataset.id}`, { method: 'PATCH', body: { status: el.dataset.status } });
@@ -2538,18 +2624,7 @@ document.addEventListener('click', async (ev) => {
     } catch (e) { toast(e.message, true); }
     return;
   }
-  if (act === 'order-form') {
-    const qty = prompt('כמות?', '1');
-    if (qty === null) return;
-    const n = Number(qty);
-    if (!Number.isInteger(n) || n < 1) { toast('כמות חייבת להיות מספר שלם חיובי', true); return; }
-    const vehicle = prompt('רכב (לא חובה)', '') || null;
-    try {
-      await api(`/conversations/${S.conv.id}/order-request`, { method: 'POST', body: { qty: n, vehicle } });
-      loadChat(S.conv.id);
-    } catch (e) { toast(e.message, true); }
-    return;
-  }
+  if (act === 'order-form') { S.orderOpen = !S.orderOpen; S.keepScroll = true; render(); return; }
 
   // קבינט
   if (act === 'edit') {
@@ -2566,33 +2641,36 @@ document.addEventListener('click', async (ev) => {
     return;
   }
   if (act === 'delete') {
-    if (!confirm('למחוק את הפוזיציה?')) return;
-    try { await api(`/sellers/me/parts/${el.dataset.id}`, { method: 'DELETE' }); toast('נמחק'); loadStock(); }
-    catch (e) { toast(e.message, true); }
+    const id = el.dataset.id;
+    const part = S.stock.find((x) => String(x.id) === String(id));
+    ask('למחוק את הפוזיציה?', part ? `${part.name} · ${part.part_no}` : '', 'מחיקה', async () => {
+      try { await api(`/sellers/me/parts/${id}`, { method: 'DELETE' }); toast('נמחק'); loadStock(); }
+      catch (e) { toast(e.message, true); }
+    }, true);
     return;
   }
   if (act === 'drop-photo') { syncDraft(); S.draft.image_url = null; S.keepScroll = true; render(); return; }
   if (act === 'toggle-cutout') { S.cutout = el.checked; return; }
   if (act === 'set-kind') { syncDraft(); S.draft.kind = el.dataset.kind; S.keepScroll = true; render(); return; }
-  if (act === 'add-num') {
-    syncDraft();
-    const n = prompt('מספר מק״ט מתחלף');
-    if (n && n.trim()) { S.draft.nums.push(n.trim()); S.keepScroll = true; render(); }
-    return;
-  }
+  if (act === 'add-num') { addNumber('nums', 'num_new'); return; }
   if (act === 'rm-num') { syncDraft(); S.draft.nums.splice(Number(el.dataset.i), 1); S.keepScroll = true; render(); return; }
-  if (act === 'add-oem') {
-    syncDraft();
-    const n = prompt('מק״ט מקורי — המספר של היצרן');
-    if (n && n.trim()) { S.draft.oems = [...(S.draft.oems || []), n.trim()]; S.keepScroll = true; render(); }
-    return;
-  }
+  if (act === 'add-oem') { addNumber('oems', 'oem_new'); return; }
   if (act === 'rm-oem') { syncDraft(); S.draft.oems.splice(Number(el.dataset.i), 1); S.keepScroll = true; render(); return; }
 
   // חשבון
   if (act === 'auth-tab') { S.authTab = el.dataset.tab; render(); return; }
   if (act === 'auth-mode') { S.authMode = S.authMode === 'register' ? 'login' : 'register'; render(); return; }
   if (act === 'logout') { clearAuth(); S.stock = []; S.conversations = []; toast('התנתקת'); go('home'); return; }
+});
+
+/* Enter בשדה מק״ט מוסיף מספר ואינו שולח את הטופס. בלי זה הקשה אחת
+   על Enter הייתה מפרסמת את הפוזיציה באמצע מילוי המספרים. */
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Enter') return;
+  const el = ev.target;
+  if (!el.matches || !el.matches('input[name="num_new"], input[name="oem_new"]')) return;
+  ev.preventDefault();
+  addNumber(el.name === 'oem_new' ? 'oems' : 'nums', el.name);
 });
 
 document.addEventListener('submit', async (ev) => {
@@ -2618,6 +2696,18 @@ document.addEventListener('submit', async (ev) => {
       S.me = seller;
       toast('נשמר');
       S.keepScroll = true; render();
+    } catch (e) { toast(e.message, true); }
+    return;
+  }
+
+  if (act === 'order-submit') {
+    const n = Number((fd.get('qty') || '').toString());
+    if (!Number.isInteger(n) || n < 1) { toast('כמות חייבת להיות מספר שלם חיובי', true); return; }
+    const vehicle = (fd.get('vehicle') || '').toString().trim() || null;
+    try {
+      await api(`/conversations/${S.conv.id}/order-request`, { method: 'POST', body: { qty: n, vehicle } });
+      S.orderOpen = false;
+      loadChat(S.conv.id);
     } catch (e) { toast(e.message, true); }
     return;
   }
