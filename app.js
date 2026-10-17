@@ -1123,7 +1123,7 @@ function viewCreate() {
           <div class="row" style="gap: var(--s2)">
             <input class="mono" name="oem_new" placeholder="${oems.length ? 'עוד מק״ט מקורי' : 'מק״ט של יצרן הרכב'}"
                    autocomplete="off" style="flex:1;background:var(--card);border-radius:14px;padding: var(--s3) 14px;border:0;outline:none;font-size:var(--fs-sub)">
-            <button type="button" class="btn ghost" data-act="add-oem" style="padding: var(--s3) 16px;font-size:var(--fs-sub)">הוספה</button>
+            <button type="button" class="btn ghost" data-act="add-oem" style="flex:none;width:auto;padding: var(--s3) 18px;font-size:var(--fs-sub)">הוספה</button>
           </div>
           <span class="label" style="font-size:var(--fs-label)">${oems.length ? 'הקונים מחפשים לפי המספר הזה' : 'בלי המספר המקורי קשה למצוא את החלק'}</span>
         </div>` : ''}
@@ -1136,7 +1136,7 @@ function viewCreate() {
           <div class="row" style="gap: var(--s2)">
             <input class="mono" name="num_new" placeholder="מק״ט נוסף של אותו חלק" autocomplete="off"
                    style="flex:1;background:var(--card);border-radius:14px;padding: var(--s3) 14px;border:0;outline:none;font-size:var(--fs-sub)">
-            <button type="button" class="btn ghost" data-act="add-num" style="padding: var(--s3) 16px;font-size:var(--fs-sub)">הוספה</button>
+            <button type="button" class="btn ghost" data-act="add-num" style="flex:none;width:auto;padding: var(--s3) 18px;font-size:var(--fs-sub)">הוספה</button>
           </div>
         </div>
         <div class="row" style="gap: var(--s3);align-items:flex-start">
@@ -1278,7 +1278,7 @@ function viewChat() {
           </div>
           ${isSeller() && r.status === 'sent' ? `<div class="row" style="gap: var(--s2)">
             <button class="btn" data-act="answer" data-id="${r.id}" data-status="accepted" style="flex:1;padding: var(--s4);font-size:var(--fs-sub)">אשר</button>
-            <button class="btn ghost" data-act="answer" data-id="${r.id}" data-status="declined" style="padding: var(--s4) 16px;font-size:var(--fs-sub)">דחה</button>
+            <button class="btn ghost" data-act="answer" data-id="${r.id}" data-status="declined" style="flex:none;width:auto;padding: var(--s4) 18px;font-size:var(--fs-sub)">דחה</button>
           </div>` : ''}
         </div>`).join('')}
       </div>
@@ -1301,7 +1301,7 @@ function viewChat() {
           </div>
         </div>
         <div class="row" style="gap: var(--s2)">
-          <button class="btn line" type="button" data-act="order-form" style="flex:none;padding: var(--s3) 16px">ביטול</button>
+          <button class="btn line" type="button" data-act="order-form" style="flex:none;width:auto;padding: var(--s3) 18px">ביטול</button>
           <button class="btn" type="submit" style="flex:1">שליחת הבקשה</button>
         </div>
       </form>

@@ -346,7 +346,8 @@ input[type=checkbox]{accent-color:var(--ink);width:18px;height:18px}
 .btn{transition:opacity .2s var(--ease), transform .2s var(--ease)}
 .btn:active{opacity:.9;transform:scale(.975)}
 .btn.ghost{background:var(--chip);color:var(--ink)}
-.btn.line{background:none;border:1px solid var(--hair)}
+/* בלי צבע טקסט משלו הכפתור ירש לבן על רקע בהיר — כיתוב בלתי נראה */
+.btn.line{background:none;border:1px solid var(--hair);color:var(--ink)}
 
 /* ---------- чат ---------- */
 .bubble{max-width:82%;padding: var(--s4) 15px;font:400 var(--fs-body)/1.6 var(--sans);border-radius:18px}
