@@ -1,0 +1,30 @@
+# פריסה בלחיצה אחת ל-Render: New → Blueprint → בוחרים את המאגר.
+# הכול כאן כבר מוגדר, חוץ מהסוד שנוצר אוטומטית.
+services:
+  - type: web
+    name: autoparts
+    runtime: node
+    plan: free
+    rootDir: backend
+    # הענף נכתב כאן במפורש: ברירת המחדל של המאגר היא ענף ישן, ובלי
+    # השורה הזאת הפריסה הראשונה מעלה קוד אחר מזה שרואים כאן
+    branch: claude/hello-pkving
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    # כל דחיפה לענף מפעילה פריסה. זו ברירת המחדל, אבל עדיף שתהיה כתובה
+    # כאן מפורשות ולא תלויה במתג בלוח הבקרה שאיש לא זוכר שנגע בו.
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"              # אותה גרסה שבה נבדק מקומית; בלי נעילה הגרסה זזה תחתינו
+      - key: JWT_SECRET
+        generateValue: true      # Render מייצר מחרוזת אקראית; לא נשמרת במאגר
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        value: "*"               # לפני production: לצמצם לדומיין אחד
+# במסלול החינמי אין דיסק קבוע: בכל פריסה או יקיצה מרדמת חוסר־פעילות
+# הקובץ של SQLite נוצר מחדש והזרעים נטענים שוב. לדמו זה בסדר — מה
+# שמוסיפים דרך הקבינט נמחק עם ההפעלה הבאה. לשמירה אמיתית צריך מסלול
+# בתשלום עם disk, או מסד חיצוני.

@@ -1,12 +1,12 @@
 const express = require('express');
-const db = require('../db');
+const { DEPARTMENTS } = require('../categories');
 
 const router = express.Router();
 
-// GET /api/categories
+// GET /api/categories — המחלקות והקטגוריות שלהן.
+// המבנה קבוע ולא נגזר מהמלאי: מדף ריק עדיין צריך להופיע בסינון.
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT DISTINCT category FROM parts ORDER BY category').all();
-  res.json({ categories: rows.map((r) => r.category) });
+  res.json({ departments: DEPARTMENTS });
 });
 
 module.exports = router;

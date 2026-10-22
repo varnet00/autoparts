@@ -5,29 +5,77 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth');
 const partsRoutes = require('./routes/parts');
+const searchRoutes = require('./routes/search');
+const positionsRoutes = require('./routes/positions');
 const categoriesRoutes = require('./routes/categories');
 const sellersRoutes = require('./routes/sellers');
+const conversationsRoutes = require('./routes/conversations');
+const statsRoutes = require('./routes/stats');
+const vehiclesRoutes = require('./routes/vehicles');
+
+// בלי סוד ל-JWT השרת עולה אבל כל ההתחברות נשברת רק בזמן ריצה —
+// עדיף ליפול מיד עם הסבר ברור.
+if (!process.env.JWT_SECRET) {
+  console.error('❌ JWT_SECRET חסר. העתק את .env.example ל-.env והגדר סוד ארוך ואקראי.');
+  process.exit(1);
+}
+
+const { seedIfEmpty } = require('./seed');
+seedIfEmpty();
 
 const app = express();
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));   // תמונת מוצר נשלחת בתוך הבקשה
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'autoparts-backend' });
 });
 
-// --- Фронтенд: витрина и кабинет продавца ---
-const STOREFRONT = path.join(__dirname, '..', '..', 'index.html');
-const CABINET = path.join(__dirname, '..', 'cabinet.html');
+// --- פרונטאנד: אפליקציה אחת עם ניווט תחתון ---
+const ROOT = path.join(__dirname, '..', '..');
+const STOREFRONT = path.join(ROOT, 'index.html');
 
-app.get('/', (req, res) => res.sendFile(STOREFRONT));
-app.get('/cabinet.html', (req, res) => res.sendFile(CABINET));
+// מניפסט ואייקונים — כדי ש"הוסף למסך הבית" ייתן אפליקציה במסך מלא.
+// רק public/ נחשף; שאר התיקייה (קוד השרת, .git) לא.
+//
+// קוד חייב להיבדק מול השרת בכל טעינה. index.html ו-app.js כבר מתנהגים
+// ככה (sendFile נותן max-age=0 עם ETag), אבל splash.js ישב שעה בזיכרון
+// הדפדפן — ולכן תיקון שכולו בתוכו פשוט לא הגיע לטלפון. תמונות ופונטים
+// כן נשמרות, ומי שמחליף קובץ תמונה בלי לשנות שם מוסיף ?v= ב-HTML.
+const CODE = /\.(?:js|mjs|json|webmanifest|html)$/i;
+app.use(express.static(path.join(ROOT, 'public'), {
+  maxAge: '1h',
+  setHeaders(res, filePath) {
+    if (CODE.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
+
+const DESKTOP = path.join(ROOT, 'desktop.html');
+
+/* גם ה-HTML עצמו חייב להיבדק מול השרת בכל טעינה. sendFile נותן
+   max-age=0, אבל פרוקסי או אפליקציה מותקנת עלולים בכל זאת להגיש
+   עותק ישן — ואז קוד חדש רץ מול מבנה ישן ולא קורה כלום. */
+const noStore = (res) => res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+
+app.get('/', (req, res) => { noStore(res); res.sendFile(STOREFRONT); });
+app.get('/app.js', (req, res) => { noStore(res); res.sendFile(path.join(ROOT, 'app.js')); });
+// גרסת המחשב: אותו API, פריסה של אתר. המעבר בין השתיים נעשה בדפדפן
+// לפי רוחב המסך, עם אפשרות לבחור ידנית דרך ?ui=
+app.get('/desktop', (req, res) => { noStore(res); res.sendFile(DESKTOP); });
+app.get('/desktop.js', (req, res) => { noStore(res); res.sendFile(path.join(ROOT, 'desktop.js')); });
+// הקבינט הפך למסך בתוך האפליקציה — הקישור הישן ממשיך לעבוד
+app.get('/cabinet.html', (req, res) => res.redirect(302, '/'));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/parts', partsRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/positions', positionsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/sellers', sellersRoutes);
+app.use('/api/conversations', conversationsRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/vehicles', vehiclesRoutes);
 
 // 404
 app.use((req, res) => {
@@ -36,8 +84,15 @@ app.use((req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
+  // JSON פגום זו שגיאה של הלקוח, לא של השרת — 400 ולא 500.
+  if (err && (err.type === 'entity.parse.failed' || (err instanceof SyntaxError && 'body' in err))) {
+    return res.status(400).json({ error: 'גוף הבקשה אינו JSON תקין' });
+  }
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'גוף הבקשה גדול מדי' });
+  }
   console.error(err);
-  res.status(500).json({ error: 'שגיאת שרת פנימית' });
+  return res.status(500).json({ error: 'שגיאת שרת פנימית' });
 });
 
 const PORT = process.env.PORT || 4000;

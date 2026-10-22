@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { asyncHandler } = require('../asyncHandler');
 
 const router = express.Router();
 
@@ -19,11 +20,14 @@ function isValidEmail(email) {
 }
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', asyncHandler(async (req, res) => {
   const { name, email, password } = req.body || {};
 
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'נא למלא שם, אימייל וסיסמה' });
+  }
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'אימייל וסיסמה חייבים להיות טקסט' });
   }
   if (!isValidEmail(email)) {
     return res.status(400).json({ error: 'כתובת אימייל לא תקינה' });
@@ -47,14 +51,17 @@ router.post('/register', async (req, res) => {
   const token = signToken(user);
 
   res.status(201).json({ token, user });
-});
+}));
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', asyncHandler(async (req, res) => {
   const { email, password } = req.body || {};
 
   if (!email || !password) {
     return res.status(400).json({ error: 'נא למלא אימייל וסיסמה' });
+  }
+  if (typeof email !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'אימייל וסיסמה חייבים להיות טקסט' });
   }
 
   const row = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase());
@@ -71,7 +78,7 @@ router.post('/login', async (req, res) => {
   const token = signToken(user);
 
   res.json({ token, user });
-});
+}));
 
 // GET /api/auth/me
 router.get('/me', requireAuth, (req, res) => {

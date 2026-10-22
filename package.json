@@ -1,0 +1,11 @@
+{
+  "name": "autoparts",
+  "private": true,
+  "description": "autoparts — маркетплейс автозапчастей: приложение на иврите + REST API",
+  "scripts": {
+    "start": "node scripts/start.js",
+    "test": "node tests/smoke.js",
+    "seed": "npm --prefix backend run seed"
+  },
+  "engines": { "node": ">=18" }
+}
